@@ -89,7 +89,7 @@ test('the depth scale stretches so stacked descriptions fit', () => {
 test('dual USCS symbols split the graphic column', () => {
     const svg = renderBoringLog(oneLayer({ layers: [{ top: 0, bottom: 5, uscs: 'SP-SM' }] }), { id_prefix: 't' });
     assert.match(svg, /fill="url\(#t-SP\)"/);
-    assert.match(svg, /fill="url\(#t-SM\)"/);
+    assert.match(svg, /fill="url\(#t-SM-right\)"/);
 });
 
 test('pattern ids differ between documents so logs can share a page', () => {
@@ -246,4 +246,14 @@ test('inferred USCS symbols are shown in parentheses and drive the graphic log',
     const off = renderBoringLog(doc, { infer_uscs: false });
     assert.doesNotMatch(off, />\(CH\)</);
     assert.doesNotMatch(textOf(off), /inferred from the material description/);
+});
+
+test('dual USCS symbols are split with a divider and named in the legend', () => {
+    const svg = renderBoringLog(oneLayer({ layers: [{ top: 0, bottom: 5, description: 'SAND with silt', uscs: 'SP-SM' }] }));
+    const graphic = svg.match(/<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)" height="[\d.]+" fill="url\(#[^)]+-SP\)"\/>/);
+    assert.ok(graphic, 'SP pattern on the left');
+    const mid = Number(graphic[1]) + Number(graphic[2]);
+    assert.match(svg, new RegExp(String.raw`fill="url\(#[^)]+-SM-right\)"`), 'SM pattern on the right, started at the divider');
+    assert.match(svg, new RegExp(String.raw`<line x1="${mid}" y1="[\d.]+" x2="${mid}"`), 'divider between the halves');
+    assert.match(textOf(svg), /SP-SM – Poorly graded sand with silt \(left: SP, right: SM\)/);
 });

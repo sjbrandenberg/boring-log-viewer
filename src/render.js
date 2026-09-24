@@ -2,7 +2,7 @@
 // no DOM, no network, no external images, so the same code runs in the
 // browser, in Node for the API, and in tests.
 import { normalizeBoringLog } from './normalize.js';
-import { inferUscs, layerHatch, USCS_NAMES } from './classify.js';
+import { DUAL_NAMES, inferUscs, layerHatch, USCS_NAMES } from './classify.js';
 import { HATCH_TILES } from './hatches.js';
 import { FONT_FAMILY, measureText, wrapText, escapeXml } from './text.js';
 
@@ -482,12 +482,22 @@ export function renderBoringLog(input, options = {}) {
     // Hatch patterns, aligned to the graphic column so tiles line up across layers.
     const graphic = col('graphic');
     const usedHatches = new Set();
-    for (const l of layers) layerHatch(l).forEach(h => usedHatches.add(h));
+    const dualRight = new Set();
+    for (const l of layers) {
+        const codes = layerHatch(l);
+        codes.forEach(h => usedHatches.add(h));
+        if (codes.length === 2) dualRight.add(codes[1]);
+    }
     const hatchScale = graphic.w / 104;
     for (const code of [...usedHatches].sort()) {
         const tile = HATCH_TILES[code];
         if (!tile) continue;
         defs.push(`<pattern id="${prefix}-${code}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(graphic.x)} ${r(y0)}) scale(${r(hatchScale * 1000) / 1000})">${tile.body}</pattern>`);
+        // The right half of a dual symbol starts its pattern at the divider, so the
+        // pattern's own lines don't sit beside the divider.
+        if (dualRight.has(code)) {
+            defs.push(`<pattern id="${prefix}-${code}-right" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(graphic.x + graphic.w / 2)} ${r(y0)}) scale(${r(hatchScale * 1000) / 1000})">${tile.body}</pattern>`);
+        }
     }
     const usedSamplers = new Set(samples.map(s => s.type ?? 'Other'));
     if (usedSamplers.has('Bulk')) {
@@ -539,9 +549,12 @@ export function renderBoringLog(input, options = {}) {
                 const parts = codes.length ? codes : [null];
                 parts.forEach((code, k) => {
                     const pw = c.w / parts.length;
-                    const fill = code ? `url(#${prefix}-${code})` : '#fff';
+                    const fill = code ? `url(#${prefix}-${code}${parts.length === 2 && k === 1 ? '-right' : ''})` : '#fff';
                     out.push(`<rect x="${r(c.x + k * pw)}" y="${r(top)}" width="${r(pw)}" height="${r(h)}" fill="${fill}"/>`);
                 });
+                // A dual symbol (SP-SM) is drawn as the first pattern on the left and
+                // the second on the right, with a line between the halves.
+                if (parts.length === 2) out.push(line(c.x + c.w / 2, top, c.x + c.w / 2, top + h, 0.75));
             }
         } else if (c.kind === 'uscs') {
             for (const b of blocks) {
@@ -620,6 +633,16 @@ export function renderBoringLog(input, options = {}) {
         for (const code of [...usedHatches].sort()) {
             if (HATCH_TILES[code]) items.push({ kind: 'hatch', code, label: `${code} – ${USCS_NAMES[code]}` });
         }
+        const duals = new Set();
+        for (const l of layers) {
+            const codes = layerHatch(l).filter(h => HATCH_TILES[h]);
+            if (codes.length === 2) duals.add(codes.join('-'));
+        }
+        for (const dual of [...duals].sort()) {
+            const [a, b] = dual.split('-');
+            const name = DUAL_NAMES[dual] ?? `${USCS_NAMES[a]} / ${USCS_NAMES[b].toLowerCase()}`;
+            items.push({ kind: 'dual', codes: [a, b], label: `${dual} – ${name} (left: ${a}, right: ${b})` });
+        }
         for (const type of Object.keys(SAMPLER_NAMES)) {
             if (usedSamplers.has(type)) items.push({ kind: 'sampler', type, label: SAMPLER_NAMES[type] });
         }
@@ -650,6 +673,14 @@ export function renderBoringLog(input, options = {}) {
                 if (it.kind === 'hatch') {
                     defs.push(`<pattern id="${prefix}-legend-${it.code}" patternUnits="userSpaceOnUse" width="104" height="93" patternTransform="translate(${r(ix)} ${r(iy)}) scale(${r(hatchScale * 1000) / 1000})">${HATCH_TILES[it.code].body}</pattern>`);
                     out.push(`<rect x="${r(ix)}" y="${r(iy)}" width="30" height="16" fill="url(#${prefix}-legend-${it.code})" stroke="#000" stroke-width="0.75"/>`);
+                } else if (it.kind === 'dual') {
+                    it.codes.forEach((code, k) => {
+                        const id = `${prefix}-legend-${it.codes.join('-')}-${k}`;
+                        defs.push(`<pattern id="${id}" patternUnits="userSpaceOnUse" width="104" height="93" patternTransform="translate(${r(ix + k * 15)} ${r(iy)}) scale(${r(hatchScale * 1000) / 1000})">${HATCH_TILES[code].body}</pattern>`);
+                        out.push(`<rect x="${r(ix + k * 15)}" y="${r(iy)}" width="15" height="16" fill="url(#${id})"/>`);
+                    });
+                    out.push(line(ix + 15, iy, ix + 15, iy + 16, 0.75));
+                    out.push(`<rect x="${r(ix)}" y="${r(iy)}" width="30" height="16" fill="none" stroke="#000" stroke-width="0.75"/>`);
                 } else if (it.kind === 'sampler') {
                     out.push(samplerSymbol(it.type, ix + 9, iy, 12, 16, `${prefix}-bulk`));
                 } else if (it.kind === 'text') {

@@ -22,6 +22,22 @@ export const USCS_NAMES = {
     PT: 'Peat',
 };
 
+// ASTM D2487 group names for the dual symbols it uses; other pairs are named
+// from their two parts in the legend.
+export const DUAL_NAMES = {
+    'GW-GM': 'Well-graded gravel with silt',
+    'GW-GC': 'Well-graded gravel with clay',
+    'GP-GM': 'Poorly graded gravel with silt',
+    'GP-GC': 'Poorly graded gravel with clay',
+    'GC-GM': 'Silty clayey gravel',
+    'SW-SM': 'Well-graded sand with silt',
+    'SW-SC': 'Well-graded sand with clay',
+    'SP-SM': 'Poorly graded sand with silt',
+    'SP-SC': 'Poorly graded sand with clay',
+    'SC-SM': 'Silty clayey sand',
+    'CL-ML': 'Silty clay',
+};
+
 const SYMBOL = USCS_SYMBOLS.join('|');
 const SYMBOL_IN_TEXT = new RegExp(`(?<![A-Za-z])(${SYMBOL})(?:[-/](${SYMBOL}))?(?![A-Za-z])`);
 
