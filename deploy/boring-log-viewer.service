@@ -1,0 +1,34 @@
+# systemd unit for the render API. Install with:
+#   sudo cp deploy/boring-log-viewer.service /etc/systemd/system/
+#   (edit WorkingDirectory, User and the node path below)
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now boring-log-viewer
+# After each deploy:  sudo systemctl restart boring-log-viewer
+# Logs:               journalctl -u boring-log-viewer -f
+
+[Unit]
+Description=Boring log viewer render API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/boring-log-viewer
+ExecStart=/usr/bin/node server/index.js
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOST=127.0.0.1
+Environment=RATE_LIMIT=60
+User=www-data
+Group=www-data
+Restart=on-failure
+RestartSec=5
+
+# Hardening: the service only reads its own files and writes font caches to /tmp.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/var/www/boring-log-viewer
+
+[Install]
+WantedBy=multi-user.target

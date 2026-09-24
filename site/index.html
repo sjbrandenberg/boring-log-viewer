@@ -17,6 +17,7 @@
     </div>
     <nav>
         <a href="#format">JSON format</a>
+        <a href="#api">API</a>
         <a href="schema/boring-log.schema.json">Schema</a>
     </nav>
 </header>
@@ -99,6 +100,33 @@
         <dd><code>depth</code>, <code>date</code>, <code>note</code>.</dd>
     </dl>
     <p>The complete definition is in the <a href="schema/boring-log.schema.json">JSON Schema</a>.</p>
+</section>
+
+<section id="api" class="format">
+    <h2>API</h2>
+    <p>To render from a script or another website, send the JSON as the body of a <code>POST</code> request to <code>https://www.uclageo.com/boring-log-viewer/api/render</code> with <code>Content-Type: application/json</code>. The response is the log as SVG (the default), PNG or an HTML page.</p>
+    <pre><code>curl -X POST -H "Content-Type: application/json" --data-binary @boring.json \
+     "https://www.uclageo.com/boring-log-viewer/api/render?format=png&amp;units=ft" -o boring.png</code></pre>
+    <pre><code>import requests
+with open("boring.json") as f:
+    r = requests.post("https://www.uclageo.com/boring-log-viewer/api/render",
+                      params={"format": "svg"}, data=f.read(),
+                      headers={"Content-Type": "application/json"})
+r.raise_for_status()
+open("boring.svg", "w", encoding="utf-8").write(r.text)</code></pre>
+    <dl class="fields">
+        <dt><code>format</code></dt>
+        <dd><code>svg</code>, <code>png</code> or <code>html</code>. Without it, the <code>Accept</code> header decides, and SVG is the default.</dd>
+        <dt>Drawing options</dt>
+        <dd><code>units</code> (<code>m</code> or <code>ft</code>), <code>width</code> (px), <code>header</code>, <code>legend</code>, <code>fit_text</code> and <code>hide_empty_columns</code> (<code>true</code> or <code>false</code>), <code>columns</code> (a comma-separated list, e.g. <code>depth,graphic,description,blow_count</code>), <code>title</code>, <code>font_size</code>, <code>height</code>, <code>scale</code>.</dd>
+        <dt>Output options</dt>
+        <dd><code>png_scale</code> (0.5 to 4, default 2), <code>download=true</code> (asks the browser to save the file instead of showing it).</dd>
+        <dt>Errors</dt>
+        <dd>Errors come back as JSON: <code>{ "error": "…", "errors": [{ "path": "/layers/2/uscs", "message": "…" }] }</code>. Status 400 means malformed JSON or a bad query parameter, 422 an invalid boring log, and 429 more than 60 requests per minute. Warnings, such as gaps between layers, don't stop rendering and are returned in the <code>X-Boring-Log-Warnings</code> header.</dd>
+        <dt>Other endpoints</dt>
+        <dd><code>POST api/validate</code> returns <code>{ valid, errors, warnings }</code>. <code>GET api/schema</code> returns the JSON Schema, and <code>GET api/health</code> reports whether the service is up.</dd>
+    </dl>
+    <p>Requests are limited to 1 MB, 2,000 layers and 5,000 samples. Submitted data is not stored.</p>
 </section>
 </body>
 </html>

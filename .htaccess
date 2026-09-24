@@ -1,8 +1,15 @@
-# Apache serves the built site from public/ (run `npm ci && npm run build`
-# after each pull). Every request is mapped into public/, so the source,
-# tests, node_modules and .git are never reachable from the web.
+# /boring-log-viewer/api/...  ->  the Node render API on 127.0.0.1:3000
+#                                (needs mod_proxy and mod_proxy_http; see
+#                                deploy/README.md for the ProxyPass alternative)
+# everything else             ->  the built site in public/ (run
+#                                `npm ci && npm run build` after each pull)
+# Every request is mapped into one of those two, so the source, tests,
+# node_modules and .git are never reachable from the web.
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    <IfModule mod_proxy_http.c>
+        RewriteRule ^api/(.*)$ http://127.0.0.1:3000/api/$1 [P,L]
+    </IfModule>
     RewriteRule ^$ public/ [L]
     RewriteRule ^(?!public/)(.*)$ public/$1 [L]
 </IfModule>

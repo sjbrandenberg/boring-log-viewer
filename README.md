@@ -1,9 +1,10 @@
 # Boring log viewer
 
 Renders a geotechnical boring log from JSON as a standalone SVG. The same
-module serves the paste-and-preview page at
-`www.uclageo.com/boring-log-viewer` (see [Website](#website)) and will serve the render API and the viewers in
-coastal_database and vspdb.
+module is used by the paste-and-preview page at
+`www.uclageo.com/boring-log-viewer` (see [Website](#website)) and by the
+[render API](#render-api). The viewers in coastal_database and vspdb will use
+it too.
 
 ```js
 import { renderBoringLog, validateBoringLog } from 'boring-log-viewer';
@@ -100,21 +101,46 @@ entirely in the browser:
 
 The four examples are the synthetic test fixtures.
 
-### Deploying at www.uclageo.com/boring-log-viewer
+## Render API
 
-Clone the repository to the directory Apache serves as `/boring-log-viewer`,
-then, after each `git pull`:
+`server/` is a Fastify service (`npm start`, which listens on
+`127.0.0.1:3000`). Apache forwards `/boring-log-viewer/api/` to it.
+
+| endpoint | returns |
+|---|---|
+| `POST /api/render` | The log as SVG (default), PNG or HTML. The body is the boring log JSON. |
+| `POST /api/validate` | `{ valid, errors, warnings }` |
+| `GET /api/schema` | The JSON Schema |
+| `GET /api/health` | `{ status, version, endpoints }` |
 
 ```sh
-npm ci
-npm run build
+curl -X POST -H "Content-Type: application/json" --data-binary @boring.json      "https://www.uclageo.com/boring-log-viewer/api/render?format=png&units=ft" -o boring.png
 ```
 
-The root `.htaccess` sends every request into `public/`, so the page is served
-at `/boring-log-viewer/`, and nothing outside `public/` (source, tests,
-`node_modules`, `.git`) is reachable. This needs `mod_rewrite` and
-`AllowOverride` for the directory, the same as the CakePHP apps. `public/` is
-build output and is not committed.
+- **Format:** `?format=svg|png|html`. Without it, the `Accept` header decides
+  (with q-values). An unknown format gets 406.
+- **Query parameters:** the render options (`units`, `width`, `height`, `scale`,
+  `font_size`, `columns` as a comma list, `header`, `legend`, `fit_text`,
+  `hide_empty_columns`, `title`, `id_prefix`, `unit_weight`, `diameter_units`),
+  plus `png_scale` (0.5–4, default 2) and `download=true`, which sets
+  `Content-Disposition: attachment`. Unknown or invalid parameters get 400,
+  so a typo is reported instead of ignored.
+- **Errors** use one shape, `{ error, errors: [{ path, message }] }`:
+  - 400: malformed JSON (with the parser's position) or a bad query parameter.
+  - 415: a body that isn't `application/json`.
+  - 413: a body over 1 MB.
+  - 422: an invalid log, more than 2,000 layers or 5,000 samples, or a PNG over
+    40 megapixels.
+  - 429: over the rate limit (60 requests per minute per client by default).
+- **Warnings** such as layer gaps don't block rendering. They are returned in
+  the `X-Boring-Log-Warnings` header.
+- **CORS** is open (`Access-Control-Allow-Origin: *`), since the API takes no
+  credentials. Request bodies are not stored or logged.
+- **PNGs** are drawn with resvg using the bundled Arimo font (`server/fonts.js`),
+  never the server's own fonts, so the text matches the measured layout.
+
+Deployment (Apache, systemd or pm2) is described in
+[`deploy/README.md`](deploy/README.md).
 
 ## Development
 
@@ -122,6 +148,7 @@ build output and is not committed.
 npm install
 npm test                     # unit tests + snapshot comparison + resvg parse check
 npm run dev                  # build the site, rebuild on change, serve at http://localhost:8080/
+npm start                    # run the render API on http://127.0.0.1:3000/
 npm run build                # production build into public/
 npm run test:update          # re-render tests/snapshots/*.svg after an intended layout change
 npm run render -- tests/fixtures/coastal-style.json out.png [--units=ft] [--width=900]
