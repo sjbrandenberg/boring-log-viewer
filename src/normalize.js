@@ -75,7 +75,7 @@ export function normalizeBoringLog(input) {
     if (!Array.isArray(doc.layers) || doc.layers.length === 0) {
         issues.push({ path: '/layers', message: 'must be a non-empty array' });
     }
-    for (const name of ['layers', 'samples', 'groundwater']) {
+    for (const name of ['layers', 'samples', 'groundwater', 'depth_notes']) {
         if (doc[name] !== undefined && !Array.isArray(doc[name])) issues.push({ path: `/${name}`, message: 'must be an array' });
     }
     const numeric = (list, name, fields) => {
@@ -90,6 +90,7 @@ export function normalizeBoringLog(input) {
     numeric(doc.layers, 'layers', ['top', 'bottom']);
     numeric(doc.samples, 'samples', ['top', 'bottom']);
     numeric(doc.groundwater, 'groundwater', ['depth']);
+    numeric(doc.depth_notes, 'depth_notes', ['depth']);
     issues.push(...checkDepths(doc).errors);
     if (issues.length) {
         throw new BoringLogError(`Boring log has ${issues.length} problem${issues.length > 1 ? 's' : ''}`, issues);
@@ -103,5 +104,7 @@ export function normalizeBoringLog(input) {
         layers: [...doc.layers].sort(byTop),
         samples: [...(doc.samples ?? [])].sort(byTop),
         groundwater: [...(doc.groundwater ?? [])].sort((a, b) => a.depth - b.depth),
+        // A note without text has nothing to draw.
+        depth_notes: (doc.depth_notes ?? []).filter(n => n.description).sort((a, b) => a.depth - b.depth),
     };
 }

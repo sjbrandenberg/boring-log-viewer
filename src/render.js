@@ -51,6 +51,9 @@ const TEXT_PAD_X = 4;
 const TEXT_PAD_Y = 2;
 const BEND = 8;           // horizontal run of a description leader line
 const DESC_PAD_X = BEND + 3; // keeps description text clear of the leader bends
+// fit_text stretches the depth scale so sample rows line up with their samplers,
+// but never makes the log body taller than this (px); beyond it, rows are pushed down.
+const MAX_ALIGNED_HEIGHT = 8000;
 
 const r = n => Math.round(n * 100) / 100;
 
@@ -165,29 +168,48 @@ function decimalsFor(step) {
     return s.includes('.') ? s.split('.')[1].length : 0;
 }
 
+// The layer a depth note belongs to: the one containing its depth, else the
+// last layer starting above it, else the first layer.
+function noteLayerIndex(layers, depth) {
+    const inside = layers.findIndex(l => depth >= l.top && depth < l.bottom);
+    if (inside >= 0) return inside;
+    let k = 0;
+    layers.forEach((l, i) => { if (l.top <= depth) k = i; });
+    return k;
+}
+
 // Stacks description blocks top-down: each starts at its layer top, or below
-// the previous block if that ran long. Returns block positions in px from the
-// top of the depth scale.
-function layoutDescriptions(layers, col, scale, dTop, fs) {
+// the previous block if that ran long. A layer's depth notes follow its
+// description, each with its first line level with its depth when there is
+// room. Returns positions in px from the top of the depth scale.
+function layoutDescriptions(layers, notes, col, scale, dTop, fs) {
     const lh = fs * 1.2;
+    const maxW = col.w - 2 * DESC_PAD_X;
+    const notesByLayer = layers.map(() => []);
+    for (const n of notes) notesByLayer[noteLayerIndex(layers, n.depth)].push(n);
     let cursor = -Infinity;
-    return layers.map(layer => {
-        const lines = wrapText(layer.description ?? '', col.w - 2 * DESC_PAD_X, fs);
+    return layers.map((layer, k) => {
+        const lines = wrapText(layer.description ?? '', maxW, fs);
         const textH = lines.length * lh + 2 * TEXT_PAD_Y;
         const layerTop = (layer.top - dTop) * scale;
         const layerBottom = (layer.bottom - dTop) * scale;
         const top = Math.max(layerTop, cursor);
-        const height = Math.max(textH, layerBottom - top);
-        cursor = top + height;
-        return { layer, lines, layerTop, layerBottom, top, bottom: cursor };
+        let end = top + textH;
+        const noteBlocks = notesByLayer[k].map(note => {
+            const noteLines = wrapText(note.description, maxW, fs);
+            const y = (note.depth - dTop) * scale;
+            const noteTop = Math.max(y - lh / 2 - TEXT_PAD_Y, end);
+            end = noteTop + noteLines.length * lh + 2 * TEXT_PAD_Y;
+            return { note, lines: noteLines, y, top: noteTop };
+        });
+        cursor = Math.max(end, layerBottom);
+        return { layer, lines, layerTop, layerBottom, top, bottom: cursor, notes: noteBlocks };
     });
 }
 
-// Places one text row per sample, centered on the sample interval when there
-// is room and pushed down past the previous row when there is not.
-function layoutSampleRows(samples, textCols, scale, dTop, fs) {
+// Wraps each sample's text columns; the row heights don't depend on the scale.
+function wrapSampleRows(samples, textCols, fs) {
     const lh = fs * 1.2;
-    let cursor = -Infinity;
     return samples.map(sample => {
         const wrapped = {};
         let lines = 1;
@@ -195,22 +217,53 @@ function layoutSampleRows(samples, textCols, scale, dTop, fs) {
             wrapped[c.id] = wrapText(c.value(sample) ?? '', c.w - 2 * TEXT_PAD_X, fs);
             lines = Math.max(lines, wrapped[c.id].length);
         }
-        const height = lines * lh + 2 * TEXT_PAD_Y;
-        const sTop = (sample.top - dTop) * scale;
-        const sBottom = (sample.bottom - dTop) * scale;
-        const top = Math.max((sTop + sBottom) / 2 - height / 2, cursor);
-        cursor = top + height;
-        return { sample, wrapped, sTop, sBottom, top, bottom: cursor };
+        return { sample, wrapped, height: lines * lh + 2 * TEXT_PAD_Y };
+    });
+}
+
+// A row's first line is centered on the middle of its sample interval (in
+// display units); the rest of a long row extends below the sample.
+const rowAnchor = s => (s.top + s.bottom) / 2;
+// Distance from the top of a row to the middle of its first line, px.
+const rowLead = fs => fs * 0.6 + TEXT_PAD_Y;
+
+// The smallest scale (px per display unit) at which every sample row starts
+// level with its sampler without running into the next row or above the log.
+function rowAlignScale(wrappedRows, dTop, fs) {
+    let need = 0;
+    wrappedRows.forEach((row, i) => {
+        const a = rowAnchor(row.sample) - dTop;
+        if (i === 0) {
+            if (a > 0) need = Math.max(need, rowLead(fs) / a);
+            return;
+        }
+        const gap = a - (rowAnchor(wrappedRows[i - 1].sample) - dTop);
+        if (gap > 0) need = Math.max(need, wrappedRows[i - 1].height / gap);
+    });
+    return need;
+}
+
+// Places the rows: each row's first line level with the middle of its sample,
+// pushed down past the previous row only if there is no room.
+function layoutSampleRows(wrappedRows, scale, dTop, fs) {
+    let cursor = 0;
+    return wrappedRows.map(row => {
+        const sTop = (row.sample.top - dTop) * scale;
+        const sBottom = (row.sample.bottom - dTop) * scale;
+        const top = Math.max((rowAnchor(row.sample) - dTop) * scale - rowLead(fs), cursor);
+        cursor = top + row.height;
+        return { ...row, sTop, sBottom, top, bottom: cursor };
     });
 }
 
 // ---------------------------------------------------------------- drawing helpers
 
-function text(x, y, str, { size, anchor = 'start', bold = false, rotate = false, fill } = {}) {
+function text(x, y, str, { size, anchor = 'start', bold = false, italic = false, rotate = false, fill } = {}) {
     const attrs = [`x="${r(x)}"`, `y="${r(y)}"`];
     if (size) attrs.push(`font-size="${r(size)}"`);
     if (anchor !== 'start') attrs.push(`text-anchor="${anchor}"`);
     if (bold) attrs.push('font-weight="bold"');
+    if (italic) attrs.push('font-style="italic"');
     if (fill) attrs.push(`fill="${fill}"`);
     if (rotate) attrs.push(`transform="rotate(-90 ${r(x)} ${r(y)})"`);
     return `<text ${attrs.join(' ')}>${escapeXml(str)}</text>`;
@@ -371,9 +424,10 @@ export function renderBoringLog(input, options = {}) {
     const layers = doc.layers.map(l => ({ ...l, top: u.length(l.top), bottom: u.length(l.bottom) }));
     const samples = doc.samples.map(s => ({ ...s, top: u.length(s.top), bottom: u.length(s.bottom) }));
     const groundwater = doc.groundwater.map(g => ({ ...g, depth: u.length(g.depth) }));
-    const drawDoc = { ...doc, layers, samples, groundwater };
+    const depthNotes = doc.depth_notes.map(n => ({ ...n, depth: u.length(n.depth) }));
+    const drawDoc = { ...doc, layers, samples, groundwater, depth_notes: depthNotes };
 
-    const deepest = Math.max(...layers.map(l => l.bottom), ...samples.map(s => s.bottom), ...groundwater.map(g => g.depth));
+    const deepest = Math.max(...layers.map(l => l.bottom), ...samples.map(s => s.bottom), ...groundwater.map(g => g.depth), ...depthNotes.map(n => n.depth));
     const [dTop, dBottom] = opt.depth_range ?? [Math.min(0, ...layers.map(l => l.top)), deepest];
     const range = Math.max(dBottom - dTop, 1e-6);
 
@@ -382,14 +436,17 @@ export function renderBoringLog(input, options = {}) {
     const descCol = col('description');
     const sampleTextCols = cols.filter(c => c.kind === 'sample_text');
 
-    // Depth scale: start from the requested size, then stretch until the
+    // Depth scale: start from the requested size, stretch until each sample row
+    // lines up with its sampler (up to MAX_ALIGNED_HEIGHT), then until the
     // stacked text ends no lower than the bottom of the scale.
     let scale = opt.scale ?? opt.height / range;
+    const wrappedRows = wrapSampleRows(samples, sampleTextCols, fs);
+    if (opt.fit_text) scale = Math.max(scale, Math.min(rowAlignScale(wrappedRows, dTop, fs), MAX_ALIGNED_HEIGHT / range));
     let blocks;
     let rows;
     for (let i = 0; i < 12; i++) {
-        blocks = layoutDescriptions(layers, descCol, scale, dTop, fs);
-        rows = layoutSampleRows(samples, sampleTextCols, scale, dTop, fs);
+        blocks = layoutDescriptions(layers, depthNotes, descCol, scale, dTop, fs);
+        rows = layoutSampleRows(wrappedRows, scale, dTop, fs);
         const needed = Math.max(0, ...blocks.map(b => b.bottom), ...rows.map(rw => rw.bottom));
         if (!opt.fit_text || needed <= range * scale + 0.5) break;
         scale *= needed / (range * scale) + 0.002;
@@ -489,6 +546,15 @@ export function renderBoringLog(input, options = {}) {
         } else if (c.kind === 'description') {
             for (const b of blocks) {
                 b.lines.forEach((ln, i) => out.push(text(c.x + DESC_PAD_X, y0 + b.top + TEXT_PAD_Y + fs * 0.85 + i * lh, ln)));
+                // Depth notes: a tick at the note's depth, bending down to the
+                // note's first line if it had to be pushed below that depth.
+                for (const nb of b.notes) {
+                    const yd = y0 + nb.y;
+                    const yt = y0 + nb.top + TEXT_PAD_Y + lh / 2;
+                    if (Math.abs(yt - yd) < 0.5) out.push(line(c.x, yd, c.x + BEND, yd, 0.5));
+                    else out.push(`<polyline points="${r(c.x)},${r(yd)} ${r(c.x + BEND)},${r(yt)}" fill="none" stroke="#000" stroke-width="0.5"/>`);
+                    nb.lines.forEach((ln, i) => out.push(text(c.x + DESC_PAD_X, y0 + nb.top + TEXT_PAD_Y + fs * 0.85 + i * lh, ln, { italic: true })));
+                }
             }
         } else if (c.kind === 'sample_symbol') {
             for (const s of samples) {

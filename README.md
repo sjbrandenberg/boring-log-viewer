@@ -43,6 +43,9 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   nonplastic, description, remarks, ... }`. `type` is one of SPT, ModCal,
   Shelby, Piston, Bulk, Core, Other.
 - **`groundwater`**: a list of `{ depth, date, note }`.
+- **`depth_notes`**: a list of `{ depth, description }` for observations at one
+  depth within a layer ("thin sand lens"). They are drawn in italics in the
+  material description column, with a tick at their depth.
 - **`null` means "not given"**, so database exports can be passed through
   without cleaning. Unknown property names are errors, which catches typos.
 
@@ -53,7 +56,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 | `width` | 800 | SVG width in px. It widens if the text columns would go below 60 px per flex unit. |
 | `height` | 500 | Starting height of the log body in px |
 | `scale` | – | px per display length unit; overrides `height` |
-| `fit_text` | true | Stretch the depth scale until stacked descriptions fit within it |
+| `fit_text` | true | Stretch the depth scale so sample rows line up with their samplers (up to an 8,000 px body) and stacked descriptions fit within it |
 | `units` | data's units | Display length units, `m` or `ft`; unit weight and diameter follow unless set below |
 | `unit_weight`, `diameter_units` | – | Override display units |
 | `columns` | see `DEFAULT_COLUMNS` | Column ids, in order |
@@ -81,9 +84,16 @@ must have Liberation Sans or Arimo installed, or be given the font file.
 
 Descriptions start at the top of their layer. If the previous description ran
 long, the next one starts below it, and a leader line connects the layer
-boundary to the text. With `fit_text`, the depth scale stretches until all
-descriptions end within the depth of the boring. Sample values are centered on
-their sample interval and pushed down in the same way when rows would collide.
+boundary to the text. A layer's depth notes follow its description, each with
+its first line level with its depth when there is room, or pushed down with a
+leader from its depth when there isn't.
+
+Each sample's row starts with its first line level with the middle of the
+sample, and long text (e.g. a wrapped remark) extends below it. With
+`fit_text`, the depth scale first stretches until no row runs into the next,
+so every row lines up with its sampler symbol, and then until all descriptions
+end within the depth of the boring. The first stretch is capped at an 8,000 px
+log body; past that, rows that would collide are pushed down instead.
 
 ## Website
 

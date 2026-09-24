@@ -61,6 +61,19 @@
         }
       }
     },
+    "depth_notes": {
+      "description": "Observations at a single depth within a layer, e.g. 'trace gravel' or 'thin sand lens'. Drawn in italics in the material description column, marked at their depth.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["depth", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "depth": { "type": "number", "minimum": 0 },
+          "description": { "type": "string" }
+        }
+      }
+    },
     "layers": {
       "description": "Stratigraphic layers, top to bottom.",
       "type": "array",

@@ -54,14 +54,14 @@ export function woffToSfnt(woff) {
     return out;
 }
 
-// Writes regular and bold Arimo (Latin and Latin-1 supplement) as TrueType
+// Writes regular, bold and italic Arimo (Latin and Latin-1 supplement) as TrueType
 // files and returns their paths. resvg-js 2.x takes font file paths only; its
 // fontBuffers option is not supported and silently discards all options.
 export function loadFonts(dir = join(tmpdir(), 'boring-log-viewer-fonts')) {
     const require = createRequire(import.meta.url);
     const src = require.resolve('@fontsource/arimo/package.json').replace(/package\.json$/, 'files/');
     mkdirSync(dir, { recursive: true });
-    return ['arimo-latin-400-normal', 'arimo-latin-700-normal'].map(name => {
+    return ['arimo-latin-400-normal', 'arimo-latin-700-normal', 'arimo-latin-400-italic'].map(name => {
         const path = join(dir, `${name}.ttf`);
         writeFileSync(path, woffToSfnt(readFileSync(`${src}${name}.woff`)));
         return path;
