@@ -104,12 +104,12 @@
 
 <section id="api" class="format">
     <h2>API</h2>
-    <p>To render from a script or another website, send the JSON as the body of a <code>POST</code> request to <code>https://www.uclageo.com/boring-log-viewer/api/render</code> with <code>Content-Type: application/json</code>. The response is the log as SVG (the default), PNG or an HTML page.</p>
+    <p>To render from a script or another website, send the JSON as the body of a <code>POST</code> request to <code>https://uclageo.com/boring-log-viewer/api/render</code> with <code>Content-Type: application/json</code>. The response is the log as SVG (the default), PNG or an HTML page.</p>
     <pre><code>curl -X POST -H "Content-Type: application/json" --data-binary @boring.json \
-     "https://www.uclageo.com/boring-log-viewer/api/render?format=png&amp;units=ft" -o boring.png</code></pre>
+     "https://uclageo.com/boring-log-viewer/api/render?format=png&amp;units=ft" -o boring.png</code></pre>
     <pre><code>import requests
 with open("boring.json") as f:
-    r = requests.post("https://www.uclageo.com/boring-log-viewer/api/render",
+    r = requests.post("https://uclageo.com/boring-log-viewer/api/render",
                       params={"format": "svg"}, data=f.read(),
                       headers={"Content-Type": "application/json"})
 r.raise_for_status()

@@ -2,7 +2,7 @@
 
 Renders a geotechnical boring log from JSON as a standalone SVG. The same
 module is used by the paste-and-preview page at
-`www.uclageo.com/boring-log-viewer` (see [Website](#website)) and by the
+`uclageo.com/boring-log-viewer` (see [Website](#website)) and by the
 [render API](#render-api). The viewers in coastal_database and vspdb will use
 it too.
 
@@ -114,7 +114,7 @@ The four examples are the synthetic test fixtures.
 | `GET /api/health` | `{ status, version, endpoints }` |
 
 ```sh
-curl -X POST -H "Content-Type: application/json" --data-binary @boring.json      "https://www.uclageo.com/boring-log-viewer/api/render?format=png&units=ft" -o boring.png
+curl -X POST -H "Content-Type: application/json" --data-binary @boring.json      "https://uclageo.com/boring-log-viewer/api/render?format=png&units=ft" -o boring.png
 ```
 
 - **Format:** `?format=svg|png|html`. Without it, the `Accept` header decides

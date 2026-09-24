@@ -1,4 +1,4 @@
-# Deploying to www.uclageo.com/boring-log-viewer
+# Deploying to uclageo.com/boring-log-viewer
 
 Written for Rocky Linux 9 with Apache (httpd) and SELinux disabled. There are
 two parts:
@@ -11,7 +11,7 @@ two parts:
 
 Everything here adds new things rather than changing existing ones:
 
-- a new folder, `/gmdatabase/sites/uclageo.com/boring-log-viewer`;
+- a new folder, `/gmdatabase/sites/uclageo.com/public_html/boring-log-viewer`;
 - a new systemd service, listening only on localhost;
 - and, only if needed, a new Apache config file,
   `/etc/httpd/conf.d/boring-log-viewer.conf`.
@@ -24,8 +24,8 @@ installing Node, covered in step 1.
 
 ```sh
 getenforce                                    # expect: Disabled
-ls -d /gmdatabase/sites/uclageo.com/coastal_database    # confirms the document root
-ls -d /gmdatabase/sites/uclageo.com/boring-log-viewer   # expect: No such file or directory
+ls -d /gmdatabase/sites/uclageo.com/public_html/coastal_database    # confirms the document root
+ls -d /gmdatabase/sites/uclageo.com/public_html/boring-log-viewer   # expect: No such file or directory
 sudo ss -ltnp | grep ':3000 ' || echo "port 3000 free"
 rpm -q ntopng ntop                            # expect: not installed
 httpd -M 2>/dev/null | grep -E 'rewrite|proxy_module|proxy_http'   # all three are loaded by default on Rocky
@@ -58,7 +58,7 @@ Node 22 in a separate folder (for example, the official tarball unpacked in
 ## 2. Clone and build
 
 ```sh
-APP=/gmdatabase/sites/uclageo.com/boring-log-viewer
+APP=/gmdatabase/sites/uclageo.com/public_html/boring-log-viewer
 sudo git clone https://github.com/sjbrandenberg/boring-log-viewer.git "$APP"
 cd "$APP"
 sudo npm ci
@@ -73,7 +73,7 @@ If `npm ci` or the tests report a missing `@resvg/resvg-js-linux-…` package,
 run `sudo npm install` once. That fetches the Linux build of the image library;
 the lockfile was made on Windows.
 
-Now open <https://www.uclageo.com/boring-log-viewer/>. The page should load and
+Now open <https://uclageo.com/boring-log-viewer/>. The page should load and
 draw the example. `/api/` won't work until steps 3 and 4.
 
 ## 3. Run the API as a service
@@ -101,9 +101,9 @@ and SELinux is disabled, so the repository's `.htaccess` should forward
 `/boring-log-viewer/api/` to the service with no extra configuration. Test it:
 
 ```sh
-curl -s https://www.uclageo.com/boring-log-viewer/api/health
+curl -s https://uclageo.com/boring-log-viewer/api/health
 curl -s -X POST -H "Content-Type: application/json" --data-binary @"$APP/tests/fixtures/coastal-style.json" \
-     "https://www.uclageo.com/boring-log-viewer/api/render?format=png" -o /tmp/test.png && file /tmp/test.png
+     "https://uclageo.com/boring-log-viewer/api/render?format=png" -o /tmp/test.png && file /tmp/test.png
 # expect: PNG image data, 1636 x 1630
 ```
 
@@ -116,7 +116,7 @@ ignored today and would suddenly start applying.
 ```sh
 sudo tee /etc/httpd/conf.d/boring-log-viewer.conf >/dev/null <<'EOF'
 # Let the repository's .htaccess work in this folder only.
-<Directory "/gmdatabase/sites/uclageo.com/boring-log-viewer">
+<Directory "/gmdatabase/sites/uclageo.com/public_html/boring-log-viewer">
     AllowOverride All
     Options -Indexes
 </Directory>
@@ -146,7 +146,7 @@ current visitors.
 ## 6. Updating
 
 ```sh
-cd /gmdatabase/sites/uclageo.com/boring-log-viewer
+cd /gmdatabase/sites/uclageo.com/public_html/boring-log-viewer
 sudo git pull
 sudo npm ci
 sudo npm run build

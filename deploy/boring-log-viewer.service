@@ -1,5 +1,5 @@
 # systemd unit for the render API. See deploy/README.md for the full steps.
-# Defaults assume Rocky Linux 9: the app in /gmdatabase/sites/uclageo.com/boring-log-viewer,
+# Defaults assume Rocky Linux 9: the app in /gmdatabase/sites/uclageo.com/public_html/boring-log-viewer,
 # run as the apache user, and Node from AppStream at /usr/bin/node.
 # If the app lives under /home, change ProtectHome=true to ProtectHome=read-only.
 #   sudo cp deploy/boring-log-viewer.service /etc/systemd/system/
@@ -14,7 +14,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/gmdatabase/sites/uclageo.com/boring-log-viewer
+WorkingDirectory=/gmdatabase/sites/uclageo.com/public_html/boring-log-viewer
 ExecStart=/usr/bin/node server/index.js
 Environment=NODE_ENV=production
 Environment=PORT=3000
@@ -30,7 +30,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadOnlyPaths=/gmdatabase/sites/uclageo.com/boring-log-viewer
+ReadOnlyPaths=/gmdatabase/sites/uclageo.com/public_html/boring-log-viewer
 
 # Optional resource caps so a burst of large PNG renders can't crowd out
 # other sites. Uncomment to enable.
