@@ -1,6 +1,8 @@
-# systemd unit for the render API. Install with:
+# systemd unit for the render API. See deploy/README.md for the full steps.
+# Defaults assume Rocky Linux 9: the app in /var/www/html/boring-log-viewer,
+# run as the apache user, and Node from AppStream at /usr/bin/node.
+# If the app lives under /home, change ProtectHome=true to ProtectHome=read-only.
 #   sudo cp deploy/boring-log-viewer.service /etc/systemd/system/
-#   (edit WorkingDirectory, User and the node path below)
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now boring-log-viewer
 # After each deploy:  sudo systemctl restart boring-log-viewer
@@ -12,14 +14,14 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/var/www/boring-log-viewer
+WorkingDirectory=/var/www/html/boring-log-viewer
 ExecStart=/usr/bin/node server/index.js
 Environment=NODE_ENV=production
 Environment=PORT=3000
 Environment=HOST=127.0.0.1
 Environment=RATE_LIMIT=60
-User=www-data
-Group=www-data
+User=apache
+Group=apache
 Restart=on-failure
 RestartSec=5
 
@@ -28,7 +30,12 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadOnlyPaths=/var/www/boring-log-viewer
+ReadOnlyPaths=/var/www/html/boring-log-viewer
+
+# Optional resource caps so a burst of large PNG renders can't crowd out
+# other sites. Uncomment to enable.
+#MemoryMax=512M
+#CPUQuota=100%
 
 [Install]
 WantedBy=multi-user.target

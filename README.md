@@ -139,7 +139,7 @@ curl -X POST -H "Content-Type: application/json" --data-binary @boring.json     
 - **PNGs** are drawn with resvg using the bundled Arimo font (`server/fonts.js`),
   never the server's own fonts, so the text matches the measured layout.
 
-Deployment (Apache, systemd or pm2) is described in
+Deployment (Rocky Linux 9, Apache, systemd) is described in
 [`deploy/README.md`](deploy/README.md).
 
 ## Development
