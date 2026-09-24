@@ -1,0 +1,29 @@
+{
+  "name": "boringlogviewer",
+  "version": "0.1.0",
+  "description": "Render geotechnical boring logs from JSON as SVG",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./render": "./src/render.js",
+    "./schema": "./schema/boringlog.schema.json"
+  },
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\"",
+    "test:update": "node scripts/update-snapshots.js",
+    "build:metrics": "node scripts/build-metrics.js",
+    "build:hatches": "node scripts/build-hatches.js",
+    "render": "node scripts/render.js"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0"
+  },
+  "devDependencies": {
+    "@fontsource/arimo": "^5.3.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "opentype.js": "^2.0.0"
+  },
+  "license": "MIT",
+  "private": true
+}

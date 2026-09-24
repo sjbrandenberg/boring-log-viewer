@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "metadata": { "boring_name": "Thin layers with long descriptions" },
+  "layers": [
+    { "top": 0.0, "bottom": 0.3, "description": "Topsoil: dark brown, moist, organic silt with roots and rootlets, abundant organic debris" },
+    { "top": 0.3, "bottom": 0.5, "description": "Light brown, dry, well-graded GRAVEL with sand, subangular to subrounded, maximum size 50 mm" },
+    { "top": 0.5, "bottom": 0.9, "description": "Reddish brown, stiff, moist, sandy lean clay with trace gravel; iron oxide staining on fracture surfaces" },
+    { "top": 0.9, "bottom": 1.0, "description": "Thin seam of white volcanic ash, <25 mm thick" },
+    { "top": 1.2, "bottom": 6.0, "description": "Gray elastic silt, very soft, wet" }
+  ],
+  "samples": [
+    { "top": 0.1, "bottom": 0.2, "name": "Bag-1", "type": "Bulk", "description": "Bulk sample for index testing", "water_content": 35.2 },
+    { "top": 0.35, "bottom": 0.45, "name": "S-2", "type": "Other", "water_content": 6.1, "remarks": "Hand-driven sampler; poor recovery" },
+    { "top": 0.6, "bottom": 0.8, "name": "Core-3", "type": "Core", "water_content": 19.0, "liquid_limit": 33, "plastic_limit": 17 },
+    { "top": 2.0, "bottom": 2.5, "name": "T-4", "type": "Shelby", "water_content": 55.0 }
+  ]
+}

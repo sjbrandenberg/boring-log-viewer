@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "units": { "length": "m", "unit_weight": "kN/m3", "diameter": "mm" },
+  "metadata": {
+    "project": "Coastal liquefaction case histories (synthetic example)",
+    "site_name": "Harbor Terminal Wharf",
+    "boring_name": "B-3",
+    "latitude": 33.74215,
+    "longitude": -118.26541,
+    "elevation": 3.2,
+    "datum": "NAVD88",
+    "start_date": "2019-06-11",
+    "end_date": "2019-06-12",
+    "boring_type": "Mud rotary",
+    "rig": "CME-75",
+    "diameter": 102,
+    "hammer": "Automatic trip, 63.5 kg",
+    "energy_ratio": 82,
+    "logged_by": "J. Doe",
+    "notes": null
+  },
+  "groundwater": [ { "depth": 1.8, "date": "2019-06-11", "note": "encountered during drilling" } ],
+  "layers": [
+    { "top": 0.0, "bottom": 1.2, "description": "Asphalt concrete over aggregate base", "hatch": "none" },
+    { "top": 1.2, "bottom": 4.5, "description": "Dark gray, loose, wet, silty SAND with shell fragments (hydraulic fill)" },
+    { "top": 4.5, "bottom": 6.0, "description": "Gray, soft, wet, lean CLAY with sand", "uscs": "CL" },
+    { "top": 6.0, "bottom": 9.5, "description": "Gray-brown, medium dense, wet, poorly graded SAND with silt (SP-SM)" },
+    { "top": 9.5, "bottom": 12.0, "description": "Olive gray, stiff, moist, fat CLAY, high plasticity" },
+    { "top": 12.0, "bottom": 15.0, "description": "Brown, dense, wet, clayey gravel with sand", "uscs": "GC" }
+  ],
+  "samples": [
+    { "top": 1.5, "bottom": 1.95, "name": "S-1", "type": "SPT", "blow_count": 4, "water_content": 28.4, "fines_content": 22 },
+    { "top": 3.0, "bottom": 3.45, "name": "S-2", "type": "SPT", "blow_count": 6, "water_content": 31.0, "fines_content": 18, "nonplastic": true },
+    { "top": 4.6, "bottom": 5.2, "name": "T-3", "type": "Shelby", "water_content": 38.2, "dry_unit_weight": 13.1, "specific_gravity": 2.71, "liquid_limit": 41, "plastic_limit": 19, "description": "Undisturbed, sent for CU triaxial" },
+    { "top": 6.5, "bottom": 6.95, "name": "S-4", "type": "SPT", "blow_count": 14, "fines_content": 9, "water_content": 24.1 },
+    { "top": 8.0, "bottom": 8.45, "name": "D-5", "type": "ModCal", "blow_count": 32, "dry_unit_weight": 16.4, "water_content": 21.7, "sampler_diameter": 76 },
+    { "top": 10.0, "bottom": 10.45, "name": "S-6", "type": "SPT", "blow_count": 11, "water_content": 42.3, "liquid_limit": 67, "plastic_limit": 26 },
+    { "top": 13.0, "bottom": 13.3, "name": "S-7", "type": "SPT", "blow_count": "50/5in", "remarks": "Refusal on cobble" },
+    { "top": 14.0, "bottom": 14.6, "name": "B-8", "type": "Bulk", "fines_content": 14 }
+  ]
+}

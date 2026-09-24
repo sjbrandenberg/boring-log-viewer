@@ -1,0 +1,58 @@
+<svg 
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="https://www.w3.org/1999/xlink"
+    width="104" 
+    height="93"
+>
+<g transform="scale(0.38)" id="scale">
+<defs>
+<pattern id="p" patternUnits="userSpaceOnUse" width="104" height="93">
+<line x1="1" x2="1" y1="0" y2="94" stroke="black" stroke-width="2"/>
+
+<path d="M 0 0 C 20 10, 13 10, 33 0" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 0 C 53 10, 46 10, 67 0" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 0 C 87 10, 79 10, 103 0" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 0 10 C 20 20, 13 20, 33 10" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 10 C 53 20, 46 20, 67 10" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 10 C 87 20, 79 20, 103 10" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 0 20 C 20 30, 13 30, 33 20" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 20 C 53 30, 46 30, 67 20" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 20 C 87 30, 79 30, 103 20" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 0 31 C 20 41, 13 41, 33 31" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 31 C 53 41, 46 41, 67 31" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 31 C 87 41, 79 41, 103 31" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 0 41 C 20 51, 13 51, 33 41" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 41 C 53 51, 46 51, 67 41" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 41 C 87 51, 79 51, 103 41" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 0 51 C 20 61, 13 61, 33 51" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 51 C 53 61, 46 61, 67 51" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 51 C 87 61, 79 61, 103 51" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 0 62 C 20 72, 13 72, 33 62" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 62 C 53 72, 46 72, 67 62" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 62 C 87 72, 79 72, 103 62" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 0 72 C 20 82, 13 82, 33 72" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 72 C 53 82, 46 82, 67 72" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 72 C 87 82, 79 82, 103 72" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 0 83 C 20 93, 13 93, 33 83" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 33 83 C 53 93, 46 93, 67 83" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+<path d="M 67 83 C 87 93, 79 93, 103 83" stroke="black" stroke-width="2" fill="transparent" stroke-dasharray="4 1" />
+
+<line x1="103" x2="103" y1="0" y2="94" stroke="black" stroke-width="2"/>
+</pattern>
+
+</defs>
+
+<rect width="100%" height="100%" fill="url(#p)" id="rect" padding="0" margin="0" font-size="0" />
+
+</g>
+<script type="text/javascript">
+let params = new URL(document.location.toString()).searchParams;
+let scale_val = params.get('scale');
+const scale = document.getElementById('scale');
+const rect = document.getElementById('rect');
+scale.setAttribute("transform","scale(" + scale_val + ")");
+rect.setAttribute("height",100/scale_val + "%");
+rect.setAttribute("width",100/scale_val +"%");
+</script>
+
+</svg>

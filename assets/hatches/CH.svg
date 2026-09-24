@@ -1,0 +1,35 @@
+<svg 
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="https://www.w3.org/1999/xlink"
+    width="104" 
+    height="93"
+>
+<g transform="scale(0.38)" id="scale">
+<defs>
+<pattern id="p" patternUnits="userSpaceOnUse" width="104" height="93">
+<line x1="1" x2="1" y1="0" y2="94" stroke="black" stroke-width="2"/>
+<line x1="-101" x2="2" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="-81" x2="22" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="-61" x2="42" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="-41" x2="62" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="-21" x2="82" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="0" x2="104" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="21" x2="122" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="41" x2="142" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="61" x2="162" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="81" x2="182" y1="94" y2="0" stroke="black" stroke-width="8" stroke-linecap="square" />
+<line x1="103" x2="103" y1="0" y2="94" stroke="black" stroke-width="2"/>
+</pattern>
+</defs>
+<rect width="100%" height="100%" fill="url(#p)" id="rect" padding="0" margin="0" font-size="0" />
+</g>
+<script type="text/javascript">
+let params = new URL(document.location.toString()).searchParams;
+let scale_val = params.get('scale');
+const scale = document.getElementById('scale');
+const rect = document.getElementById('rect');
+scale.setAttribute("transform","scale(" + scale_val + ")");
+rect.setAttribute("height",100/scale_val + "%");
+rect.setAttribute("width",100/scale_val +"%");
+</script>
+</svg>

@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "units": { "length": "ft", "unit_weight": "pcf", "diameter": "in" },
+  "metadata": {
+    "site_name": "Treasure Island strong-motion station (synthetic example)",
+    "boring_name": "TI-B1",
+    "latitude": 37.8254,
+    "longitude": -122.3729,
+    "start_date": "2021-03-02",
+    "boring_type": "Hollow-stem auger",
+    "rig": "Mobile B-61",
+    "diameter": 8,
+    "hammer": "Safety hammer, rope and cathead",
+    "logged_by": "A. Student",
+    "notes": "Stratigraphy from boring log; SPT increments reported in blows per 6 in."
+  },
+  "groundwater": [
+    { "depth": 6.5, "date": "2021-03-02", "note": "encountered" },
+    { "depth": 5.0, "date": "2021-03-05", "note": "stabilized" }
+  ],
+  "layers": [
+    { "top": 0, "bottom": 3, "description": "Brown, dry, poorly graded SAND with gravel (fill)", "uscs": "SP" },
+    { "top": 3, "bottom": 18, "description": "Gray, loose to medium dense, saturated, poorly graded SAND with silt; occasional shell fragments; loose zone 9 to 12 ft", "uscs": "SP-SM" },
+    { "top": 18, "bottom": 19, "description": "Gray, soft, saturated, sandy lean CLAY lens with organics and wood fragments; strong odor", "uscs": "CL" },
+    { "top": 19, "bottom": 32, "description": "Gray-green, medium dense, saturated, silty SAND", "uscs": "SM" },
+    { "top": 32, "bottom": 45, "description": "Dark greenish gray, soft to medium stiff, wet, fat CLAY (Young Bay Mud)", "uscs": "CH" }
+  ],
+  "samples": [
+    { "top": 5, "bottom": 6.5, "name": "1", "type": "SPT", "blows": [3, 4, 5], "blow_count": 9, "energy_ratio": 60, "water_content": null, "liquid_limit": null },
+    { "top": 10, "bottom": 11.5, "name": "2", "type": "SPT", "blows": [1, 2, 2], "blow_count": 4, "energy_ratio": 60, "fines_content": 11, "water_content": 29.5 },
+    { "top": 15, "bottom": 16.5, "name": "3", "type": "SPT", "blows": [4, 6, 7], "blow_count": 13, "energy_ratio": 60, "fines_content": 8 },
+    { "top": 18.2, "bottom": 18.8, "name": "4", "type": "Piston", "water_content": 45.0, "dry_unit_weight": 74.5, "liquid_limit": 38, "plastic_limit": 21 },
+    { "top": 20, "bottom": 21.5, "name": "5", "type": "SPT", "blows": [6, 9, 11], "blow_count": 20, "energy_ratio": 60, "fines_content": 17 },
+    { "top": 25, "bottom": 26.5, "name": "6", "type": "SPT", "blows": [7, 10, 12], "blow_count": 22, "energy_ratio": 60, "fines_content": 21, "water_content": 26.8 },
+    { "top": 35, "bottom": 37.5, "name": "7", "type": "Shelby", "water_content": 78.2, "dry_unit_weight": 55.3, "specific_gravity": 2.68, "liquid_limit": 88, "plastic_limit": 37 },
+    { "top": 42, "bottom": 43.5, "name": "8", "type": "SPT", "blows": [2, 3, 3], "blow_count": 6, "energy_ratio": 60 }
+  ]
+}

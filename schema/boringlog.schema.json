@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.uclageo.com/boringlogviewer/schema/v1/boringlog.schema.json",
+  "title": "Boring log",
+  "description": "A single geotechnical boring: metadata, stratigraphy, samples, and groundwater observations. Depths are measured downward from the ground surface in `units.length`.",
+  "type": "object",
+  "required": ["schema_version", "layers"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "description": "Version of this schema the document follows.",
+      "const": "1.0"
+    },
+    "units": {
+      "description": "Units the numbers in this document are expressed in. Defaults to SI.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "length": { "enum": ["m", "ft"], "default": "m" },
+        "unit_weight": { "enum": ["kN/m3", "pcf"], "default": "kN/m3" },
+        "diameter": {
+          "description": "Units for borehole and sampler diameters.",
+          "enum": ["mm", "cm", "m", "in", "ft"],
+          "default": "mm"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "project": { "type": "string" },
+        "site_name": { "type": "string" },
+        "boring_name": { "type": "string" },
+        "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+        "elevation": { "description": "Ground surface elevation, in units.length.", "type": "number" },
+        "datum": { "type": "string" },
+        "start_date": { "type": "string" },
+        "end_date": { "type": "string" },
+        "boring_type": { "description": "Drilling method, e.g. hollow-stem auger, mud rotary.", "type": "string" },
+        "rig": { "type": "string" },
+        "diameter": { "description": "Borehole diameter, in units.diameter.", "type": "number", "exclusiveMinimum": 0 },
+        "hammer": { "description": "Hammer type / mechanism, e.g. automatic trip, 140 lb.", "type": "string" },
+        "energy_ratio": { "description": "Hammer energy ratio, percent.", "type": "number", "exclusiveMinimum": 0 },
+        "logged_by": { "type": "string" },
+        "driller": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "groundwater": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["depth"],
+        "additionalProperties": false,
+        "properties": {
+          "depth": { "type": "number", "minimum": 0 },
+          "date": { "type": "string" },
+          "note": { "description": "E.g. 'encountered during drilling', 'stabilized'.", "type": "string" }
+        }
+      }
+    },
+    "layers": {
+      "description": "Stratigraphic layers, top to bottom.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["top", "bottom"],
+        "additionalProperties": false,
+        "properties": {
+          "top": { "type": "number", "minimum": 0 },
+          "bottom": { "type": "number", "minimum": 0 },
+          "description": { "type": "string" },
+          "uscs": {
+            "description": "USCS group symbol, or a dual symbol such as SP-SM or CL-ML.",
+            "type": "string",
+            "pattern": "^(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?$"
+          },
+          "hatch": {
+            "description": "Graphic log pattern. Defaults to the pattern for `uscs`, then to one inferred from `description`. Use \"none\" for no pattern.",
+            "type": "string",
+            "pattern": "^(none|(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?)$"
+          }
+        }
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["top", "bottom"],
+        "additionalProperties": false,
+        "properties": {
+          "top": { "type": "number", "minimum": 0 },
+          "bottom": { "type": "number", "minimum": 0 },
+          "name": { "type": "string" },
+          "type": {
+            "description": "Sampler type; controls the symbol drawn in the sample column.",
+            "enum": ["SPT", "ModCal", "Shelby", "Piston", "Bulk", "Core", "Other"],
+            "default": "Other"
+          },
+          "description": { "type": "string" },
+          "uscs": {
+            "type": "string",
+            "pattern": "^(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?$"
+          },
+          "sampler_diameter": { "description": "Sampler outer diameter, in units.diameter.", "type": "number", "exclusiveMinimum": 0 },
+          "recovery": { "description": "Recovered length, in units.length.", "type": "number", "minimum": 0 },
+          "blow_count": {
+            "description": "Blow count as reported (N or blows/ft). A string allows refusal notation such as \"50/3in\".",
+            "type": ["number", "string"]
+          },
+          "blows": {
+            "description": "Blows per increment, e.g. [6, 8, 10] for an SPT.",
+            "type": "array",
+            "items": { "type": "number", "minimum": 0 }
+          },
+          "energy_ratio": { "description": "Percent; overrides metadata.energy_ratio for this sample.", "type": "number", "exclusiveMinimum": 0 },
+          "water_content": { "description": "Percent.", "type": "number", "minimum": 0 },
+          "dry_unit_weight": { "description": "In units.unit_weight.", "type": "number", "exclusiveMinimum": 0 },
+          "specific_gravity": { "type": "number", "exclusiveMinimum": 0 },
+          "fines_content": { "description": "Percent passing No. 200 sieve.", "type": "number", "minimum": 0, "maximum": 100 },
+          "liquid_limit": { "type": "number", "minimum": 0 },
+          "plastic_limit": { "type": "number", "minimum": 0 },
+          "nonplastic": { "description": "True if the sample is non-plastic (NP); LL/PL are then ignored.", "type": "boolean" },
+          "remarks": { "type": "string" }
+        }
+      }
+    }
+  }
+}
