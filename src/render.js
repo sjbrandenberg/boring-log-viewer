@@ -2,7 +2,7 @@
 // no DOM, no network, no external images, so the same code runs in the
 // browser, in Node for the API, and in tests.
 import { normalizeBoringLog } from './normalize.js';
-import { layerHatch, USCS_NAMES } from './classify.js';
+import { inferUscs, layerHatch, USCS_NAMES } from './classify.js';
 import { HATCH_TILES } from './hatches.js';
 import { FONT_FAMILY, measureText, wrapText, escapeXml } from './text.js';
 
@@ -29,6 +29,7 @@ const DEFAULTS = {
     diameter_units: null,
     depth_range: null,   // [top, bottom] in display units
     id_prefix: null,     // prefix for pattern ids; needed if several logs share a page
+    infer_uscs: true,    // show a USCS symbol inferred from the description, in parentheses, when none is given
 };
 
 export const SAMPLER_NAMES = {
@@ -84,7 +85,7 @@ function columnRegistry(u) {
         elevation: { kind: 'elevation', width: 38, label: `Elevation (${u.len})`, hasData: doc => doc.metadata.elevation !== undefined },
         groundwater: { kind: 'groundwater', width: 22, label: 'Water level', hasData: doc => doc.groundwater.length > 0 },
         graphic: { kind: 'graphic', width: 40, label: 'Graphic log', always: true },
-        uscs: { kind: 'uscs', width: 30, label: 'USCS', hasData: doc => doc.layers.some(l => l.uscs) },
+        uscs: { kind: 'uscs', width: 30, label: 'USCS', hasData: doc => doc.layers.some(l => l.uscs || l.uscs_inferred) },
         description: { kind: 'description', flex: 3, label: 'Material description', always: true },
         sample_type: { kind: 'sample_symbol', width: 24, label: 'Sample type', hasData: doc => doc.samples.length > 0 },
         sample_name: { kind: 'sample_value', width: 36, label: 'Sample no.', value: s => s.name, hasData: has('name') },
@@ -421,7 +422,10 @@ export function renderBoringLog(input, options = {}) {
     const prefix = opt.id_prefix ?? `blv${hashString(JSON.stringify(doc))}`;
 
     // Convert everything drawn on the depth axis to display units up front.
-    const layers = doc.layers.map(l => ({ ...l, top: u.length(l.top), bottom: u.length(l.bottom) }));
+    const layers = doc.layers.map(l => {
+        const inferred = opt.infer_uscs && !l.uscs && !l.hatch ? inferUscs(l.description) : null;
+        return { ...l, top: u.length(l.top), bottom: u.length(l.bottom), ...(inferred ? { uscs_inferred: inferred.uscs } : {}) };
+    });
     const samples = doc.samples.map(s => ({ ...s, top: u.length(s.top), bottom: u.length(s.bottom) }));
     const groundwater = doc.groundwater.map(g => ({ ...g, depth: u.length(g.depth) }));
     const depthNotes = doc.depth_notes.map(n => ({ ...n, depth: u.length(n.depth) }));
@@ -541,7 +545,8 @@ export function renderBoringLog(input, options = {}) {
             }
         } else if (c.kind === 'uscs') {
             for (const b of blocks) {
-                if (b.layer.uscs) out.push(fittedText(c.x + c.w / 2, y0 + b.top + TEXT_PAD_Y + fs * 0.85, b.layer.uscs, c.w - 4, fs));
+                const label = b.layer.uscs ?? (b.layer.uscs_inferred ? `(${b.layer.uscs_inferred})` : null);
+                if (label) out.push(fittedText(c.x + c.w / 2, y0 + b.top + TEXT_PAD_Y + fs * 0.85, label, c.w - 4, fs));
             }
         } else if (c.kind === 'description') {
             for (const b of blocks) {
@@ -622,6 +627,9 @@ export function renderBoringLog(input, options = {}) {
             const details = [g.date, g.note].filter(Boolean).join(', ');
             items.push({ kind: 'gw', label: `Groundwater at ${u.length(g.depth).toFixed(2)} ${u.len}${details ? ` (${details})` : ''}` });
         }
+        if (cols.some(c => c.kind === 'uscs') && layers.some(l => l.uscs_inferred)) {
+            items.push({ kind: 'text', symbol: '( )', label: 'USCS symbol inferred from the material description' });
+        }
         if (items.length) {
             const ly = bodyBottom + 10;
             out.push(text(MARGIN, ly + fs, 'Legend', { bold: true }));
@@ -644,6 +652,8 @@ export function renderBoringLog(input, options = {}) {
                     out.push(`<rect x="${r(ix)}" y="${r(iy)}" width="30" height="16" fill="url(#${prefix}-legend-${it.code})" stroke="#000" stroke-width="0.75"/>`);
                 } else if (it.kind === 'sampler') {
                     out.push(samplerSymbol(it.type, ix + 9, iy, 12, 16, `${prefix}-bulk`));
+                } else if (it.kind === 'text') {
+                    out.push(text(ix + 15, iy + 12, it.symbol, { anchor: 'middle' }));
                 } else {
                     out.push(groundwaterSymbol(ix + 15, iy + 11));
                 }

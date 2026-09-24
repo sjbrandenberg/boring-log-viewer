@@ -175,3 +175,11 @@ test('PNG text is drawn with the bundled Arimo, not system fonts', () => {
 test('woffToSfnt rejects non-WOFF input', () => {
     assert.throws(() => woffToSfnt(Buffer.from('not a font at all, just some bytes here padding padding')), /not a WOFF/);
 });
+
+test('infer_uscs=false turns off inferred USCS symbols', async () => {
+    const on = await render();
+    const off = await render('?infer_uscs=false');
+    assert.equal(off.statusCode, 200);
+    assert.match(on.body, />\(CH\)</);
+    assert.doesNotMatch(off.body, />\(CH\)</);
+});

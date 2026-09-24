@@ -38,6 +38,15 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   The graphic log uses `hatch` if given (use `"none"` to leave it blank), then
   `uscs`, then a symbol inferred from the description (e.g. "silty SAND" gives
   SM). Dual symbols such as `SP-SM` split the column in half.
+  A layer without `uscs` gets a symbol inferred from its description, shown in
+  parentheses as "(CH)", only when the description determines it: a symbol
+  written in the text ("(SP-SM)"), an ASTM D2487 group name ("fat CLAY",
+  "silty SAND", "poorly graded SAND with silt"), CLAY or SILT with a plasticity
+  descriptor, "silty clay" (CL-ML), SILT group names (ML), and organic SILT/CLAY
+  with low (OL) or high (OH) plasticity. Mixed layers, ranges ("lean to fat"),
+  bare SAND or GRAVEL, and "clayey SILT" get none. The rules are in
+  `inferUscs()` in `src/classify.js`; they were reviewed against 655 layer
+  descriptions from the NGL database.
 - **`samples`**: `{ top, bottom, name, type, blow_count, blows, water_content,
   dry_unit_weight, specific_gravity, fines_content, liquid_limit, plastic_limit,
   nonplastic, description, remarks, ... }`. `type` is one of SPT, ModCal,
@@ -65,6 +74,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 | `title` | `metadata.boring_name` | Title text |
 | `depth_range` | `[0, deepest]` | `[top, bottom]` in display units |
 | `font_size` | 10 | px |
+| `infer_uscs` | true | For layers without `uscs`, show a USCS symbol inferred from the description, in parentheses (see below) |
 | `id_prefix` | hash of the data | Prefix for `<pattern>` ids. Logs with different data get different ids, so several can share a page. |
 
 Column ids: `depth`, `elevation`, `groundwater`, `graphic`, `uscs`,

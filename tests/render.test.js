@@ -56,7 +56,8 @@ test('display units convert depths and unit weights', () => {
 });
 
 test('columns without data are hidden, and can be forced on', () => {
-    const minimal = renderBoringLog(oneLayer());
+    // A bare "SAND" determines no USCS symbol, so the USCS column stays empty too.
+    const minimal = renderBoringLog(oneLayer({ layers: [{ top: 0, bottom: 5, description: 'Brown SAND' }] }));
     assert.doesNotMatch(textOf(minimal), /Sample type|Blow count|USCS/);
     const forced = renderBoringLog(oneLayer(), { hide_empty_columns: false });
     assert.match(textOf(forced), /Blow count/);
@@ -183,4 +184,66 @@ test('depth notes need a depth, and notes without text are not drawn', () => {
     assert.throws(() => renderBoringLog(oneLayer({ depth_notes: [{ description: 'no depth' }] })), BoringLogError);
     const svg = renderBoringLog(oneLayer({ depth_notes: [{ depth: 1, description: null }, { depth: 2, description: '' }] }));
     assert.doesNotMatch(svg, /font-style="italic"/);
+});
+
+test('USCS symbols are inferred only when the description determines them', async () => {
+    const { inferUscs } = await import('../src/classify.js');
+    const cases = [
+        // A: symbol in the text, or a leading label
+        ['Gray-brown, medium dense, wet, poorly graded SAND with silt (SP-SM)', 'SP-SM'],
+        ['SC: wet, medium dense, sandy silt to clayey sand', 'SC'],
+        ['GW: Fine gravels with medium to coarse sand', 'GW'],
+        // NZ weathering grade in a particle clause, not the USCS symbol
+        ['Medium dense, sandy fine to coarse GRAVEL, minor silt; grey. Gravel: SW, subangular to rounded, greywacke.', null],
+        ['Loose, fine to medium SAND, minor silt. Gravel: SW, subangular.', null],
+        ['Stiff, SILT with trace sand (SW)', 'ML'],        // SW doesn't fit SILT, so the other rules decide
+        ['SM to SP', null],
+        // B: D2487 group names
+        ['Olive gray, stiff, moist, fat CLAY, high plasticity', 'CH'],
+        ['Gray, soft, wet, lean CLAY with sand', 'CL'],
+        ['Dark gray, loose, wet, silty SAND with shell fragments', 'SM'],
+        ['well-graded GRAVEL with sand', 'GW'],
+        ['silty, clayey SAND', 'SC-SM'],
+        ['Brown elastic SILT', 'MH'],
+        ['PEAT, fibrous, dark brown', 'PT'],
+        // C, D1-D4
+        ['stiff CLAY, high plasticity', 'CH'],
+        ['silty clay, stiff', 'CL-ML'],
+        ['Gravelly SILT, light brown. Stiff, low plasticity. Gravels are fine to coarse.', 'ML'],
+        ['SILT; grey brown. High plasticity', 'MH'],
+        ['Organic SILT, grey. Firm, moist, low plasticity', 'OL'],
+        ['Organic CLAY, black, high plasticity', 'OH'],
+        ['Organic SILT with trace sand, brown', null],
+        ['Organic stained SILT, minor organic fragments; low plasticity', null],
+        // No symbol: bare coarse soils, mixed layers, ranges
+        ['Sand (Translated from Japanese)', null],
+        ['Fine to medium SAND, poorly graded', null],
+        ['interbedded silt and sand, loose to medium dense', null],
+        ['Sand to Silty Sand', null],
+        ['Lean to fat CLAY with sand', null],
+        ['Clayey Silt', null],
+        ['Stiff, clayey SILT, high plasticity. Dense sandy GRAVEL, non plastic.', null],
+    ];
+    for (const [description, expected] of cases) {
+        assert.equal(inferUscs(description)?.uscs ?? null, expected, description);
+    }
+});
+
+test('inferred USCS symbols are shown in parentheses and drive the graphic log', () => {
+    const doc = oneLayer({
+        layers: [
+            { top: 0, bottom: 2, description: 'Olive gray, stiff, moist, fat CLAY, high plasticity' },
+            { top: 2, bottom: 5, description: 'Brown silty SAND', uscs: 'SP' },
+        ],
+    });
+    const svg = renderBoringLog(doc);
+    assert.match(svg, />\(CH\)</, 'inferred symbol in parentheses');
+    assert.match(svg, />SP</, 'recorded symbol as given');
+    assert.doesNotMatch(svg, />\(SP\)</);
+    assert.match(textOf(svg), /USCS symbol inferred from the material description/);
+    assert.match(svg, /id="[^"]+-CH"/, 'CH pattern in the graphic log');
+
+    const off = renderBoringLog(doc, { infer_uscs: false });
+    assert.doesNotMatch(off, />\(CH\)</);
+    assert.doesNotMatch(textOf(off), /inferred from the material description/);
 });
