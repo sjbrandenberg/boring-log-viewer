@@ -2,11 +2,11 @@
 
 Renders a geotechnical boring log from JSON as a standalone SVG. The same
 module will serve the paste-and-preview page at
-`www.uclageo.com/boringlogviewer`, the render API, and the viewers in
+`www.uclageo.com/boring-log-viewer`, the render API, and the viewers in
 coastal_database and vspdb.
 
 ```js
-import { renderBoringLog, validateBoringLog } from 'boringlogviewer';
+import { renderBoringLog, validateBoringLog } from 'boring-log-viewer';
 
 const { valid, errors, warnings } = validateBoringLog(json);
 const svg = renderBoringLog(json, { units: 'ft', width: 900 });
@@ -18,7 +18,7 @@ for browser use.
 
 ## Input format
 
-The input format is defined in [`schema/boringlog.schema.json`](schema/boringlog.schema.json)
+The input format is defined in [`schema/boring-log.schema.json`](schema/boring-log.schema.json)
 (JSON Schema 2020-12). A minimal log:
 
 ```json

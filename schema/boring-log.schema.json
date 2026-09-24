@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://www.uclageo.com/boringlogviewer/schema/v1/boringlog.schema.json",
+  "$id": "https://www.uclageo.com/boring-log-viewer/schema/v1/boring-log.schema.json",
   "title": "Boring log",
   "description": "A single geotechnical boring: metadata, stratigraphy, samples, and groundwater observations. Depths are measured downward from the ground surface in `units.length`.",
   "type": "object",

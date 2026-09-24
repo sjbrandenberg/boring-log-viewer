@@ -2,7 +2,7 @@
 // Returns every problem at once with a JSON Pointer path, rather than
 // throwing on the first one.
 import Ajv2020 from 'ajv/dist/2020.js';
-import schema from '../schema/boringlog.schema.json' with { type: 'json' };
+import schema from '../schema/boring-log.schema.json' with { type: 'json' };
 import { stripNulls, checkDepths } from './normalize.js';
 
 const ajv = new Ajv2020({ allErrors: true, strict: true, allowUnionTypes: true });
