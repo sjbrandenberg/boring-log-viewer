@@ -1,8 +1,8 @@
 # Boring log viewer
 
 Renders a geotechnical boring log from JSON as a standalone SVG. The same
-module will serve the paste-and-preview page at
-`www.uclageo.com/boring-log-viewer`, the render API, and the viewers in
+module serves the paste-and-preview page at
+`www.uclageo.com/boring-log-viewer` (see [Website](#website)) and will serve the render API and the viewers in
 coastal_database and vspdb.
 
 ```js
@@ -84,11 +84,45 @@ boundary to the text. With `fit_text`, the depth scale stretches until all
 descriptions end within the depth of the boring. Sample values are centered on
 their sample interval and pushed down in the same way when rows would collide.
 
+## Website
+
+The paste page is in `site/`. `npm run build` bundles it, with the renderer and
+validator, into `public/`, which is the folder Apache serves. The page runs
+entirely in the browser:
+
+- Paste JSON, open a `.json` file, drag one onto the editor, or load an example.
+- Syntax and schema errors are listed with their location. Clicking one selects
+  the offending text in the editor.
+- The preview updates as you type.
+- Download as SVG or PNG (1×, 2× or 3×), or print to PDF (the print style shows
+  only the log).
+- The last JSON and option settings are kept in the browser's local storage.
+
+The four examples are the synthetic test fixtures.
+
+### Deploying at www.uclageo.com/boring-log-viewer
+
+Clone the repository to the directory Apache serves as `/boring-log-viewer`,
+then, after each `git pull`:
+
+```sh
+npm ci
+npm run build
+```
+
+The root `.htaccess` sends every request into `public/`, so the page is served
+at `/boring-log-viewer/`, and nothing outside `public/` (source, tests,
+`node_modules`, `.git`) is reachable. This needs `mod_rewrite` and
+`AllowOverride` for the directory, the same as the CakePHP apps. `public/` is
+build output and is not committed.
+
 ## Development
 
 ```sh
 npm install
 npm test                     # unit tests + snapshot comparison + resvg parse check
+npm run dev                  # build the site, rebuild on change, serve at http://localhost:8080/
+npm run build                # production build into public/
 npm run test:update          # re-render tests/snapshots/*.svg after an intended layout change
 npm run render -- tests/fixtures/coastal-style.json out.png [--units=ft] [--width=900]
 npm run build:hatches        # regenerate src/hatches.js from assets/hatches/*.svg

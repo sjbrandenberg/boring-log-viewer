@@ -1,0 +1,11 @@
+# Apache serves the built site from public/ (run `npm ci && npm run build`
+# after each pull). Every request is mapped into public/, so the source,
+# tests, node_modules and .git are never reachable from the web.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^(?!public/)(.*)$ public/$1 [L]
+</IfModule>
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>

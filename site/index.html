@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Boring Log Viewer</title>
+    <meta name="description" content="Paste geotechnical boring log data as JSON and get a rendered boring log you can download as SVG, PNG or PDF.">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="app.js"></script>
+</head>
+<body>
+<header class="site-header">
+    <div>
+        <h1>Boring Log Viewer</h1>
+        <p>Paste boring log data as JSON to see the log drawn. Download it as SVG or PNG, or print it to PDF. Your data stays in your browser.</p>
+    </div>
+    <nav>
+        <a href="#format">JSON format</a>
+        <a href="schema/boring-log.schema.json">Schema</a>
+    </nav>
+</header>
+
+<main class="layout">
+    <section id="editor-pane" class="pane editor-pane" aria-label="JSON input">
+        <div class="toolbar">
+            <select id="example" aria-label="Load an example">
+                <option value="">Load example…</option>
+            </select>
+            <label class="button">
+                Open file…
+                <input id="file" type="file" accept=".json,application/json" hidden>
+            </label>
+            <button id="format" type="button">Format</button>
+            <button id="clear" type="button">Clear</button>
+        </div>
+        <textarea id="json" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Boring log JSON" placeholder='{ "schema_version": "1.0", "layers": [ … ] }'></textarea>
+        <p id="status" class="status idle" role="status" aria-live="polite"></p>
+        <ul id="messages" class="messages" hidden></ul>
+    </section>
+
+    <section class="pane preview-pane" aria-label="Preview">
+        <form id="options" class="toolbar options">
+            <label>Units
+                <select name="units">
+                    <option value="">As in data</option>
+                    <option value="m">Metric (m, kN/m³)</option>
+                    <option value="ft">US (ft, pcf)</option>
+                </select>
+            </label>
+            <label>Width <input name="width" type="number" min="300" max="4000" step="50" value="800"> px</label>
+            <label><input name="header" type="checkbox" checked> Header</label>
+            <label><input name="legend" type="checkbox" checked> Legend</label>
+            <label title="Stretch the depth scale until every description fits beside its layer"><input name="fit_text" type="checkbox" checked> Fit text</label>
+            <label><input name="hide_empty_columns" type="checkbox" checked> Hide empty columns</label>
+            <span class="spacer"></span>
+            <label>PNG
+                <select name="png_scale">
+                    <option value="1">1×</option>
+                    <option value="2" selected>2×</option>
+                    <option value="3">3×</option>
+                </select>
+            </label>
+            <button id="download-svg" type="button" data-download class="primary">SVG</button>
+            <button id="download-png" type="button" data-download class="primary">PNG</button>
+            <button id="print" type="button" data-download>Print / PDF</button>
+        </form>
+        <label class="fit-toggle"><input id="fit" type="checkbox" checked> Scale preview to fit</label>
+        <div id="preview" class="preview fit"></div>
+    </section>
+</main>
+
+<section id="format" class="format">
+    <h2>JSON format</h2>
+    <p>A boring log is one JSON object. Only <code>schema_version</code> and <code>layers</code> are required. Depths are measured down from the ground surface. Fields set to <code>null</code> are treated as missing. A misspelled field name is reported as an error, so typos don't go unnoticed.</p>
+    <pre><code>{
+  "schema_version": "1.0",
+  "units": { "length": "m", "unit_weight": "kN/m3", "diameter": "mm" },
+  "metadata": { "boring_name": "B-1", "site_name": "…", "latitude": 34.07, "longitude": -118.44,
+                "elevation": 120.5, "start_date": "2024-05-01", "boring_type": "Hollow-stem auger",
+                "rig": "…", "diameter": 200, "hammer": "Automatic", "energy_ratio": 80, "logged_by": "…" },
+  "groundwater": [ { "depth": 4.2, "date": "2024-05-01", "note": "encountered" } ],
+  "layers": [
+    { "top": 0, "bottom": 3.5, "description": "Brown, loose, moist, silty SAND", "uscs": "SM" }
+  ],
+  "samples": [
+    { "top": 1.5, "bottom": 1.95, "name": "S-1", "type": "SPT", "blow_count": 8,
+      "water_content": 18.2, "fines_content": 24 }
+  ]
+}</code></pre>
+    <dl class="fields">
+        <dt><code>units</code></dt>
+        <dd><code>length</code>: <code>m</code> or <code>ft</code>. <code>unit_weight</code>: <code>kN/m3</code> or <code>pcf</code>. <code>diameter</code>: <code>mm</code>, <code>cm</code>, <code>m</code>, <code>in</code> or <code>ft</code>. Metric is the default.</dd>
+        <dt><code>layers[]</code></dt>
+        <dd><code>top</code>, <code>bottom</code>, <code>description</code>, <code>uscs</code> (e.g. <code>SM</code> or <code>SP-SM</code>), and <code>hatch</code> to override the graphic log pattern (<code>"none"</code> leaves it blank). Without <code>uscs</code> or <code>hatch</code>, the pattern is guessed from the description.</dd>
+        <dt><code>samples[]</code></dt>
+        <dd><code>top</code>, <code>bottom</code>, <code>name</code>, <code>type</code> (SPT, ModCal, Shelby, Piston, Bulk, Core, Other), <code>blow_count</code> (a number, or text such as <code>"50/5in"</code>), <code>blows</code> (per increment, e.g. <code>[6, 8, 10]</code>), <code>energy_ratio</code>, <code>water_content</code>, <code>dry_unit_weight</code>, <code>specific_gravity</code>, <code>fines_content</code>, <code>liquid_limit</code>, <code>plastic_limit</code>, <code>nonplastic</code>, <code>sampler_diameter</code>, <code>recovery</code>, <code>description</code>, <code>remarks</code>.</dd>
+        <dt><code>groundwater[]</code></dt>
+        <dd><code>depth</code>, <code>date</code>, <code>note</code>.</dd>
+    </dl>
+    <p>The complete definition is in the <a href="schema/boring-log.schema.json">JSON Schema</a>.</p>
+</section>
+</body>
+</html>
