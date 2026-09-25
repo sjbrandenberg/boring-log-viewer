@@ -232,6 +232,7 @@ textarea {
 .builtin-list li span:not(.swatch) { flex: 1; font-size: 0.9em; }
 .builtin-list .swatch { display: inline-flex; width: 40px; justify-content: center; background: #fff; }
 .builtin-list button { font-size: 0.8em; padding: 2px 8px; }
+.builtin-list .builtin-group { grid-column: 1 / -1; font-weight: 600; font-size: 0.85em; color: var(--muted); margin-top: 6px; }
 
 .format .steps li { margin: 6px 0; }
 .format .steps pre { margin: 6px 0; }

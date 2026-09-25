@@ -96,7 +96,9 @@
         </label>
 
         <h3 class="step">2. Choose the image</h3>
-        <label>Image <input name="file" type="file" accept="image/png,image/jpeg,image/svg+xml,.svg" required></label>
+        <label>Image <input name="file" type="file" accept="image/png,image/jpeg,image/svg+xml,.svg">
+            <span class="muted small">Not needed to use a built-in material hatch such as FILL.</span>
+        </label>
         <label>Tile width <input name="tile_width" type="number" min="4" max="400" step="1" placeholder="column width">
             <span class="muted small">px; how large one repeat of the hatch is drawn.</span>
         </label>
@@ -131,10 +133,14 @@
     <p class="muted">Hatches are saved in this log's JSON, not on the server. To use one in API requests or in another log, copy its <code>"patterns"</code> section: see <a href="#api-hatches" data-close-dialog>using your own hatches with the API</a>.</p>
 
     <h3>Built-in codes</h3>
-    <p class="muted">These already exist. Use one as the code in step 1 to replace it with your own image everywhere in this log.</p>
+    <p class="muted">These already exist. <b>Replace</b> puts your own image in place of a USCS hatch or sampler symbol everywhere in this log. <b>Use</b> draws the layers you tick with one of the built-in materials; no image is needed.</p>
     <details class="builtins" open>
         <summary>Soil hatches (USCS symbols)</summary>
         <ul id="builtin-hatches" class="builtin-list"></ul>
+    </details>
+    <details class="builtins">
+        <summary>Other materials and rock (fill, asphalt, sandstone, granite…)</summary>
+        <ul id="builtin-materials" class="builtin-list"></ul>
     </details>
     <details class="builtins">
         <summary>Sampler symbols</summary>
@@ -164,7 +170,7 @@
         <dt><code>units</code></dt>
         <dd><code>length</code>: <code>m</code> or <code>ft</code>. <code>unit_weight</code>: <code>kN/m3</code> or <code>pcf</code>. <code>diameter</code>: <code>mm</code>, <code>cm</code>, <code>m</code>, <code>in</code> or <code>ft</code>. Metric is the default.</dd>
         <dt><code>layers[]</code></dt>
-        <dd><code>top</code>, <code>bottom</code>, <code>description</code>, <code>uscs</code> (e.g. <code>SM</code> or <code>SP-SM</code>), and <code>hatch</code> to override the graphic log pattern (<code>"none"</code> leaves it blank). Without <code>uscs</code> or <code>hatch</code>, the pattern is guessed from the description, and when the description determines a USCS symbol (e.g. "fat CLAY" or "(SP-SM)"), it is shown in parentheses.</dd>
+        <dd><code>top</code>, <code>bottom</code>, <code>description</code>, <code>uscs</code> (e.g. <code>SM</code> or <code>SP-SM</code>), and <code>hatch</code> to choose the graphic log pattern: a USCS symbol, a built-in material such as <code>FILL</code>, <code>ASPHALT</code>, <code>SANDSTONE</code> or <code>GRANITE</code> (all 65 are listed in the <b>Hatches…</b> window), or your own (<code>"none"</code> leaves it blank). Without <code>uscs</code> or <code>hatch</code>, the pattern is guessed from the description, and when the description determines a USCS symbol (e.g. "fat CLAY" or "(SP-SM)"), it is shown in parentheses.</dd>
         <dt><code>samples[]</code></dt>
         <dd><code>top</code>, <code>bottom</code>, <code>name</code>, <code>type</code> (SPT, ModCal, Shelby, Piston, Bulk, Core, Other), <code>blow_count</code> (a number, or text such as <code>"50/5in"</code>), <code>blows</code> (per increment, e.g. <code>[6, 8, 10]</code>), <code>energy_ratio</code>, <code>water_content</code>, <code>dry_unit_weight</code>, <code>specific_gravity</code>, <code>fines_content</code>, <code>liquid_limit</code>, <code>plastic_limit</code>, <code>nonplastic</code>, <code>sampler_diameter</code>, <code>recovery</code>, <code>description</code>, <code>remarks</code>.</dd>
         <dt><code>groundwater[]</code></dt>

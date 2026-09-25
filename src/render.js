@@ -4,6 +4,17 @@
 import { normalizeBoringLog } from './normalize.js';
 import { DUAL_NAMES, inferUscs, layerHatch, USCS_NAMES, USCS_SYMBOLS } from './classify.js';
 import { HATCH_TILES } from './hatches.js';
+import { LITHOLOGY } from './lithology.js';
+
+// The built-in tile for a code, following the lithology fallback chain (e.g.
+// SANDSTONE -> ROCK_SED -> ROCK) when a code has no tile of its own.
+function builtInTile(code) {
+    for (let c = code, seen = 0; c && seen < 8; c = LITHOLOGY[c]?.fallback, seen++) {
+        if (HATCH_TILES[c]) return HATCH_TILES[c];
+    }
+    return null;
+}
+export const hatchName = code => USCS_NAMES[code] ?? LITHOLOGY[code]?.name ?? code;
 import { FONT_FAMILY, measureText, wrapText, escapeXml } from './text.js';
 
 export const DEFAULT_COLUMNS = [
@@ -510,9 +521,10 @@ export function renderBoringLog(input, options = {}) {
             const th = tw * custom.height / custom.width;
             return { width: r(tw), height: r(th), scale: 1, body: `<image href="${escapeXml(custom.image)}" width="${r(tw)}" height="${r(th)}" preserveAspectRatio="none"/>` };
         }
-        return HATCH_TILES[code] ? { ...HATCH_TILES[code], scale: hatchScale } : null;
+        const tile = builtInTile(code);
+        return tile ? { ...tile, scale: hatchScale } : null;
     };
-    const hatchName = code => soilPattern(code)?.name ?? USCS_NAMES[code] ?? code;
+    const nameOf = code => soilPattern(code)?.name ?? hatchName(code);
     const samplerPattern = type => (customPatterns[type]?.kind === 'sampler' ? customPatterns[type] : null);
     for (const code of [...usedHatches].sort()) {
         const tile = tileFor(code);
@@ -575,6 +587,10 @@ export function renderBoringLog(input, options = {}) {
                 parts.forEach((code, k) => {
                     const pw = c.w / parts.length;
                     const fill = code ? `url(#${prefix}-${code}${parts.length === 2 && k === 1 ? '-right' : ''})` : '#fff';
+                    // Solid colours (asphalt, coal...) are drawn as a plain fill: a filled
+                    // tile shows faint seams where tiles meet.
+                    const bg = code && tileFor(code)?.background;
+                    if (bg) out.push(`<rect x="${r(c.x + k * pw)}" y="${r(top)}" width="${r(pw)}" height="${r(h)}" fill="${bg}"/>`);
                     out.push(`<rect x="${r(c.x + k * pw)}" y="${r(top)}" width="${r(pw)}" height="${r(h)}" fill="${fill}"/>`);
                 });
                 // A dual symbol (SP-SM) is drawn as the first pattern on the left and
@@ -656,7 +672,7 @@ export function renderBoringLog(input, options = {}) {
     if (opt.legend) {
         const items = [];
         for (const code of [...usedHatches].sort()) {
-            if (tileFor(code)) items.push({ kind: 'hatch', code, label: `${code} – ${hatchName(code)}` });
+            if (tileFor(code)) items.push({ kind: 'hatch', code, label: `${code} – ${nameOf(code)}` });
         }
         const duals = new Set();
         for (const l of layers) {
@@ -665,7 +681,7 @@ export function renderBoringLog(input, options = {}) {
         }
         for (const dual of [...duals].sort()) {
             const [a, b] = dual.split('-');
-            const name = (!soilPattern(a) && !soilPattern(b) && DUAL_NAMES[dual]) || `${hatchName(a)} / ${hatchName(b).toLowerCase()}`;
+            const name = (!soilPattern(a) && !soilPattern(b) && DUAL_NAMES[dual]) || `${nameOf(a)} / ${nameOf(b).toLowerCase()}`;
             items.push({ kind: 'dual', codes: [a, b], label: `${dual} – ${name} (left: ${a}, right: ${b})` });
         }
         for (const type of Object.keys(SAMPLER_NAMES)) {
@@ -702,12 +718,14 @@ export function renderBoringLog(input, options = {}) {
                 if (it.kind === 'hatch') {
                     const tile = tileFor(it.code);
                     defs.push(`<pattern id="${prefix}-legend-${it.code}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(ix)} ${r(iy)}) scale(${r(tile.scale * 1000) / 1000})">${tile.body}</pattern>`);
+                    if (tile.background) out.push(`<rect x="${r(ix)}" y="${r(iy)}" width="30" height="16" fill="${tile.background}"/>`);
                     out.push(`<rect x="${r(ix)}" y="${r(iy)}" width="30" height="16" fill="url(#${prefix}-legend-${it.code})" stroke="#000" stroke-width="0.75"/>`);
                 } else if (it.kind === 'dual') {
                     it.codes.forEach((code, k) => {
                         const id = `${prefix}-legend-${it.codes.join('-')}-${k}`;
                         const tile = tileFor(code);
                         defs.push(`<pattern id="${id}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(ix + k * 15)} ${r(iy)}) scale(${r(tile.scale * 1000) / 1000})">${tile.body}</pattern>`);
+                        if (tile.background) out.push(`<rect x="${r(ix + k * 15)}" y="${r(iy)}" width="15" height="16" fill="${tile.background}"/>`);
                         out.push(`<rect x="${r(ix + k * 15)}" y="${r(iy)}" width="15" height="16" fill="url(#${id})"/>`);
                     });
                     out.push(line(ix + 15, iy, ix + 15, iy + 16, 0.75));
@@ -750,11 +768,12 @@ function fittedTextLeft(x, y, str, maxWidth, fs) {
 
 // A built-in USCS hatch filling a width x height box, or '' for an unknown code.
 export function hatchSwatch(code, { width = 40, height = 24 } = {}) {
-    const tile = HATCH_TILES[code];
+    const tile = builtInTile(code);
     if (!tile) return '';
     const id = `swatch-${code}`;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
         + `<defs><pattern id="${id}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="scale(${r((40 / 104) * 1000) / 1000})">${tile.body}</pattern></defs>`
+        + (tile.background ? `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" fill="${tile.background}"/>` : '')
         + `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" fill="url(#${id})" stroke="#000" stroke-width="1"/></svg>`;
 }
 

@@ -1,6 +1,8 @@
 // Input cleanup shared by the validator and the renderer. Kept free of
 // dependencies so the renderer can run without Ajv.
 
+import { LITHOLOGY } from './lithology.js';
+
 export class BoringLogError extends Error {
     constructor(message, issues = []) {
         super(message);
@@ -25,6 +27,8 @@ export function stripNulls(value) {
 }
 
 const USCS_CODES = new Set(['GW', 'GP', 'GM', 'GC', 'SW', 'SP', 'SM', 'SC', 'ML', 'CL', 'OL', 'MH', 'CH', 'OH', 'PT']);
+// Built-in hatches for other materials and rock (FILL, SANDSTONE, ...)
+const BUILT_IN_HATCHES = new Set([...USCS_CODES, ...Object.keys(LITHOLOGY)]);
 const BUILT_IN_SAMPLERS = new Set(['SPT', 'ModCal', 'Shelby', 'Piston', 'Bulk', 'Core', 'Other']);
 
 // Checks the schema cannot express: a layer's hatch must be a USCS symbol or a
@@ -39,7 +43,7 @@ export function checkPatternReferences(doc) {
         for (const code of layer.hatch.split(/[-/]/)) {
             const kind = kindOf(code);
             if (kind === 'sampler') errors.push({ path: `/layers/${i}/hatch`, message: `"${code}" is a sampler pattern, not a soil pattern` });
-            else if (!kind && !USCS_CODES.has(code)) errors.push({ path: `/layers/${i}/hatch`, message: `unknown pattern "${code}": use a USCS symbol or define it in patterns` });
+            else if (!kind && !BUILT_IN_HATCHES.has(code)) errors.push({ path: `/layers/${i}/hatch`, message: `unknown pattern "${code}": use a USCS symbol, a built-in hatch such as FILL or SANDSTONE, or define it in patterns` });
         }
     });
     (Array.isArray(doc.samples) ? doc.samples : []).forEach((sample, i) => {

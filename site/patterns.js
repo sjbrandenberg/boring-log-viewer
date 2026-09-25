@@ -7,7 +7,7 @@ import {
     PATTERN_CODE, MAX_PATTERN_SIDE, MAX_PATTERN_URI, listPatterns, addPattern, removePattern,
     thresholdPixels, tidyTracedSvg, base64Utf8, svgSize, patternTargets, applyPattern,
 } from './lib.js';
-import { hatchSwatch, samplerSwatch, SAMPLER_NAMES, USCS_NAMES } from '../src/index.js';
+import { hatchSwatch, samplerSwatch, SAMPLER_NAMES, USCS_NAMES, LITHOLOGY, LITHOLOGY_GROUPS } from '../src/index.js';
 
 const BUILT_IN_SAMPLERS = ['SPT', 'ModCal', 'Shelby', 'Piston', 'Bulk', 'Core', 'Other'];
 const USCS = ['GW', 'GP', 'GM', 'GC', 'SW', 'SP', 'SM', 'SC', 'ML', 'CL', 'OL', 'MH', 'CH', 'OH', 'PT'];
@@ -89,6 +89,9 @@ export function setUpPatternsDialog({ getText, setText }) {
     const sampler = () => form.kind.value === 'sampler';
     const code = () => form.code.value.trim();
     const isBuiltIn = () => (sampler() ? BUILT_IN_SAMPLERS : USCS).includes(code());
+    // Built-in materials (FILL, SANDSTONE...) aren't used by any layer until it gets
+    // "hatch": CODE, so they get the layer checklist, and an image is optional.
+    const isMaterial = () => !sampler() && Object.prototype.hasOwnProperty.call(LITHOLOGY, code());
 
     // ---- the log's own patterns
     function refreshList() {
@@ -139,7 +142,9 @@ export function setUpPatternsDialog({ getText, setText }) {
             targets.replaceChildren();
         } else {
             const items = patternTargets(getText(), kind);
-            note.textContent = items.length
+            note.textContent = !items.length ? '' : isMaterial()
+                ? `${c} (${LITHOLOGY[c].name}) is a built-in hatch: tick each layer that should be drawn with it. You don't need an image; if you add one, it replaces the built-in ${c} in this log.`
+                : items.length
                 ? `Tick each ${noun} that should be drawn with it. To change this later, add it again with the same code.`
                 : `This log has no ${noun}s yet. You can add it now and choose ${noun}s after adding them to the JSON.`;
             const checked = new Set([...targets.querySelectorAll('input:checked')].map(i => Number(i.value)));
@@ -158,7 +163,9 @@ export function setUpPatternsDialog({ getText, setText }) {
             }));
         }
         // What gets written to the JSON, with the code filled in.
-        $('pattern-json-text').textContent = isBuiltIn()
+        $('pattern-json-text').textContent = isMaterial()
+            ? `Each layer you tick gets "hatch": "${c}". ${c} is built in, so nothing else is added, unless you choose an image: that is stored in the log's "patterns" section and replaces the built-in ${c} in this log. A layer's "uscs" (its soil classification) stays as it is.`
+            : isBuiltIn()
             ? `Your image is stored once, in the log's "patterns" section under "${c}". Every ${noun} that uses ${c} is then drawn with it; the ${noun}s themselves don't change.`
             : `Your image is stored once, in the log's "patterns" section under "${c}". Each ${noun} you tick gets "${field}": "${c}"`
               + (kind === 'soil'
@@ -167,7 +174,7 @@ export function setUpPatternsDialog({ getText, setText }) {
         $('pattern-json-example').textContent = kind === 'sampler'
             ? `"samples": [\n  { "top": 1.5, "bottom": 1.95, "name": "V-1", "type": "${c}" }\n]`
             : `"layers": [\n  { "top": 0, "bottom": 1.2, "description": "Rubble fill", "hatch": "${c}" }\n]`;
-        $('pattern-submit').textContent = isBuiltIn() ? `Replace ${c}` : 'Add to log';
+        $('pattern-submit').textContent = isBuiltIn() ? `Replace ${c}` : isMaterial() && !result ? `Use ${c} for the ticked layers` : 'Add to log';
     }
 
     // ---- step 2: the image and its previews
@@ -183,10 +190,12 @@ export function setUpPatternsDialog({ getText, setText }) {
         tiled.style.backgroundImage = result && !sampler() ? `url("${result.uri}")` : 'none';
         tiled.style.backgroundSize = result ? `${Number(form.tile_width.value) || 40}px auto` : '';
         tiled.closest('figure').hidden = !result || sampler();
+        const c = code();
+        if (c) $('pattern-submit').textContent = isBuiltIn() ? `Replace ${c}` : isMaterial() && !result ? `Use ${c} for the ticked layers` : 'Add to log';
     }
 
     // ---- built-in codes, each with a Replace button that fills in step 1
-    function builtInItem(swatch, c, name, kind) {
+    function builtInItem(swatch, c, name, kind, action = 'Replace') {
         const li = document.createElement('li');
         const pic = document.createElement('span');
         pic.className = 'swatch';
@@ -197,8 +206,8 @@ export function setUpPatternsDialog({ getText, setText }) {
         label.append(strong, ` – ${name}`);
         const use = document.createElement('button');
         use.type = 'button';
-        use.textContent = 'Replace';
-        use.title = `Use your own image for ${c}`;
+        use.textContent = action;
+        use.title = action === 'Use' ? `Draw layers you choose with ${c}` : `Use your own image for ${c}`;
         use.addEventListener('click', () => {
             form.kind.value = kind;
             form.code.value = c;
@@ -206,14 +215,27 @@ export function setUpPatternsDialog({ getText, setText }) {
             showError();
             refreshPreview();
             refreshTargets();
-            form.code.scrollIntoView({ block: 'center' });
-            form.file.focus();
+            if (action === 'Use') {
+                $('pattern-targets-title').scrollIntoView({ block: 'start' });
+            } else {
+                form.code.scrollIntoView({ block: 'center' });
+                form.file.focus();
+            }
         });
         li.append(pic, label, use);
         return li;
     }
     $('builtin-hatches').replaceChildren(...USCS.map(c => builtInItem(hatchSwatch(c), c, USCS_NAMES[c], 'soil')));
     $('builtin-samplers').replaceChildren(...BUILT_IN_SAMPLERS.map(t => builtInItem(samplerSwatch(t), t, SAMPLER_NAMES[t], 'sampler')));
+    // Other materials and rock, by group
+    const materials = $('builtin-materials');
+    for (const group of LITHOLOGY_GROUPS) {
+        const heading = document.createElement('li');
+        heading.className = 'builtin-group';
+        heading.textContent = group;
+        materials.append(heading, ...Object.entries(LITHOLOGY).filter(([, m]) => m.group === group)
+            .map(([c, m]) => builtInItem(hatchSwatch(c), c, m.name, 'soil', 'Use')));
+    }
 
     // ---- wiring
     $('patterns-open').addEventListener('click', () => {
@@ -264,6 +286,22 @@ export function setUpPatternsDialog({ getText, setText }) {
         say(doneBox);
         const c = code();
         if (!PATTERN_CODE.test(c)) return showError('The code must start with a letter and use only letters, digits and _ (up to 16 characters).');
+        if (!result && isMaterial()) {
+            const ticked = [...targets.querySelectorAll('input:checked')].map(i => Number(i.value));
+            if (!ticked.length) return showError(`Tick at least one layer to draw with ${c} (step 3).`);
+            try {
+                setText(applyPattern(getText(), c, 'soil', ticked));
+            } catch (err) {
+                return showError(err.message);
+            }
+            say(doneBox, `Applied the built-in ${c} (${LITHOLOGY[c].name}) to ${ticked.length} layer${ticked.length === 1 ? '' : 's'}.`);
+            form.reset();
+            source = result = null;
+            refreshPreview();
+            refreshList();
+            refreshTargets();
+            return;
+        }
         if (!result) return showError('Choose an image first (step 2).');
         if (result.uri.length > MAX_PATTERN_URI) {
             return showError(`The image is too large (${Math.round(result.uri.length / 1000)} kB encoded, limit ${MAX_PATTERN_URI / 1000} kB). Use a smaller image, or convert it to vector.`);

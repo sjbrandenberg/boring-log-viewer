@@ -47,6 +47,26 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   bare SAND or GRAVEL, and "clayey SILT" get none. The rules are in
   `inferUscs()` in `src/classify.js`; they were reviewed against 655 layer
   descriptions from the NGL database.
+- **Built-in hatches besides USCS**: 65 materials a layer can use through
+  `hatch`, e.g. `"hatch": "FILL"` or `"hatch": "SANDSTONE"`, also in dual
+  patterns such as `SP-FILL`. Their names and groups are in `src/lithology.js`;
+  the artwork is drawn by `scripts/lithology-art.js` (run `npm run build:hatches`
+  after changing it, and `node scripts/hatch-catalog.js catalog.png` to see them
+  all). A code without its own tile falls back along its chain, e.g. SANDSTONE
+  to ROCK_SED to ROCK. They are not inferred from descriptions yet.
+  - Fill and man-made: `FILL`, `FILL_HYD`, `FILL_ENG`, `FILL_UNDOC`, `DEBRIS`, `ASPHALT`, `CONCRETE`, `BASE_COURSE`
+  - Natural materials: `TOPSOIL`, `SHELL`, `COBBLES`, `WOOD`, `ASH`, `CEMENTED`, `LOESS`, `MARL`, `DIATOMITE`, `BENTONITE`, `QUICK_CLAY`
+  - Non-material intervals: `WATER`, `NO_RECOVERY`, `VOID`
+  - Rock: category: `ROCK`, `ROCK_SED`, `ROCK_IGN`, `ROCK_MET`
+  - Rock: transitional: `WEATHERED`, `IGM`
+  - Rock: sedimentary (clastic): `SANDSTONE`, `SHALE`, `SILTSTONE`, `MUDSTONE`, `CLAYSTONE`, `CONGLOMERATE`, `BRECCIA`
+  - Rock: sedimentary (chemical/organic): `LIMESTONE`, `DOLOMITE`, `CHALK`, `CHERT`, `COAL`, `EVAPORITE`
+  - Rock: igneous (intrusive): `GRANITE`, `GRANODIORITE`, `DIORITE`, `GABBRO`, `PERIDOTITE`
+  - Rock: igneous (extrusive): `BASALT`, `ANDESITE`, `DACITE`, `RHYOLITE`
+  - Rock: igneous (pyroclastic): `TUFF`, `VOLC_BRECCIA`, `SCORIA`
+  - Rock: metamorphic (foliated): `SLATE`, `PHYLLITE`, `SCHIST`, `GNEISS`
+  - Rock: metamorphic (non-foliated): `QUARTZITE`, `MARBLE`, `HORNFELS`, `SERPENTINITE`, `GREENSTONE`
+  - Rock: fault rock: `FAULT_GOUGE`, `FAULT_BRECCIA`, `MYLONITE`
 - **`samples`**: `{ top, bottom, name, type, blow_count, blows, water_content,
   dry_unit_weight, specific_gravity, fines_content, liquid_limit, plastic_limit,
   nonplastic, description, remarks, ... }`. `type` is one of SPT, ModCal,

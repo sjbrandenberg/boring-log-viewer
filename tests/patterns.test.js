@@ -67,12 +67,12 @@ test('logs with custom patterns rasterize with resvg (the API renders PNGs this 
 
 test('undefined or mismatched pattern codes are reported', () => {
     const d = doc();
-    d.layers[0].hatch = 'ROCK';
+    d.layers[0].hatch = 'ZEOLITE';
     d.layers[1].hatch = 'Vane';
     d.samples[1].type = 'FILL';
     d.samples.push({ top: 4, bottom: 4.5, type: 'Pitcher' });
     const byPath = Object.fromEntries(validateBoringLog(d).errors.map(e => [e.path, e.message]));
-    assert.match(byPath['/layers/0/hatch'], /unknown pattern "ROCK"/);
+    assert.match(byPath['/layers/0/hatch'], /unknown pattern "ZEOLITE"/);
     assert.match(byPath['/layers/1/hatch'], /"Vane" is a sampler pattern/);
     assert.match(byPath['/samples/1/type'], /"FILL" is a soil pattern/);
     assert.match(byPath['/samples/2/type'], /unknown sampler type "Pitcher"/);

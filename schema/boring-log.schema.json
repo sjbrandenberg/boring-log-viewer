@@ -116,7 +116,7 @@
             "pattern": "^(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?$"
           },
           "hatch": {
-            "description": "Graphic log pattern: a USCS symbol, a dual symbol such as SP-SM, or a code defined in `patterns`. Defaults to the pattern for `uscs`, then to one inferred from `description`. Use \"none\" for no pattern.",
+            "description": "Graphic log pattern: a USCS symbol, a dual symbol such as SP-SM, a built-in material (FILL, ASPHALT, SANDSTONE, GRANITE, ...; see src/lithology.js), or a code defined in `patterns`. Defaults to the pattern for `uscs`, then to one inferred from `description`. Use \"none\" for no pattern.",
             "type": "string",
             "pattern": "^(none|[A-Za-z][A-Za-z0-9_]{0,15}([-/][A-Za-z][A-Za-z0-9_]{0,15})?)$"
           }

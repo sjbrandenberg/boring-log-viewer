@@ -84,5 +84,5 @@ test('the dialog lists layers or samples and applies the code to the ticked ones
 test('every built-in hatch and sampler has a swatch for the reference list', () => {
     for (const code of USCS_SYMBOLS) assert.match(hatchSwatch(code), /^<svg[^>]*>.*fill="url\(#swatch-/s, code);
     for (const type of Object.keys(SAMPLER_NAMES)) assert.match(samplerSwatch(type), /^<svg[^>]*><.*<\/svg>$/s, type);
-    assert.equal(hatchSwatch('FILL'), '');
+    assert.equal(hatchSwatch('ZEOLITE'), '', 'no swatch for an undefined code');
 });
