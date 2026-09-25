@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
-import { renderBoringLog, BoringLogError } from '../src/index.js';
+import { renderBoringLog, BoringLogError, validateBoringLog } from '../src/index.js';
 
 const fixtureDir = new URL('./fixtures/', import.meta.url);
 const fixtures = readdirSync(fixtureDir).filter(f => f.endsWith('.json'));
@@ -268,4 +268,15 @@ test('dual USCS symbols without a combined tile are split with a divider and nam
     assert.match(svg, new RegExp(String.raw`fill="url\(#[^)]+-ML-right\)"`), 'ML pattern on the right, started at the divider');
     assert.match(svg, new RegExp(String.raw`<line x1="${mid}" y1="[\d.]+" x2="${mid}"`), 'divider between the halves');
     assert.match(textOf(svg), /CL-ML – Silty clay \(left: CL, right: ML\)/);
+});
+
+test('the added sampler types validate and are named in the legend', () => {
+    const doc = oneLayer({ samples: [{ top: 1, bottom: 1.5, type: 'Osterberg' }, { top: 2, bottom: 3, type: 'DirectPush' }, { top: 3, bottom: 3.5, type: 'Grab' }] });
+    assert.deepEqual(validateBoringLog(doc).errors, []);
+    const svg = renderBoringLog(doc);
+    assert.match(textOf(svg), /Osterberg \(fixed piston\)/);
+    assert.match(textOf(svg), /Direct push \(e\.g\. dual tube\)/);
+    assert.match(textOf(svg), /Grab sample/);
+    assert.match(svg, /<pattern id="[^"]+-bulk"/, 'grab samples use the bulk hatch');
+    assert.doesNotMatch(textOf(svg), /Other sampler/);
 });

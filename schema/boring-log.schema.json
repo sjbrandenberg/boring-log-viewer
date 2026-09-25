@@ -136,7 +136,7 @@
           "type": {
             "description": "Sampler type; controls the symbol drawn in the sample column. One of the built-in types, or a sampler code defined in `patterns`.",
             "anyOf": [
-              { "enum": ["SPT", "ModCal", "Shelby", "Piston", "Bulk", "Core", "Other"] },
+              { "enum": ["SPT", "ModCal", "DamesMoore", "Shelby", "Piston", "Osterberg", "Pitcher", "Denison", "LargeDiameter", "Block", "DirectPush", "GelPush", "Sonic", "Core", "TripleTube", "Bulk", "Grab", "Composite", "Auger", "Trench", "Disturbed", "NoRecovery", "Other"] },
               { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,15}$" }
             ],
             "default": "Other"

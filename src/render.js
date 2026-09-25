@@ -16,6 +16,8 @@ function builtInTile(code) {
 }
 export const hatchName = code => USCS_NAMES[code] ?? DUAL_NAMES[code] ?? LITHOLOGY[code]?.name ?? code;
 import { FONT_FAMILY, measureText, wrapText, escapeXml } from './text.js';
+import { SAMPLER_NAMES } from './samplers.js';
+export { SAMPLER_NAMES };
 
 export const DEFAULT_COLUMNS = [
     'depth', 'elevation', 'groundwater', 'graphic', 'uscs', 'description',
@@ -43,15 +45,6 @@ const DEFAULTS = {
     infer_uscs: true,    // show a USCS symbol inferred from the description, in parentheses, when none is given
 };
 
-export const SAMPLER_NAMES = {
-    SPT: 'Standard penetration test (SPT)',
-    ModCal: 'Modified California',
-    Shelby: 'Shelby tube',
-    Piston: 'Piston sampler',
-    Bulk: 'Bulk sample',
-    Core: 'Rock core',
-    Other: 'Other sampler',
-};
 
 const TO_M = { m: 1, ft: 0.3048 };
 const TO_KNM3 = { 'kN/m3': 1, pcf: 1 / 6.36588 };
@@ -307,21 +300,83 @@ function samplerSymbol(type, x, y, w, h, patternId, custom) {
     }
     const cx = x + w / 2;
     const my = y + h / 2;
+    const X = x + w;
+    const Y = y + h;
+    const bulk = `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="url(#${patternId})" stroke="#000" stroke-width="1.2"/>`;
+    const inner = `<rect x="${r(x + w * 0.22)}" y="${r(y + Math.min(2, h / 4))}" width="${r(w * 0.56)}" height="${r(Math.max(h - 2 * Math.min(2, h / 4), 0.5))}" fill="none" stroke="#000" stroke-width="0.8"/>`;
+    // Marks repeated down the interval, about every `step` px (at least once).
+    const down = (step, draw) => {
+        const n = Math.max(1, Math.round(h / step));
+        return Array.from({ length: n }, (_, k) => draw(y + (k * h) / n, h / n)).join('');
+    };
     switch (type) {
         case 'SPT':
-            return box + line(x, y, x + w, y + h) + line(x, y + h, x + w, y);
+            return box + line(x, y, X, Y) + line(x, Y, X, y);
         case 'ModCal':
-            return box + `<path d="M${r(x)} ${r(y)}L${r(cx)} ${r(my)}L${r(x)} ${r(y + h)}ZM${r(x + w)} ${r(y)}L${r(cx)} ${r(my)}L${r(x + w)} ${r(y + h)}Z" fill="#000"/>`;
+            return box + `<path d="M${r(x)} ${r(y)}L${r(cx)} ${r(my)}L${r(x)} ${r(Y)}ZM${r(X)} ${r(y)}L${r(cx)} ${r(my)}L${r(X)} ${r(Y)}Z" fill="#000"/>`;
+        case 'DamesMoore':
+            // Modified California with only the left half filled: a similar ring-lined drive sampler.
+            return box + `<path d="M${r(x)} ${r(y)}L${r(cx)} ${r(my)}L${r(x)} ${r(Y)}Z" fill="#000"/>`
+                + `<path d="M${r(X)} ${r(y)}L${r(cx)} ${r(my)}L${r(X)} ${r(Y)}" fill="none" stroke="#000" stroke-width="0.8"/>`;
         case 'Shelby':
-            return box + line(cx, y, cx, y + h, 2.5);
+            return box + line(cx, y, cx, Y, 2.5);
         case 'Piston':
-            return box + line(x + w * 0.35, y, x + w * 0.35, y + h) + line(x + w * 0.65, y, x + w * 0.65, y + h);
+            return box + line(x + w * 0.35, y, x + w * 0.35, Y) + line(x + w * 0.65, y, x + w * 0.65, Y);
+        case 'Osterberg':
+            // Piston with a bar across the top (the fixed piston head).
+            return box + line(x + w * 0.35, y, x + w * 0.35, Y) + line(x + w * 0.65, y, x + w * 0.65, Y)
+                + `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(Math.min(3, h / 3))}" fill="#000"/>`;
+        case 'Pitcher':
+            return box + inner;
+        case 'Denison':
+            return box + inner + line(cx, y, cx, Y, 0.8);
+        case 'LargeDiameter':
+            // Wider than the other symbols.
+            return `<rect x="${r(x - 3)}" y="${r(y)}" width="${r(w + 6)}" height="${r(h)}" fill="#fff" stroke="#000" stroke-width="1.2"/>` + line(cx, y, cx, Y, 1);
+        case 'Block':
+            return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#fff" stroke="#000" stroke-width="2.4"/>` + line(x, y, X, Y);
+        case 'DirectPush': {
+            const ah = Math.min(5, h / 2);
+            return box + line(cx, y, cx, Y - ah) + `<path d="M${r(cx - w * 0.3)} ${r(Y - ah)}L${r(cx + w * 0.3)} ${r(Y - ah)}L${r(cx)} ${r(Y)}Z" fill="#000"/>`;
+        }
+        case 'GelPush':
+            return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#ddd" stroke="#000" stroke-width="1.2"/>`
+                + line(x + w / 3, y, x + w / 3, Y, 0.8) + line(x + (2 * w) / 3, y, x + (2 * w) / 3, Y, 0.8);
+        case 'Sonic':
+            return box + down(5, (yy, sh) => {
+                const wy = yy + sh / 2;
+                const a = Math.min(1.5, sh / 3);
+                return `<path d="M${r(x)} ${r(wy)}Q${r(x + w / 4)} ${r(wy - a)} ${r(cx)} ${r(wy)}T${r(X)} ${r(wy)}" fill="none" stroke="#000" stroke-width="0.8"/>`;
+            });
         case 'Bulk':
-            return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="url(#${patternId})" stroke="#000" stroke-width="1.2"/>`;
+            return bulk;
+        case 'Grab':
+            return bulk + `<circle cx="${r(cx)}" cy="${r(my)}" r="${r(Math.min(w, h) * 0.22)}" fill="#000" stroke="#fff" stroke-width="1"/>`;
+        case 'Composite':
+            // Bulk with white bands across it.
+            return bulk + down(6, (yy, sh) => `<rect x="${r(x + 0.6)}" y="${r(yy + sh * 0.35)}" width="${r(w - 1.2)}" height="${r(sh * 0.3)}" fill="#fff"/>`)
+                + `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="none" stroke="#000" stroke-width="1.2"/>`;
+        case 'Trench': {
+            // A U-shaped trench filled with the bulk hatch.
+            const tt = y + h * 0.3;
+            const pad = Math.min(2, h / 6);
+            return box + `<path d="M${r(x + 2)} ${r(tt)}L${r(x + 2)} ${r(Y - pad)}L${r(X - 2)} ${r(Y - pad)}L${r(X - 2)} ${r(tt)}Z" fill="url(#${patternId})"/>`
+                + `<path d="M${r(x + 2)} ${r(tt)}L${r(x + 2)} ${r(Y - pad)}L${r(X - 2)} ${r(Y - pad)}L${r(X - 2)} ${r(tt)}" fill="none" stroke="#000" stroke-width="1"/>`;
+        }
+        case 'Auger':
+            // Slanted flights, as on an auger.
+            return box + down(4, (yy, sh) => line(x, yy + sh, X, yy, 0.8));
+        case 'Disturbed':
+            return box + `<polyline points="${down(4, (yy, sh) => `${r(x + w * 0.25)},${r(yy)} ${r(x + w * 0.75)},${r(yy + sh / 2)} `)}${r(x + w * 0.25)},${r(Y)}" fill="none" stroke="#000" stroke-width="0.8"/>`;
         case 'Core':
             return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#bbb" stroke="#000" stroke-width="1.2"/>`;
+        case 'TripleTube':
+            return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#bbb" stroke="#000" stroke-width="1.2"/>`
+                + line(x + w / 3, y, x + w / 3, Y, 0.8) + line(x + (2 * w) / 3, y, x + (2 * w) / 3, Y, 0.8);
+        case 'NoRecovery':
+            return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#fff" stroke="#000" stroke-width="1" stroke-dasharray="2 1.5"/>` + line(x, Y, X, y, 0.8);
         default:
-            return box + `<path d="M${r(x + w)} ${r(y)}L${r(x + w)} ${r(y + h)}L${r(x)} ${r(y + h)}Z" fill="#000"/>`;
+            return box + `<path d="M${r(X)} ${r(y)}L${r(X)} ${r(Y)}L${r(x)} ${r(Y)}Z" fill="#000"/>`;
     }
 }
 
@@ -546,7 +601,7 @@ export function renderBoringLog(input, options = {}) {
         }
     }
     const usedSamplers = new Set(samples.map(s => s.type ?? 'Other'));
-    if (usedSamplers.has('Bulk')) {
+    if (['Bulk', 'Grab', 'Composite', 'Trench'].some(t => usedSamplers.has(t))) {
         defs.push(`<pattern id="${prefix}-bulk" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="#000" stroke-width="1"/></pattern>`);
     }
 
@@ -791,7 +846,8 @@ export function samplerSwatch(type, { width = 16, height = 24 } = {}) {
     if (!SAMPLER_NAMES[type]) return '';
     const bulk = `swatch-bulk-${type}`;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
-        + (type === 'Bulk' ? `<defs><pattern id="${bulk}" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="#000" stroke-width="1"/></pattern></defs>` : '')
-        + samplerSymbol(type, 1, 1, width - 2, height - 2, bulk)
+        + (['Bulk', 'Grab', 'Composite', 'Trench'].includes(type) ? `<defs><pattern id="${bulk}" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="#000" stroke-width="1"/></pattern></defs>` : '')
+        // LargeDiameter is drawn 3 px wider on each side than the box it's given.
+        + (type === 'LargeDiameter' ? samplerSymbol(type, 4, 1, width - 8, height - 2, bulk) : samplerSymbol(type, 1, 1, width - 2, height - 2, bulk))
         + '</svg>';
 }

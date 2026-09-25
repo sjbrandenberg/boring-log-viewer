@@ -70,12 +70,12 @@ test('undefined or mismatched pattern codes are reported', () => {
     d.layers[0].hatch = 'ZEOLITE';
     d.layers[1].hatch = 'Vane';
     d.samples[1].type = 'FILL';
-    d.samples.push({ top: 4, bottom: 4.5, type: 'Pitcher' });
+    d.samples.push({ top: 4, bottom: 4.5, type: 'Vibracore' });
     const byPath = Object.fromEntries(validateBoringLog(d).errors.map(e => [e.path, e.message]));
     assert.match(byPath['/layers/0/hatch'], /unknown pattern "ZEOLITE"/);
     assert.match(byPath['/layers/1/hatch'], /"Vane" is a sampler pattern/);
     assert.match(byPath['/samples/1/type'], /"FILL" is a soil pattern/);
-    assert.match(byPath['/samples/2/type'], /unknown sampler type "Pitcher"/);
+    assert.match(byPath['/samples/2/type'], /unknown sampler type "Vibracore"/);
     assert.throws(() => renderBoringLog(d), BoringLogError);
 });
 

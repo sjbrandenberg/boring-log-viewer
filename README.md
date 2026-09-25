@@ -76,8 +76,13 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   - Rock: fault rock: `FAULT_GOUGE`, `FAULT_BRECCIA`, `MYLONITE`
 - **`samples`**: `{ top, bottom, name, type, blow_count, blows, water_content,
   dry_unit_weight, specific_gravity, fines_content, liquid_limit, plastic_limit,
-  nonplastic, description, remarks, ... }`. `type` is one of SPT, ModCal,
-  Shelby, Piston, Bulk, Core, Other.
+  nonplastic, description, remarks, ... }`. `type` picks the symbol in the
+  sample column, one of: drive samplers `SPT`, `ModCal`, `DamesMoore`;
+  push samplers `Shelby`, `Piston`, `Osterberg`, `Pitcher`, `Denison`,
+  `LargeDiameter`, `DirectPush`, `GelPush`; `Block`; cores `Sonic`, `Core`,
+  `TripleTube`; disturbed samples `Bulk`, `Grab`, `Composite`, `Auger`,
+  `Trench`, `Disturbed`; `NoRecovery`; and `Other` (the default). The list and
+  legend names are in `src/samplers.js`.
 - **`groundwater`**: a list of `{ depth, date, note }`.
 - **`depth_notes`**: a list of `{ depth, description }` for observations at one
   depth within a layer ("thin sand lens"). They are drawn in italics in the

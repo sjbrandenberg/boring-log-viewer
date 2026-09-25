@@ -9,7 +9,7 @@ import {
 } from './lib.js';
 import { hatchSwatch, samplerSwatch, SAMPLER_NAMES, USCS_NAMES, LITHOLOGY, LITHOLOGY_GROUPS } from '../src/index.js';
 
-const BUILT_IN_SAMPLERS = ['SPT', 'ModCal', 'Shelby', 'Piston', 'Bulk', 'Core', 'Other'];
+const BUILT_IN_SAMPLERS = Object.keys(SAMPLER_NAMES);
 const USCS = ['GW', 'GP', 'GM', 'GC', 'SW', 'SP', 'SM', 'SC', 'ML', 'CL', 'OL', 'MH', 'CH', 'OH', 'PT'];
 
 function loadImage(url) {

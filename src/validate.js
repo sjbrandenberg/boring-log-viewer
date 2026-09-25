@@ -54,7 +54,7 @@ function collapse(errors, doc) {
         if (/^\/samples\/\d+\/type$/.test(err.instancePath)) {
             if (!typePaths.has(err.instancePath)) {
                 typePaths.add(err.instancePath);
-                out.push({ path: err.instancePath, message: 'must be SPT, ModCal, Shelby, Piston, Bulk, Core, Other, or a sampler code defined in patterns' });
+                out.push({ path: err.instancePath, message: 'must be a built-in sampler type such as SPT, ModCal, Shelby or Core, or a sampler code defined in patterns' });
             }
             continue;
         }

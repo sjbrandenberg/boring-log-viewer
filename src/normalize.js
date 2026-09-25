@@ -2,6 +2,7 @@
 // dependencies so the renderer can run without Ajv.
 
 import { LITHOLOGY } from './lithology.js';
+import { SAMPLER_NAMES } from './samplers.js';
 
 export class BoringLogError extends Error {
     constructor(message, issues = []) {
@@ -29,7 +30,7 @@ export function stripNulls(value) {
 const USCS_CODES = new Set(['GW', 'GP', 'GM', 'GC', 'SW', 'SP', 'SM', 'SC', 'ML', 'CL', 'OL', 'MH', 'CH', 'OH', 'PT']);
 // Built-in hatches for other materials and rock (FILL, SANDSTONE, ...)
 const BUILT_IN_HATCHES = new Set([...USCS_CODES, ...Object.keys(LITHOLOGY)]);
-const BUILT_IN_SAMPLERS = new Set(['SPT', 'ModCal', 'Shelby', 'Piston', 'Bulk', 'Core', 'Other']);
+const BUILT_IN_SAMPLERS = new Set(Object.keys(SAMPLER_NAMES));
 
 // Checks the schema cannot express: a layer's hatch must be a USCS symbol or a
 // soil pattern defined in the document, and a sample's type a built-in sampler

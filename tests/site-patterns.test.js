@@ -86,3 +86,10 @@ test('every built-in hatch and sampler has a swatch for the reference list', () 
     for (const type of Object.keys(SAMPLER_NAMES)) assert.match(samplerSwatch(type), /^<svg[^>]*><.*<\/svg>$/s, type);
     assert.equal(hatchSwatch('ZEOLITE'), '', 'no swatch for an undefined code');
 });
+
+test('the schema lists every built-in sampler type', async () => {
+    const { default: schema } = await import('../schema/boring-log.schema.json', { with: { type: 'json' } });
+    const m = JSON.stringify(schema).match(/\{"enum":\["SPT"[^\]]*\]\}/);
+    assert.ok(m, 'sampler enum in the schema');
+    assert.deepEqual(JSON.parse(m[0]).enum, Object.keys(SAMPLER_NAMES));
+});
