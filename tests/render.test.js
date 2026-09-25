@@ -86,8 +86,20 @@ test('the depth scale stretches so stacked descriptions fit', () => {
     assert.ok(shortY(unfitted) > bottomTickY(unfitted), 'unfitted: text runs past the bottom of the scale');
 });
 
-test('dual USCS symbols split the graphic column', () => {
+test('dual USCS symbols with a combined tile are drawn as one pattern', () => {
     const svg = renderBoringLog(oneLayer({ layers: [{ top: 0, bottom: 5, uscs: 'SP-SM' }] }), { id_prefix: 't' });
+    assert.match(svg, /fill="url\(#t-SP-SM\)"/);
+    assert.doesNotMatch(svg, /#t-SM-right|url\(#t-SP\)/);
+    assert.match(textOf(svg), /SP-SM – Poorly graded sand with silt/);
+    assert.doesNotMatch(textOf(svg), /left: SP/);
+});
+
+test('a dual symbol is split again when one half has a custom pattern', () => {
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    const svg = renderBoringLog(oneLayer({
+        layers: [{ top: 0, bottom: 5, uscs: 'SP-SM' }],
+        patterns: { SM: { name: 'Our silty sand', image: png, width: 1, height: 1 } },
+    }), { id_prefix: 't' });
     assert.match(svg, /fill="url\(#t-SP\)"/);
     assert.match(svg, /fill="url\(#t-SM-right\)"/);
 });
@@ -248,12 +260,12 @@ test('inferred USCS symbols are shown in parentheses and drive the graphic log',
     assert.doesNotMatch(textOf(off), /inferred from the material description/);
 });
 
-test('dual USCS symbols are split with a divider and named in the legend', () => {
-    const svg = renderBoringLog(oneLayer({ layers: [{ top: 0, bottom: 5, description: 'SAND with silt', uscs: 'SP-SM' }] }));
-    const graphic = svg.match(/<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)" height="[\d.]+" fill="url\(#[^)]+-SP\)"\/>/);
-    assert.ok(graphic, 'SP pattern on the left');
+test('dual USCS symbols without a combined tile are split with a divider and named in the legend', () => {
+    const svg = renderBoringLog(oneLayer({ layers: [{ top: 0, bottom: 5, description: 'Silty CLAY', uscs: 'CL-ML' }] }));
+    const graphic = svg.match(/<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)" height="[\d.]+" fill="url\(#[^)]+-CL\)"\/>/);
+    assert.ok(graphic, 'CL pattern on the left');
     const mid = Number(graphic[1]) + Number(graphic[2]);
-    assert.match(svg, new RegExp(String.raw`fill="url\(#[^)]+-SM-right\)"`), 'SM pattern on the right, started at the divider');
+    assert.match(svg, new RegExp(String.raw`fill="url\(#[^)]+-ML-right\)"`), 'ML pattern on the right, started at the divider');
     assert.match(svg, new RegExp(String.raw`<line x1="${mid}" y1="[\d.]+" x2="${mid}"`), 'divider between the halves');
-    assert.match(textOf(svg), /SP-SM – Poorly graded sand with silt \(left: SP, right: SM\)/);
+    assert.match(textOf(svg), /CL-ML – Silty clay \(left: CL, right: ML\)/);
 });

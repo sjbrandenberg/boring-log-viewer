@@ -14,7 +14,7 @@ function builtInTile(code) {
     }
     return null;
 }
-export const hatchName = code => USCS_NAMES[code] ?? LITHOLOGY[code]?.name ?? code;
+export const hatchName = code => USCS_NAMES[code] ?? DUAL_NAMES[code] ?? LITHOLOGY[code]?.name ?? code;
 import { FONT_FAMILY, measureText, wrapText, escapeXml } from './text.js';
 
 export const DEFAULT_COLUMNS = [
@@ -502,13 +502,6 @@ export function renderBoringLog(input, options = {}) {
 
     // Hatch patterns, aligned to the graphic column so tiles line up across layers.
     const graphic = col('graphic');
-    const usedHatches = new Set();
-    const dualRight = new Set();
-    for (const l of layers) {
-        const codes = layerHatch(l);
-        codes.forEach(h => usedHatches.add(h));
-        if (codes.length === 2) dualRight.add(codes[1]);
-    }
     const hatchScale = graphic.w / 104;
     // The tile for a graphic-log code: the document's own pattern (an image, tiled
     // at tile_width px, one tile across the column by default) or the built-in one.
@@ -525,6 +518,22 @@ export function renderBoringLog(input, options = {}) {
         return tile ? { ...tile, scale: hatchScale } : null;
     };
     const nameOf = code => soilPattern(code)?.name ?? hatchName(code);
+    // A dual symbol with a built-in combined tile (SP-SM: sand dots with a light
+    // silt overlay) is drawn as that one tile, unless either half has the
+    // document's own pattern; others (CL-ML) are split into halves.
+    function hatchCodes(l) {
+        const codes = layerHatch(l);
+        const combined = codes.join('-');
+        if (codes.length === 2 && HATCH_TILES[combined] && !soilPattern(codes[0]) && !soilPattern(codes[1])) return [combined];
+        return codes;
+    }
+    const usedHatches = new Set();
+    const dualRight = new Set();
+    for (const l of layers) {
+        const codes = hatchCodes(l);
+        codes.forEach(h => usedHatches.add(h));
+        if (codes.length === 2) dualRight.add(codes[1]);
+    }
     const samplerPattern = type => (customPatterns[type]?.kind === 'sampler' ? customPatterns[type] : null);
     for (const code of [...usedHatches].sort()) {
         const tile = tileFor(code);
@@ -580,7 +589,7 @@ export function renderBoringLog(input, options = {}) {
             }
         } else if (c.kind === 'graphic') {
             for (const l of layers) {
-                const codes = layerHatch(l).filter(h => tileFor(h));
+                const codes = hatchCodes(l).filter(h => tileFor(h));
                 const top = yOf(l.top);
                 const h = (l.bottom - l.top) * scale;
                 const parts = codes.length ? codes : [null];
@@ -676,7 +685,7 @@ export function renderBoringLog(input, options = {}) {
         }
         const duals = new Set();
         for (const l of layers) {
-            const codes = layerHatch(l).filter(h => tileFor(h));
+            const codes = hatchCodes(l).filter(h => tileFor(h));
             if (codes.length === 2) duals.add(codes.join('-'));
         }
         for (const dual of [...duals].sort()) {

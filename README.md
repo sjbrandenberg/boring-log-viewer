@@ -37,7 +37,12 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 - **`layers`**: one object per stratum, `{ top, bottom, description, uscs, hatch }`.
   The graphic log uses `hatch` if given (use `"none"` to leave it blank), then
   `uscs`, then a symbol inferred from the description (e.g. "silty SAND" gives
-  SM). Dual symbols such as `SP-SM` split the column in half.
+  SM). The USCS hatches follow the Caltrans *Soil and Rock Logging,
+  Classification, and Presentation Manual* (2010) legend. Coarse dual symbols
+  (`GW-GM`, `SP-SM`, `SC-SM`...) are drawn as one Caltrans-style tile: the
+  coarse soil's grain with a lighter silt or clay overlay. Other pairs, such as
+  `CL-ML` or `SP-FILL`, or a dual whose half has a custom pattern, split the
+  column in half.
   A layer without `uscs` gets a symbol inferred from its description, shown in
   parentheses as "(CH)", only when the description determines it: a symbol
   written in the text ("(SP-SM)"), an ASTM D2487 group name ("fat CLAY",
@@ -50,9 +55,11 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 - **Built-in hatches besides USCS**: 65 materials a layer can use through
   `hatch`, e.g. `"hatch": "FILL"` or `"hatch": "SANDSTONE"`, also in dual
   patterns such as `SP-FILL`. Their names and groups are in `src/lithology.js`;
-  the artwork is drawn by `scripts/lithology-art.js` (run `npm run build:hatches`
-  after changing it, and `node scripts/hatch-catalog.js catalog.png` to see them
-  all). A code without its own tile falls back along its chain, e.g. SANDSTONE
+  the artwork is drawn by `scripts/lithology-art.js`, with rock patterns after
+  the FGDC Digital Cartographic Standard for Geologic Map Symbolization
+  (FGDC-STD-013-2006, section 37) at a density that reads in a 40 px column
+  (run `npm run build:hatches` after changing it or `scripts/uscs-art.js`, and
+  `node scripts/hatch-catalog.js catalog.png --all` to see them all). A code without its own tile falls back along its chain, e.g. SANDSTONE
   to ROCK_SED to ROCK. They are not inferred from descriptions yet.
   - Fill and man-made: `FILL`, `FILL_HYD`, `FILL_ENG`, `FILL_UNDOC`, `DEBRIS`, `ASPHALT`, `CONCRETE`, `BASE_COURSE`
   - Natural materials: `TOPSOIL`, `SHELL`, `COBBLES`, `WOOD`, `ASH`, `CEMENTED`, `LOESS`, `MARL`, `DIATOMITE`, `BENTONITE`, `QUICK_CLAY`
@@ -209,7 +216,7 @@ npm start                    # run the render API on http://127.0.0.1:3000/
 npm run build                # production build into public/
 npm run test:update          # re-render tests/snapshots/*.svg after an intended layout change
 npm run render -- tests/fixtures/coastal-style.json out.png [--units=ft] [--width=900]
-npm run build:hatches        # regenerate src/hatches.js from assets/hatches/*.svg
+npm run build:hatches        # regenerate src/hatches.js from scripts/uscs-art.js and lithology-art.js
 npm run build:metrics        # regenerate src/font-metrics.js (only if changing the font)
 ```
 

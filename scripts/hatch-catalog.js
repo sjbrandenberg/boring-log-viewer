@@ -6,12 +6,13 @@ import { writeFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
 import { HATCH_TILES } from '../src/hatches.js';
 import { LITHOLOGY, LITHOLOGY_GROUPS } from '../src/lithology.js';
-import { USCS_NAMES } from '../src/classify.js';
+import { DUAL_NAMES, USCS_NAMES } from '../src/classify.js';
 import { loadFonts } from '../server/fonts.js';
 
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const all = process.argv.includes('--all');
-const groups = [...(all ? [['USCS soils', Object.keys(USCS_NAMES).map(c => [c, USCS_NAMES[c]])]] : []),
+const groups = [...(all ? [['USCS soils', Object.keys(USCS_NAMES).map(c => [c, USCS_NAMES[c]])],
+    ['USCS dual symbols', Object.keys(DUAL_NAMES).filter(c => HATCH_TILES[c]).map(c => [c, DUAL_NAMES[c]])]] : []),
     ...LITHOLOGY_GROUPS.map(g => [g, Object.entries(LITHOLOGY).filter(([, v]) => v.group === g).map(([c, v]) => [c, v.name])])];
 const cols = 4, cellW = 250, cellH = 62, sw = 80, sh = 50, scale = 40 / 104;
 const out = [];
