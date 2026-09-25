@@ -25,7 +25,7 @@ const MINOR = new Set(['no', 'with', 'w/', 'some', 'trace', 'traces', 'minor', '
 // [code, phrases], checked as the principal material of the lead. Longer
 // phrases win ("asphalt concrete" over "concrete").
 const MATERIALS = [
-    ['ASPHALT', ['asphalt', 'asphalt concrete', 'asphaltic concrete', 'ac pavement', 'pavement', 'paved', 'blacktop']],
+    ['ASPHALT', ['asphalt', 'asphalt concrete', 'asphaltic concrete', 'ac pavement', 'pavement', 'paved', 'blacktop', 'tarmac', 'tarmacadam', 'macadam']],
     ['CONCRETE', ['concrete', 'reinforced concrete', 'slab', 'concrete slab', 'pcc']],
     ['BASE_COURSE', ['base course', 'aggregate base', 'road base', 'baserock', 'base rock', 'roading aggregate']],
     ['DEBRIS', ['debris', 'rubble', 'refuse', 'landfill', 'waste']],
@@ -91,7 +91,8 @@ const LEADING_ONLY = new Set(['WATER', 'VOID']);
 // Clay"); others are then describing the soil ("pumice SAND" is sand).
 const MODIFIER_OK = new Set(['ASH']);
 
-const FILL_WORD = /\b((back|hard)?fill|embankment|banking)\b/i;   // fill; NZ hardfill; "banking" (translated)
+// Fill; NZ "hardfill"; "banking" (translated from Japanese); British "made ground".
+const FILL_WORD = /\b((back|hard)?fill|embankment|banking|made[\s-]+ground)\b/i;
 const NATURAL_FILL = /\b(channel|valley|crevasse|trench)[\s-]+fill\b/gi;       // geologic deposits, not placed fill
 const FILL_KIND = [
     [/\bnon[\s-]*engineered\s+fill\b/i, 'FILL'],

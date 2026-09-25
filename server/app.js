@@ -2,6 +2,8 @@
 // it with fastify.inject() without opening a port.
 //
 //   POST /api/render    body: boring log JSON  ->  SVG, PNG or HTML
+//                       (or an AGS4 file as text/plain; ?loca_id= picks the borehole)
+//   POST /api/ags       body: AGS4 file        ->  { documents: [{ loca_id, document }], warnings }
 //   POST /api/validate  body: boring log JSON  ->  { valid, errors, warnings }
 //   GET  /api/schema                           ->  the JSON Schema
 //   GET  /api/health                           ->  { status, version }
@@ -9,7 +11,7 @@ import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { Resvg } from '@resvg/resvg-js';
 import { readFileSync } from 'node:fs';
-import { renderBoringLog, validateBoringLog, schema, DEFAULT_COLUMNS } from '../src/index.js';
+import { renderBoringLog, validateBoringLog, schema, DEFAULT_COLUMNS, agsToBoringLogs, looksLikeAgs, AgsError } from '../src/index.js';
 import { escapeXml } from '../src/text.js';
 import { loadFonts } from './fonts.js';
 
@@ -48,7 +50,7 @@ function number(value, name, min, max, problems) {
 export function parseQuery(query) {
     const problems = [];
     const known = new Set(['format', 'units', 'unit_weight', 'diameter_units', 'width', 'height', 'scale', 'png_scale',
-        'fit_text', 'font_size', 'columns', 'hide_empty_columns', 'header', 'legend', 'infer_uscs', 'infer_materials', 'title', 'id_prefix', 'download']);
+        'fit_text', 'font_size', 'columns', 'hide_empty_columns', 'header', 'legend', 'infer_uscs', 'infer_materials', 'title', 'id_prefix', 'download', 'loca_id']);
     for (const key of Object.keys(query)) {
         if (!known.has(key)) problems.push({ path: `?${key}`, message: 'unknown query parameter' });
     }
@@ -82,7 +84,8 @@ export function parseQuery(query) {
     }
     const pngScale = number(query.png_scale, 'png_scale', 0.5, 4, problems) ?? 2;
     const download = flag(query.download, 'download', problems) ?? false;
-    return { options, pngScale, download, problems };
+    const locaId = query.loca_id === undefined ? undefined : String(query.loca_id);
+    return { options, pngScale, download, locaId, problems };
 }
 
 // Output format: ?format= wins; otherwise the first acceptable type in the
@@ -172,6 +175,8 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
             done(Object.assign(new Error(e.message), { statusCode: 400, code: 'INVALID_JSON' }));
         }
     });
+    // AGS4 files arrive as plain text.
+    app.addContentTypeParser(['text/plain', 'application/x-ags', 'text/csv'], { parseAs: 'string' }, (request, body, done) => done(null, body));
 
     // Error bodies share one shape: { error, errors: [{ path, message }] }.
     app.setErrorHandler((err, request, reply) => {
@@ -180,7 +185,7 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
             return reply.code(413).send({ error: 'Request body too large', errors: [{ path: '', message: `limit is ${bodyLimit} bytes` }] });
         }
         if (err.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {
-            return reply.code(415).send({ error: 'Unsupported Content-Type', errors: [{ path: '', message: 'send the boring log as application/json' }] });
+            return reply.code(415).send({ error: 'Unsupported Content-Type', errors: [{ path: '', message: 'send the boring log as application/json, or an AGS4 file as text/plain' }] });
         }
         if (err.code === 'EMPTY_BODY') {
             return reply.code(400).send({ error: 'Empty request body', errors: [{ path: '', message: 'send the boring log JSON as the request body' }] });
@@ -212,12 +217,33 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
     app.get('/api/health', async () => ({
         status: 'ok',
         version,
-        endpoints: ['POST /api/render', 'POST /api/validate', 'GET /api/schema', 'GET /api/health'],
+        endpoints: ['POST /api/render', 'POST /api/ags', 'POST /api/validate', 'GET /api/schema', 'GET /api/health'],
     }));
 
     app.get('/api/schema', async (request, reply) => reply.type('application/schema+json').send(schema));
 
     app.post('/api/validate', async (request) => validateBoringLog(request.body));
+
+    // Converts an AGS4 file, or sends a 422 and returns null.
+    function fromAgs(text, reply) {
+        if (typeof text !== 'string' || !looksLikeAgs(text)) {
+            reply.code(400).send({ error: 'Not an AGS4 file', errors: [{ path: '', message: 'send the AGS4 file as the request body with Content-Type: text/plain' }] });
+            return null;
+        }
+        try {
+            return agsToBoringLogs(text);
+        } catch (e) {
+            if (!(e instanceof AgsError)) throw e;
+            reply.code(422).send({ error: 'Invalid AGS4 file', errors: [{ path: '', message: e.message }] });
+            return null;
+        }
+    }
+
+    app.post('/api/ags', async (request, reply) => {
+        const converted = fromAgs(request.body, reply);
+        if (!converted) return reply;
+        return converted;
+    });
 
     app.post('/api/render', async (request, reply) => {
         const format = chooseFormat(request.query.format, request.headers.accept);
@@ -227,10 +253,32 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
                 errors: [{ path: request.query.format !== undefined ? '?format' : 'Accept', message: `use one of: ${Object.keys(FORMATS).join(', ')}` }],
             });
         }
-        const { options, pngScale, download, problems } = parseQuery(request.query);
+        const { options, pngScale, download, locaId, problems } = parseQuery(request.query);
         if (problems.length) return reply.code(400).send({ error: 'Invalid query parameters', errors: problems });
 
-        const doc = request.body;
+        let doc = request.body;
+        if (typeof doc === 'string') {
+            // An AGS4 file: draw one of its boreholes.
+            const converted = fromAgs(doc, reply);
+            if (!converted) return reply;
+            const ids = converted.documents.map(d => d.loca_id);
+            const pick = locaId !== undefined ? converted.documents.find(d => d.loca_id === locaId) : converted.documents.length === 1 ? converted.documents[0] : null;
+            if (!pick) {
+                return reply.code(422).send({
+                    error: locaId !== undefined ? 'Borehole not found' : 'Choose a borehole',
+                    errors: [{ path: '?loca_id', message: `the file has ${ids.length} borehole${ids.length === 1 ? '' : 's'}: ${ids.slice(0, 50).join(', ')}${ids.length > 50 ? ', ...' : ''}; choose one with ?loca_id=` }],
+                });
+            }
+            if (!pick.document.layers.length) {
+                return reply.code(422).send({
+                    error: 'Nothing to draw',
+                    errors: [{ path: '/layers', message: `borehole ${pick.loca_id} has no strata (GEOL rows with a top and base)` }],
+                });
+            }
+            doc = pick.document;
+        } else if (locaId !== undefined) {
+            return reply.code(400).send({ error: 'Invalid query parameters', errors: [{ path: '?loca_id', message: 'only used with an AGS4 file' }] });
+        }
         const result = checkDocument(doc, reply);
         if (!result) return reply;
 

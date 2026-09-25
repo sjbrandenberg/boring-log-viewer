@@ -14,9 +14,13 @@ const cases = [
     ['HARDFILL', 'FILL'],
     ['Banking soil, coarse gravel and clayey silt with chips of wood', 'FILL'],
     ['Filled land', 'FILL'],
+    // British "made ground" (BGS TP23, West Bridgford)
+    ['MADE GROUND: grass over dark brown sandy gravelly SILT. Gravel is angular to rounded fine to coarse slag, brick, coal, ash and quartz.', 'FILL'],
+    ['Made Ground (brick rubble)', 'FILL'],
     // man-made
     ['Asphalt 3"', 'ASPHALT'],
     ['Paved Driveway', 'ASPHALT'],
+    ['Tarmacadam', 'ASPHALT'],
     ['SLAB: 10 cm thick old slab', 'CONCRETE'],
     ['Reinforced concrete (Translated from Japanese)', 'CONCRETE'],
     ['Roading aggregate; fine to coarse.', 'BASE_COURSE'],

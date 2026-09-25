@@ -78,7 +78,7 @@ test('bad query parameters are rejected with every problem listed', async () => 
 });
 
 test('parseQuery defaults', () => {
-    assert.deepEqual(parseQuery({}), { options: {}, pngScale: 2, download: false, problems: [] });
+    assert.deepEqual(parseQuery({}), { options: {}, pngScale: 2, download: false, locaId: undefined, problems: [] });
     assert.equal(parseQuery({ id_prefix: '"><script>' }).problems[0].path, '?id_prefix');
 });
 
@@ -105,8 +105,12 @@ test('malformed, empty, oversized and non-JSON bodies get clear errors', async (
     const empty = await render('', '');
     assert.equal(empty.statusCode, 400);
 
+    const xml = await app.inject({ method: 'POST', url: '/api/render', payload: '<log/>', headers: { 'content-type': 'application/xml' } });
+    assert.equal(xml.statusCode, 415);
+    // Plain text is read as an AGS4 file
     const text = await app.inject({ method: 'POST', url: '/api/render', payload: 'hello', headers: { 'content-type': 'text/plain' } });
-    assert.equal(text.statusCode, 415);
+    assert.equal(text.statusCode, 400);
+    assert.equal(text.json().error, 'Not an AGS4 file');
 
     const small = await buildApp({ bodyLimit: 100 });
     const big = await small.inject({ method: 'POST', url: '/api/render', payload: coastal, headers: { 'content-type': 'application/json' } });
@@ -182,4 +186,46 @@ test('infer_uscs=false turns off inferred USCS symbols', async () => {
     assert.equal(off.statusCode, 200);
     assert.match(on.body, />\(CH\)</);
     assert.doesNotMatch(off.body, />\(CH\)</);
+});
+
+// ---- AGS4 input
+
+const agsFile = readFileSync(new URL('./fixtures/example.ags', import.meta.url), 'utf8');
+const postAgs = (url, body = agsFile) => app.inject({ method: 'POST', url, payload: body, headers: { 'content-type': 'text/plain' } });
+
+test('POST /api/ags converts every borehole in an AGS4 file', async () => {
+    const res = await postAgs('/api/ags');
+    assert.equal(res.statusCode, 200);
+    const body = res.json();
+    assert.deepEqual(body.documents.map(d => d.loca_id), ['BH01', 'BH02']);
+    assert.equal(body.documents[0].document.metadata.boring_type, 'Cable percussion');
+    assert.equal(body.warnings.length, 1);
+});
+
+test('an AGS4 file renders directly, choosing the borehole with ?loca_id', async () => {
+    const none = await postAgs('/api/render');
+    assert.equal(none.statusCode, 422);
+    assert.match(none.json().errors[0].message, /2 boreholes: BH01, BH02; choose one with \?loca_id=/);
+    const one = await postAgs('/api/render?loca_id=BH01&format=svg');
+    assert.equal(one.statusCode, 200);
+    assert.match(one.body, /-FILL\)/, 'made ground drawn as fill');
+    assert.match(one.headers['content-disposition'], /filename="BH01.svg"/);
+    const png = await postAgs('/api/render?loca_id=BH02&format=png');
+    assert.equal(png.statusCode, 200);
+    assert.equal(png.headers['content-type'], 'image/png');
+    // A dynamic probe: a borehole with no strata
+    const probe = await postAgs('/api/render', ['"GROUP","LOCA"', '"HEADING","LOCA_ID","LOCA_TYPE"', '"DATA","DP1","DP"'].join('\n'));
+    assert.equal(probe.statusCode, 422);
+    assert.match(probe.json().errors[0].message, /has no strata/);
+    const missing = await postAgs('/api/render?loca_id=BH99');
+    assert.equal(missing.json().error, 'Borehole not found');
+    const ags3 = await postAgs('/api/render', ['"**PROJ"', '"*PROJ_ID"', '"X"'].join('\n'));
+    assert.equal(ags3.statusCode, 422);
+    assert.match(ags3.json().errors[0].message, /AGS3/);
+    const noLoca = await postAgs('/api/ags', ['"GROUP","PROJ"', '"HEADING","PROJ_ID"', '"DATA","X"'].join('\n'));
+    assert.equal(noLoca.statusCode, 422);
+    assert.match(noLoca.json().errors[0].message, /no LOCA group/);
+    // loca_id means nothing for a JSON body
+    const jsonWithId = await render('?loca_id=BH01', coastal);
+    assert.equal(jsonWithId.statusCode, 400);
 });

@@ -183,6 +183,8 @@ validator, into `public/`, which is the folder Apache serves. The page runs
 entirely in the browser:
 
 - Paste JSON, open a `.json` file, drag one onto the editor, or load an example.
+- Open an AGS4 (`.ags`) file: it is converted to JSON in the browser, with a
+  borehole picker when the file has more than one (see [AGS4 import](#ags4-import)).
 - Syntax and schema errors are listed with their location. Clicking one selects
   the offending text in the editor.
 - The preview updates as you type.
@@ -192,6 +194,28 @@ entirely in the browser:
 
 The four examples are the synthetic test fixtures.
 
+## AGS4 import
+
+AGS4 files (the UK and international geotechnical data transfer format) can be
+drawn directly: open one on the web page, or send it to the API (below). The
+conversion is `agsToBoringLogs()` in `src/ags.js`, shared by both, and makes one
+document per borehole (`LOCA_ID`):
+
+| AGS4 group | becomes |
+|---|---|
+| `PROJ`, `LOCA`, `HDIA` | metadata: project, site (`PROJ_LOC`), ground level, dates, hole type (expanded with `ABBR`, e.g. CP = Cable percussion), driller (`PROJ_CONT`), latitude/longitude when given, remarks, hole diameter |
+| `GEOL` | layers (`GEOL_DESC`); rows without a base are left out with a warning |
+| `DETL` | depth notes |
+| `SAMP` | samples; `SAMP_TYPE` B/LB = Bulk, BLK = Block, D = Disturbed, U/UT/TW = Shelby, P = Piston, SPT, C = Core, WS = DirectPush; other types (ES, W...) are drawn as Other with the code in the sample number ("3 ES"). A sample with only a top is drawn 0.15 m long (0.45 m for an SPT) |
+| `ISPT` | SPT blow counts (`ISPT_NVAL`, or the main drive of a refusal such as "50/150mm"), blows per 150 mm from `ISPT_INC1`–`6`, energy ratio |
+| `LNMC`, `LLPL`, `GRAG`, `LDEN`, `LPDN` | water content, liquid and plastic limits (NP = nonplastic), fines content, dry unit weight (from dry density), specific gravity; matched to their sample |
+| `WSTG` (and AGS3-style `WSTK`) | groundwater: water strikes |
+
+AGS depths are metres, so documents are in SI units. "MADE GROUND", the British
+term for fill, is drawn with the fill hatch. Tested on the synthetic
+`tests/fixtures/example.ags` and on 48 real boreholes exported from the BGS
+National Geoscience Data Centre. AGS3 files are rejected with a message.
+
 ## Render API
 
 `server/` is a Fastify service (`npm start`, which listens on
@@ -199,13 +223,15 @@ The four examples are the synthetic test fixtures.
 
 | endpoint | returns |
 |---|---|
-| `POST /api/render` | The log as SVG (default), PNG or HTML. The body is the boring log JSON. |
+| `POST /api/render` | The log as SVG (default), PNG or HTML. The body is the boring log JSON, or an AGS4 file sent as `text/plain` (`?loca_id=` picks the borehole; required when the file has several). |
+| `POST /api/ags` | An AGS4 file (`text/plain`) converted to `{ documents: [{ loca_id, document }], warnings }` |
 | `POST /api/validate` | `{ valid, errors, warnings }` |
 | `GET /api/schema` | The JSON Schema |
 | `GET /api/health` | `{ status, version, endpoints }` |
 
 ```sh
 curl -X POST -H "Content-Type: application/json" --data-binary @boring.json      "https://uclageo.com/boring-log-viewer/api/render?format=png&units=ft" -o boring.png
+curl -X POST -H "Content-Type: text/plain" --data-binary @site.ags "https://uclageo.com/boring-log-viewer/api/render?loca_id=BH01&format=png" -o BH01.png
 ```
 
 - **Format:** `?format=svg|png|html`. Without it, the `Accept` header decides
@@ -218,7 +244,9 @@ curl -X POST -H "Content-Type: application/json" --data-binary @boring.json     
   so a typo is reported instead of ignored.
 - **Errors** use one shape, `{ error, errors: [{ path, message }] }`:
   - 400: malformed JSON (with the parser's position) or a bad query parameter.
-  - 415: a body that isn't `application/json`.
+  - 415: a body that isn't `application/json` (or `text/plain` for AGS4).
+  - 422 for AGS4: not AGS4 (e.g. AGS3), no `LOCA` group, no borehole chosen
+    from several, or a borehole with no strata.
   - 413: a body over 1 MB.
   - 422: an invalid log, more than 2,000 layers or 5,000 samples, or a PNG over
     40 megapixels.

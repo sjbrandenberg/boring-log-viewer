@@ -128,6 +128,7 @@ textarea {
 }
 
 .status { margin: 0; font-size: 14px; }
+.import-note { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
 .status.ok { color: var(--ok); }
 .status.warning { color: var(--warning); }
 .status.error { color: var(--error); }

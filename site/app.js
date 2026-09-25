@@ -1,6 +1,6 @@
 // Paste page: edit JSON, see validation messages and a live preview, download
 // the log as SVG or PNG, or print it to PDF. Everything runs in the browser.
-import { renderBoringLog, validateBoringLog, BoringLogError } from '../src/index.js';
+import { renderBoringLog, validateBoringLog, BoringLogError, agsToBoringLogs, looksLikeAgs } from '../src/index.js';
 import { syntaxErrorLocation, locatePointer, downloadName, renderOptions, summarize } from './lib.js';
 import { setUpPatternsDialog } from './patterns.js';
 import coastal from '../tests/fixtures/coastal-style.json' with { type: 'json' };
@@ -246,7 +246,10 @@ for (const [key, { label }] of Object.entries(EXAMPLES)) {
 }
 exampleSelect.addEventListener('change', () => {
     const example = EXAMPLES[exampleSelect.value];
-    if (example) setText(JSON.stringify(example.doc, null, 2));
+    if (example) {
+        endImport();
+        setText(JSON.stringify(example.doc, null, 2));
+    }
     exampleSelect.value = '';
 });
 
@@ -258,7 +261,56 @@ $('format').addEventListener('click', () => {
     }
 });
 
-$('clear').addEventListener('click', () => setText(''));
+$('clear').addEventListener('click', () => {
+    endImport();
+    setText('');
+});
+
+// ------------------------------------------------------------ AGS4 import
+
+const holeSelect = $('ags-hole');
+const importNote = $('import-note');
+let agsImport = null; // { name, documents, warnings } while an AGS file's borehole is shown
+
+function note(text) {
+    importNote.textContent = text ?? '';
+    importNote.hidden = !text;
+}
+
+function showAgsHole(index) {
+    const { name, documents, warnings } = agsImport;
+    const { loca_id, document } = documents[index];
+    setText(JSON.stringify(document, null, 2));
+    const own = warnings.filter(w => w.startsWith(`${loca_id}: `)).map(w => w.slice(loca_id.length + 2));
+    note(`Converted ${loca_id} from ${name} (AGS4)${documents.length > 1 ? `, borehole ${index + 1} of ${documents.length}` : ''}.`
+        + (own.length ? ` Note: ${own.join('; ')}.` : '') + ' Edit the JSON as usual; the AGS file itself is not changed.');
+}
+
+function importAgs(name, text) {
+    let converted;
+    try {
+        converted = agsToBoringLogs(text);
+    } catch (e) {
+        setStatus(`${name}: ${e.message}`, 'error');
+        return;
+    }
+    agsImport = { name, ...converted };
+    holeSelect.replaceChildren(...converted.documents.map((d, i) => new Option(
+        `${d.loca_id}${d.document.layers.length ? '' : ' (no strata)'}`, String(i))));
+    holeSelect.hidden = converted.documents.length < 2;
+    // Start with the first borehole that has strata to draw.
+    const first = Math.max(0, converted.documents.findIndex(d => d.document.layers.length));
+    holeSelect.value = String(first);
+    showAgsHole(first);
+}
+
+function endImport() {
+    agsImport = null;
+    holeSelect.hidden = true;
+    note();
+}
+
+holeSelect.addEventListener('change', () => { if (agsImport) showAgsHole(Number(holeSelect.value)); });
 
 async function openFile(file) {
     if (!file) return;
@@ -266,7 +318,10 @@ async function openFile(file) {
         setStatus(`${file.name} is larger than 5 MB.`, 'error');
         return;
     }
-    setText(await file.text());
+    const text = await file.text();
+    if (/\.ags$/i.test(file.name) || looksLikeAgs(text)) return importAgs(file.name, text);
+    endImport();
+    setText(text);
 }
 
 $('file').addEventListener('change', e => {
