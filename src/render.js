@@ -2,7 +2,7 @@
 // no DOM, no network, no external images, so the same code runs in the
 // browser, in Node for the API, and in tests.
 import { normalizeBoringLog } from './normalize.js';
-import { DUAL_NAMES, inferUscs, layerHatch, USCS_NAMES } from './classify.js';
+import { DUAL_NAMES, inferUscs, layerHatch, USCS_NAMES, USCS_SYMBOLS } from './classify.js';
 import { HATCH_TILES } from './hatches.js';
 import { FONT_FAMILY, measureText, wrapText, escapeXml } from './text.js';
 
@@ -55,6 +55,10 @@ const DESC_PAD_X = BEND + 3; // keeps description text clear of the leader bends
 // fit_text stretches the depth scale so sample rows line up with their samplers,
 // but never makes the log body taller than this (px); beyond it, rows are pushed down.
 const MAX_ALIGNED_HEIGHT = 8000;
+// A recorded USCS symbol, or a dual one such as SP-SM. Other "uscs" values (e.g. a
+// custom pattern code put there by mistake) aren't shown as a classification.
+const USCS_VALUE = new RegExp(`^(${USCS_SYMBOLS.join('|')})([-/](${USCS_SYMBOLS.join('|')}))?$`);
+const shownUscs = l => (typeof l.uscs === 'string' && USCS_VALUE.test(l.uscs) ? l.uscs : null);
 
 const r = n => Math.round(n * 100) / 100;
 
@@ -85,7 +89,7 @@ function columnRegistry(u) {
         elevation: { kind: 'elevation', width: 38, label: `Elevation (${u.len})`, hasData: doc => doc.metadata.elevation !== undefined },
         groundwater: { kind: 'groundwater', width: 22, label: 'Water level', hasData: doc => doc.groundwater.length > 0 },
         graphic: { kind: 'graphic', width: 40, label: 'Graphic log', always: true },
-        uscs: { kind: 'uscs', width: 30, label: 'USCS', hasData: doc => doc.layers.some(l => l.uscs || l.uscs_inferred) },
+        uscs: { kind: 'uscs', width: 30, label: 'USCS', hasData: doc => doc.layers.some(l => shownUscs(l) || l.uscs_inferred) },
         description: { kind: 'description', flex: 3, label: 'Material description', always: true },
         sample_type: { kind: 'sample_symbol', width: 24, label: 'Sample type', hasData: doc => doc.samples.length > 0 },
         sample_name: { kind: 'sample_value', width: 36, label: 'Sample no.', value: s => s.name, hasData: has('name') },
@@ -579,7 +583,7 @@ export function renderBoringLog(input, options = {}) {
             }
         } else if (c.kind === 'uscs') {
             for (const b of blocks) {
-                const label = b.layer.uscs ?? (b.layer.uscs_inferred ? `(${b.layer.uscs_inferred})` : null);
+                const label = shownUscs(b.layer) ?? (b.layer.uscs_inferred ? `(${b.layer.uscs_inferred})` : null);
                 if (label) out.push(fittedText(c.x + c.w / 2, y0 + b.top + TEXT_PAD_Y + fs * 0.85, label, c.w - 4, fs));
             }
         } else if (c.kind === 'description') {

@@ -127,7 +127,7 @@ export function setUpPatternsDialog({ getText, setText }) {
         hint.textContent = !code ? ''
             : (sampler ? BUILT_IN_SAMPLERS : USCS).includes(code)
                 ? `Replaces the built-in ${code} ${sampler ? 'symbol' : 'pattern'} everywhere in this log.`
-                : sampler ? `Set a sample's "type" to "${code}" to use it.` : `Set a layer's "hatch" to "${code}" to use it.`;
+                : sampler ? `Set a sample's "type" to "${code}" to use it.` : `Set a layer's "hatch" (not "uscs") to "${code}" to use it.`;
     }
 
     $('patterns-open').addEventListener('click', () => {

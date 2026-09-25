@@ -28,11 +28,29 @@ function describe(err) {
     }
 }
 
+// The value at a JSON Pointer such as /layers/4/uscs, or undefined.
+function valueAt(doc, pointer) {
+    return pointer.split('/').slice(1).reduce((v, key) => (v == null ? undefined : v[key.replace(/~1/g, '/').replace(/~0/g, '~')]), doc);
+}
+
 // The sample type's anyOf reports one error per branch; show one message instead.
-function collapse(errors) {
+function collapse(errors, doc) {
     const out = [];
     const typePaths = new Set();
+    const patterns = doc && typeof doc.patterns === 'object' && doc.patterns ? doc.patterns : {};
     for (const err of errors) {
+        // A custom pattern code put in "uscs" instead of "hatch".
+        if (err.keyword === 'pattern' && /\/uscs$/.test(err.instancePath)) {
+            const value = valueAt(doc, err.instancePath);
+            if (typeof value === 'string' && Object.prototype.hasOwnProperty.call(patterns, value)) {
+                const layer = /^\/layers\//.test(err.instancePath);
+                out.push({
+                    path: err.instancePath,
+                    message: `"${value}" is a custom pattern, not a USCS symbol: ${layer ? `use "hatch": "${value}" to draw it` : 'custom patterns are used through a layer\'s "hatch"'} ("uscs" only takes USCS symbols)`,
+                });
+                continue;
+            }
+        }
         if (/^\/samples\/\d+\/type$/.test(err.instancePath)) {
             if (!typePaths.has(err.instancePath)) {
                 typePaths.add(err.instancePath);
@@ -56,7 +74,7 @@ export function validateBoringLog(input) {
     }
     doc = stripNulls(doc);
     const errors = [];
-    if (!validateSchema(doc)) errors.push(...collapse(validateSchema.errors));
+    if (!validateSchema(doc)) errors.push(...collapse(validateSchema.errors, doc));
     const target = doc && typeof doc === 'object' ? doc : {};
     const depth = checkDepths(target);
     errors.push(...depth.errors);

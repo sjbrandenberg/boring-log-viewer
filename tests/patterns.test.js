@@ -95,3 +95,17 @@ test('pattern codes must be simple identifiers', () => {
     const result = validateBoringLog(d);
     assert.ok(result.errors.some(e => /pattern code "bad code"/.test(e.message)), JSON.stringify(result.errors));
 });
+
+test('a pattern code put in "uscs" gets a message pointing to "hatch", and is not shown as a USCS symbol', () => {
+    const d = doc();
+    d.layers[1] = { top: 1, bottom: 3, description: 'Rubble', uscs: 'FILL' };
+    const errors = validateBoringLog(d).errors;
+    assert.deepEqual(errors.map(e => e.path), ['/layers/1/uscs']);
+    assert.match(errors[0].message, /"FILL" is a custom pattern, not a USCS symbol: use "hatch": "FILL"/);
+
+    // The web page still draws what it can; the pattern is used, but "FILL" isn't
+    // written into the USCS column as though it were a classification.
+    const svg = renderBoringLog(d, { id_prefix: 't' });
+    assert.match(svg, /fill="url\(#t-FILL\)"/);
+    assert.doesNotMatch(svg, /text-anchor="middle"[^>]*>FILL</);
+});
