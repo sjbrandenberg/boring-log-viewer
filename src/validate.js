@@ -3,7 +3,7 @@
 // throwing on the first one.
 import Ajv2020 from 'ajv/dist/2020.js';
 import schema from '../schema/boring-log.schema.json' with { type: 'json' };
-import { stripNulls, checkDepths, checkPatternReferences } from './normalize.js';
+import { stripNulls, checkDepths, checkPatternReferences, patternImages } from './normalize.js';
 
 const ajv = new Ajv2020({ allErrors: true, strict: true, allowUnionTypes: true });
 const validateSchema = ajv.compile(schema);
@@ -51,6 +51,22 @@ function collapse(errors, doc) {
                 continue;
             }
         }
+        // A pattern entry's oneOf (svg, or image with width and height) reports
+        // one error per branch; show one message instead.
+        if (/^\/patterns\/[^/]+\/(svg|image)$/.test(err.instancePath) && err.keyword === 'false schema') continue;
+        if (/^\/patterns\/[^/]+$/.test(err.instancePath) && ['oneOf', 'required'].includes(err.keyword)) {
+            if (!typePaths.has(err.instancePath)) {
+                typePaths.add(err.instancePath);
+                const p = valueAt(doc, err.instancePath) ?? {};
+                out.push({
+                    path: err.instancePath,
+                    message: p.svg !== undefined && p.image !== undefined
+                        ? 'has both "svg" and "image": give one'
+                        : 'needs "svg" (SVG markup), or "image" (a data URI) with "width" and "height"',
+                });
+            }
+            continue;
+        }
         if (/^\/samples\/\d+\/type$/.test(err.instancePath)) {
             if (!typePaths.has(err.instancePath)) {
                 typePaths.add(err.instancePath);
@@ -81,6 +97,8 @@ export function validateBoringLog(input) {
     // Reference checks only add something for fields the schema accepted.
     const flagged = new Set(errors.map(e => e.path));
     errors.push(...checkPatternReferences(target).filter(e => !flagged.has(e.path)));
+    // Whether "svg" markup can be used (the schema only checks it's a string).
+    errors.push(...patternImages(target).issues.filter(e => /\/svg$/.test(e.path) && !flagged.has(e.path)));
     return { valid: errors.length === 0, errors, warnings: depth.warnings };
 }
 

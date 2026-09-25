@@ -1,12 +1,14 @@
 // Hatches dialog: turn an uploaded PNG, JPG or SVG into a pattern entry in the
 // document's "patterns" section, and apply it to the layers or samples picked.
-// Raster images are embedded (scaled down if large); black-and-white ones can
-// instead be traced to vector shapes.
+// SVG files, and raster images traced to vector shapes (the default), are stored
+// as SVG markup ("svg"); a raster image can instead be kept as a picture
+// ("image", a data URI, scaled down if large).
 import ImageTracer from 'imagetracerjs';
 import {
     PATTERN_CODE, MAX_PATTERN_SIDE, MAX_PATTERN_URI, listPatterns, addPattern, removePattern,
-    thresholdPixels, tidyTracedSvg, base64Utf8, svgSize, patternTargets, applyPattern,
+    thresholdPixels, tidyTracedSvg, patternTargets, applyPattern,
 } from './lib.js';
+import { cleanSvg, svgDataUri } from '../src/svg-pattern.js';
 import { hatchSwatch, samplerSwatch, SAMPLER_NAMES, USCS_NAMES, LITHOLOGY, LITHOLOGY_GROUPS } from '../src/index.js';
 
 const BUILT_IN_SAMPLERS = Object.keys(SAMPLER_NAMES);
@@ -27,14 +29,22 @@ function readAs(file, how) {
     });
 }
 
-// The uploaded file as { kind: 'svg' | 'raster', uri, width, height, canvas? }.
+// Cleaned SVG markup as { kind: 'svg', svg, uri (for previews), width, height }.
+function svgResult(text) {
+    const { svg, width, height } = cleanSvg(text);
+    return { kind: 'svg', svg, uri: svgDataUri(svg), width, height };
+}
+
+// The uploaded file as { kind: 'svg', svg, ... } or { kind: 'raster', uri, width, height, canvas }.
 async function readPatternFile(file) {
     if (file.size > 10 * 1024 * 1024) throw new Error(`${file.name} is larger than 10 MB.`);
     if (file.type === 'image/svg+xml' || /\.svg$/i.test(file.name)) {
         const text = await readAs(file, 'readAsText');
-        const size = svgSize(text);
-        if (!size) throw new Error('The SVG needs width and height attributes or a viewBox.');
-        return { kind: 'svg', uri: `data:image/svg+xml;base64,${base64Utf8(text)}`, ...size };
+        try {
+            return svgResult(text);
+        } catch (e) {
+            throw new Error(`This SVG can't be used as a hatch: it ${e.message}.`);
+        }
     }
     if (!/^image\/(png|jpeg)$/.test(file.type)) throw new Error('Use a PNG, JPG or SVG image.');
     const img = await loadImage(await readAs(file, 'readAsDataURL'));
@@ -62,7 +72,7 @@ function traceToSvg(source, threshold) {
         pal: [{ r: 0, g: 0, b: 0, a: 255 }, { r: 255, g: 255, b: 255, a: 255 }],
         ltres: 1, qtres: 1, pathomit: 2, strokewidth: 0, roundcoords: 1, viewbox: true, blurradius: 0,
     });
-    return { kind: 'svg', uri: `data:image/svg+xml;base64,${base64Utf8(tidyTracedSvg(svg, width, height))}`, width, height };
+    return svgResult(tidyTracedSvg(svg, width, height));
 }
 
 export function setUpPatternsDialog({ getText, setText }) {
@@ -80,6 +90,7 @@ export function setUpPatternsDialog({ getText, setText }) {
     const targets = $('pattern-targets');
     let source = null;   // the uploaded image
     let result = null;   // what will be stored (source, or its traced version)
+    let fileError = null; // why the chosen file can't be used, kept for the submit button
 
     const say = (box, text) => {
         box.textContent = text ?? '';
@@ -107,7 +118,13 @@ export function setUpPatternsDialog({ getText, setText }) {
             const noun = kind === 'sampler' ? 'sample' : 'layer';
             const li = document.createElement('li');
             const img = document.createElement('img');
-            img.src = p.image;
+            let src = typeof p.image === 'string' ? p.image : '';
+            try {
+                if (typeof p.svg === 'string') src = svgDataUri(cleanSvg(p.svg).svg);
+            } catch {
+                // shown without a picture; validation reports the problem
+            }
+            img.src = src;
             img.alt = '';
             const label = document.createElement('span');
             label.textContent = `${c} – ${p.name ?? c} (${kind === 'sampler' ? 'sampler symbol' : 'hatch'}; `
@@ -252,6 +269,7 @@ export function setUpPatternsDialog({ getText, setText }) {
     form.file.addEventListener('change', async () => {
         showError();
         source = null;
+        fileError = null;
         const file = form.file.files[0];
         if (file) {
             try {
@@ -261,6 +279,7 @@ export function setUpPatternsDialog({ getText, setText }) {
                     refreshTargets();
                 }
             } catch (e) {
+                fileError = e.message;
                 showError(e.message);
             }
         }
@@ -302,13 +321,15 @@ export function setUpPatternsDialog({ getText, setText }) {
             refreshTargets();
             return;
         }
-        if (!result) return showError('Choose an image first (step 2).');
-        if (result.uri.length > MAX_PATTERN_URI) {
-            return showError(`The image is too large (${Math.round(result.uri.length / 1000)} kB encoded, limit ${MAX_PATTERN_URI / 1000} kB). Use a smaller image, or convert it to vector.`);
+        if (!result) return showError(fileError ?? 'Choose an image first (step 2).');
+        const stored = result.svg ?? result.uri;
+        if (stored.length > MAX_PATTERN_URI) {
+            return showError(`The image is too large (${Math.round(stored.length / 1000)} kB ${result.svg ? 'of SVG' : 'encoded'}, limit ${MAX_PATTERN_URI / 1000} kB). Use a smaller or simpler image${result.svg ? '' : ', or convert it to vector'}.`);
         }
         const kind = sampler() ? 'sampler' : 'soil';
         const builtIn = isBuiltIn();
-        const entry = { image: result.uri, width: result.width, height: result.height };
+        // SVG markup is stored as is (its size comes from its viewBox); a picture as a data URI.
+        const entry = result.svg ? { svg: result.svg } : { image: result.uri, width: result.width, height: result.height };
         if (form.name.value.trim()) entry.name = form.name.value.trim();
         if (kind === 'sampler') entry.kind = 'sampler';
         else if (Number(form.tile_width.value)) entry.tile_width = Number(form.tile_width.value);
@@ -325,7 +346,7 @@ export function setUpPatternsDialog({ getText, setText }) {
                 ? `Added ${c} and applied it to ${chosen.length} ${noun}${chosen.length === 1 ? '' : 's'}.`
                 : `Added ${c}. No ${noun}s use it yet: add it again with ${noun}s ticked, or set "${kind === 'sampler' ? 'type' : 'hatch'}": "${c}" in the JSON.`);
         form.reset();
-        source = result = null;
+        source = result = fileError = null;
         refreshPreview();
         refreshList();
         refreshTargets();

@@ -3,6 +3,7 @@
 
 import { LITHOLOGY } from './lithology.js';
 import { SAMPLER_NAMES } from './samplers.js';
+import { cleanSvg, svgDataUri } from './svg-pattern.js';
 
 export class BoringLogError extends Error {
     constructor(message, issues = []) {
@@ -35,6 +36,41 @@ const BUILT_IN_SAMPLERS = new Set(Object.keys(SAMPLER_NAMES));
 // Checks the schema cannot express: a layer's hatch must be a USCS symbol or a
 // soil pattern defined in the document, and a sample's type a built-in sampler
 // or a sampler pattern defined in it.
+const IMAGE_URI = /^data:image\/(png|jpeg|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+// Each custom pattern's picture: its "svg" markup, cleaned, or its "image" data
+// URI; checked here rather than only by the schema because the renderer can be
+// called without validation, and only these may go into the log.
+// Returns { images: { code: { image, width, height } }, issues }.
+export function patternImages(doc) {
+    const images = {};
+    const issues = [];
+    const patterns = doc?.patterns && typeof doc.patterns === 'object' ? doc.patterns : {};
+    for (const [code, p] of Object.entries(patterns)) {
+        if (p && typeof p === 'object' && p.svg !== undefined) {
+            try {
+                const { svg, width, height } = cleanSvg(p.svg);
+                const w = p.width > 0 && p.height > 0 ? p.width : width;
+                const h = p.width > 0 && p.height > 0 ? p.height : height;
+                images[code] = { image: svgDataUri(svg), width: w, height: h };
+            } catch (e) {
+                issues.push({ path: `/patterns/${code}/svg`, message: e.message });
+            }
+            continue;
+        }
+        if (!p || typeof p.image !== 'string' || !IMAGE_URI.test(p.image)) {
+            issues.push({ path: `/patterns/${code}`, message: 'needs "svg" (SVG markup) or "image" (a base64 data URI of a PNG, JPEG or SVG image)' });
+            continue;
+        }
+        if (!(p.width > 0) || !(p.height > 0)) {
+            issues.push({ path: `/patterns/${code}`, message: 'needs a positive width and height' });
+            continue;
+        }
+        images[code] = { image: p.image, width: p.width, height: p.height };
+    }
+    return { images, issues };
+}
+
 export function checkPatternReferences(doc) {
     const errors = [];
     const patterns = doc.patterns && typeof doc.patterns === 'object' ? doc.patterns : {};
@@ -125,14 +161,8 @@ export function normalizeBoringLog(input) {
     numeric(doc.groundwater, 'groundwater', ['depth']);
     numeric(doc.depth_notes, 'depth_notes', ['depth']);
     issues.push(...checkDepths(doc).errors, ...checkPatternReferences(doc));
-    // The schema checks this for validated input; the renderer can also be called
-    // directly, and only image data URIs may go into the SVG.
-    for (const [code, p] of Object.entries(doc.patterns && typeof doc.patterns === 'object' ? doc.patterns : {})) {
-        if (!p || typeof p.image !== 'string' || !/^data:image\/(png|jpeg|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/.test(p.image)) {
-            issues.push({ path: `/patterns/${code}/image`, message: 'must be a base64 data URI of a PNG, JPEG or SVG image' });
-        }
-        if (!(p?.width > 0) || !(p?.height > 0)) issues.push({ path: `/patterns/${code}`, message: 'needs a positive width and height' });
-    }
+    const pictures = patternImages(doc);
+    issues.push(...pictures.issues);
     if (issues.length) {
         throw new BoringLogError(`Boring log has ${issues.length} problem${issues.length > 1 ? 's' : ''}`, issues);
     }
@@ -142,6 +172,10 @@ export function normalizeBoringLog(input) {
         ...doc,
         units: { length: 'm', unit_weight: 'kN/m3', diameter: 'mm', ...doc.units },
         metadata: { ...doc.metadata },
+        // Patterns carry their picture as an image data URI, whichever way it was given.
+        ...(doc.patterns && typeof doc.patterns === 'object'
+            ? { patterns: Object.fromEntries(Object.entries(doc.patterns).map(([code, p]) => [code, { ...p, ...pictures.images[code] }])) }
+            : {}),
         layers: [...doc.layers].sort(byTop),
         samples: [...(doc.samples ?? [])].sort(byTop),
         groundwater: [...(doc.groundwater ?? [])].sort((a, b) => a.depth - b.depth),

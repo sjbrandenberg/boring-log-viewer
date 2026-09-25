@@ -88,9 +88,18 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   depth within a layer ("thin sand lens"). They are drawn in italics in the
   material description column, with a tick at their depth.
 - **`patterns`**: your own graphic log patterns and sampler symbols, by code:
-  `{ "FILL": { "name": "Fill", "image": "data:image/png;base64,...", "width": 96, "height": 96 } }`.
-  `image` is a base64 data URI of a PNG, JPEG or SVG (at most 350,000
-  characters); `width` and `height` are its pixel size. Add `"kind": "sampler"`
+  `{ "FILL": { "name": "Fill", "svg": "<svg viewBox='0 0 40 20'><line x1='0' y1='20' x2='40' y2='0' stroke='black'/></svg>" } }`.
+  Each entry has either `svg`, SVG markup whose size comes from its `viewBox`
+  (or `width`/`height` in px), or `image`, a base64 data URI of a PNG, JPEG or
+  SVG with `width` and `height` giving its pixel size (either at most 350,000
+  characters). SVG markup is parsed and rebuilt by `src/svg-pattern.js` from
+  an allowlist: `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`,
+  `polygon` and `g`, with geometry and fill/stroke attributes (`style="..."`
+  is read into attributes). Titles, metadata and editor namespaces (Inkscape,
+  Illustrator) are dropped; text, images, `<use>`, `<style>`, scripts,
+  `url(...)` values and DOCTYPEs are rejected with a message. The rebuilt SVG
+  is drawn as a data URI in an `<image>`, like a picture, so no user markup
+  goes into the log itself. Add `"kind": "sampler"`
   for a sampler symbol (stretched to fill the sample's box), and `tile_width`
   (px on the log) to change how large a soil tile is drawn; by default one tile
   spans the graphic log column. A code equal to a USCS symbol (`SM`) or a
@@ -99,9 +108,10 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   letter) adds a new one: set a layer's `hatch`, or a sample's `type`, to it.
   Custom codes also work in dual patterns such as `"hatch": "SP-FILL"`. Images
   are embedded in the SVG, so logs stay self-contained. The web page's
-  **Hatches…** button builds these entries from an image file, scaling large
-  images down to 512 px and optionally tracing black-and-white patterns to
-  vector shapes (with imagetracerjs), and sets `hatch` or `type` on the layers
+  **Hatches…** button builds these entries from an image file: SVG files and
+  raster images traced to vector shapes (with imagetracerjs, the default) are
+  stored as `svg`; a raster kept as a picture (for photos or shading) is
+  stored as `image`, scaled down to 512 px. It sets `hatch` or `type` on the layers
   or samples the user ticks, so no JSON editing is needed. It also lists the
   built-in hatches and sampler symbols, each with a Replace button.
 - **`null` means "not given"**, so database exports can be passed through

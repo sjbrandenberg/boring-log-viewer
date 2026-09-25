@@ -109,3 +109,70 @@ test('a pattern code put in "uscs" gets a message pointing to "hatch", and is no
     assert.match(svg, /fill="url\(#t-FILL\)"/);
     assert.doesNotMatch(svg, /text-anchor="middle"[^>]*>FILL</);
 });
+
+// ---- patterns given as SVG markup
+
+const HAND_SVG = "<svg viewBox='0 0 40 20'><line x1='0' y1='20' x2='40' y2='0' stroke='black' stroke-width='2'/></svg>";
+const svgDoc = (pattern, extra = {}) => ({
+    schema_version: '1.0',
+    patterns: { RUBBLE: { name: 'Rubble', ...pattern } },
+    layers: [{ top: 0, bottom: 2, description: 'Rubble fill', hatch: 'RUBBLE' }],
+    ...extra,
+});
+const decodedImages = svg => [...svg.matchAll(/href="data:image\/svg\+xml;base64,([^"]+)"/g)].map(m => Buffer.from(m[1], 'base64').toString());
+
+test('a pattern given as SVG markup validates, takes its size from the viewBox, and is drawn as an image', () => {
+    assert.deepEqual(validateBoringLog(svgDoc({ svg: HAND_SVG })).errors, []);
+    const out = renderBoringLog(svgDoc({ svg: HAND_SVG }));
+    const [img] = decodedImages(out);
+    assert.match(img, /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg" viewBox="0 0 40 20" width="40" height="20"><line x1="0" y1="20" x2="40" y2="0" stroke="black" stroke-width="2"\/><\/svg>$/);
+    // one tile across the 40 px column: 40 x 20
+    assert.match(out, /<pattern id="[^"]+-RUBBLE" patternUnits="userSpaceOnUse" width="40" height="20"/);
+    assert.match(textOf(out), /RUBBLE – Rubble/);
+    assert.ok(new Resvg(out).render().asPng().length > 1000);
+});
+
+test('SVG markup is rebuilt from drawing elements and paint attributes only', () => {
+    const hostile = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" onload="alert(1)">'
+        + '<title>t</title><metadata><x>y</x></metadata><sodipodi:namedview/>'
+        + '<g id="a" style="fill:#000;stroke:none;font-family:Arial" inkscape:label="L">'
+        + '<path d="M0 0L10 10Z" onclick="alert(2)" fill="url(http://evil/x)" xlink:href="javascript:alert(3)"/></g></svg>';
+    const [img] = decodedImages(renderBoringLog(svgDoc({ svg: hostile })));
+    assert.equal(img, '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10"><g fill="#000" stroke="none"><path d="M0 0L10 10Z"/></g></svg>');
+});
+
+test('SVG markup with elements that could run code or load content is rejected', () => {
+    for (const [inner, what] of [['<script>alert(1)</script>', /<script> isn't allowed/], ['<image href="http://x/a.png"/>', /<image> isn't allowed/],
+        ['<foreignObject><div/></foreignObject>', /<foreignObject> isn't allowed/], ['<style>.a{fill:red}</style>', /<style> isn't allowed.*style="\.\.\."/],
+        ['<use href="#a"/>', /<use> isn't allowed/], ['hello', /text .* isn't allowed/]]) {
+        const d = svgDoc({ svg: `<svg viewBox="0 0 4 4">${inner}</svg>` });
+        const { errors } = validateBoringLog(d);
+        assert.equal(errors.length, 1, inner);
+        assert.equal(errors[0].path, '/patterns/RUBBLE/svg');
+        assert.match(errors[0].message, what);
+        assert.throws(() => renderBoringLog(d), BoringLogError, inner);
+    }
+    const { errors } = validateBoringLog(svgDoc({ svg: '<!DOCTYPE svg [<!ENTITY x "y">]><svg viewBox="0 0 4 4"/>' }));
+    assert.match(errors[0].message, /<!DOCTYPE> isn't allowed/);
+    assert.match(validateBoringLog(svgDoc({ svg: '<svg><rect width="4" height="4"/></svg>' })).errors[0].message, /needs a viewBox/);
+});
+
+test('a pattern needs exactly one of "svg" and "image"', () => {
+    const both = validateBoringLog(svgDoc({ svg: HAND_SVG, image: PNG, width: 8, height: 8 })).errors;
+    assert.deepEqual(both, [{ path: '/patterns/RUBBLE', message: 'has both "svg" and "image": give one' }]);
+    const neither = validateBoringLog(svgDoc({})).errors;
+    assert.deepEqual(neither, [{ path: '/patterns/RUBBLE', message: 'needs "svg" (SVG markup), or "image" (a data URI) with "width" and "height"' }]);
+});
+
+test('SVG markup works for sampler symbols too', () => {
+    const d = {
+        schema_version: '1.0',
+        patterns: { VIBRO: { name: 'Vibracore', kind: 'sampler', svg: "<svg viewBox='0 0 10 30'><rect x='1' y='1' width='8' height='28' fill='none' stroke='black'/></svg>" } },
+        layers: [{ top: 0, bottom: 2, description: 'Sand' }],
+        samples: [{ top: 0.5, bottom: 1, type: 'VIBRO' }],
+    };
+    assert.deepEqual(validateBoringLog(d).errors, []);
+    const out = renderBoringLog(d);
+    assert.equal(decodedImages(out).length, 2, 'sample column and legend');
+    assert.match(textOf(out), /Vibracore/);
+});

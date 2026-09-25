@@ -103,9 +103,9 @@
             <span class="muted small">px; how large one repeat of the hatch is drawn.</span>
         </label>
         <fieldset id="pattern-trace" class="pattern-trace" hidden>
-            <label><input name="vector" type="checkbox"> Convert to vector (black-and-white line patterns)</label>
+            <label><input name="vector" type="checkbox" checked> Convert to vector (best for black-and-white line patterns)</label>
             <label>Threshold <input id="pattern-threshold" type="range" min="16" max="240" value="128"></label>
-            <p class="muted">An embedded image looks exactly like your file but shows its pixels when zoomed. A converted one stays sharp at any size, but check the preview: fine dots or shading can be lost.</p>
+            <p class="muted">A converted hatch is stored in the JSON as short, readable SVG and stays sharp at any size, but check the preview: fine dots or shading can be lost. Untick this to keep a photo, scan or shaded image as a picture instead; it looks exactly like your file but is stored as a long line of encoded text and shows its pixels when zoomed.</p>
         </fieldset>
         <div class="pattern-previews">
             <figure><img id="pattern-original" alt=""><figcaption>Image</figcaption></figure>
@@ -178,7 +178,7 @@
         <dt><code>depth_notes[]</code></dt>
         <dd><code>depth</code> and <code>description</code>: an observation at one depth within a layer, drawn in italics in the material description column.</dd>
         <dt><code>patterns</code></dt>
-        <dd>Your own graphic log patterns and sampler symbols, by code: <code>{ "FILL": { "name": "Fill", "image": "data:image/png;base64,…", "width": 64, "height": 64 } }</code>. Add <code>"kind": "sampler"</code> for a sampler symbol, and <code>tile_width</code> (px) to change the tile size. A USCS code or built-in sampler name replaces the built-in pattern. The <b>Hatches…</b> button builds these entries from an image file and applies them to the layers or samples you pick. They are saved in the JSON, not on the server; to use them with the API, see <a href="#api-hatches">using your own hatches with the API</a>.</dd>
+        <dd>Your own graphic log patterns and sampler symbols, by code: <code>{ "FILL": { "name": "Fill", "svg": "&lt;svg viewBox='0 0 40 20'&gt;&lt;line x1='0' y1='20' x2='40' y2='0' stroke='black'/&gt;&lt;/svg&gt;" } }</code>, as SVG markup (drawing elements only: <code>path</code>, <code>rect</code>, <code>circle</code>, <code>ellipse</code>, <code>line</code>, <code>polyline</code>, <code>polygon</code>, <code>g</code>), or as a picture: <code>"image": "data:image/png;base64,…"</code> with <code>"width"</code> and <code>"height"</code> in px. Add <code>"kind": "sampler"</code> for a sampler symbol, and <code>tile_width</code> (px) to change the tile size. A USCS code or built-in sampler name replaces the built-in pattern. The <b>Hatches…</b> button builds these entries from an image file and applies them to the layers or samples you pick. They are saved in the JSON, not on the server; to use them with the API, see <a href="#api-hatches">using your own hatches with the API</a>.</dd>
     </dl>
     <p>The complete definition is in the <a href="schema/boring-log.schema.json">JSON Schema</a>.</p>
 </section>
@@ -210,20 +210,18 @@ open("boring.svg", "w", encoding="utf-8").write(r.text)</code></pre>
     <p>Requests are limited to 1 MB, 2,000 layers and 5,000 samples. Submitted data is not stored.</p>
 
     <h3 id="api-hatches">Using your own hatches with the API</h3>
-    <p>Hatches and sampler symbols you make on this page are <b>not stored on the server</b>. They are saved inside the log's JSON, in a section called <code>"patterns"</code>, and the image itself is stored there as a long line of text. The API draws a custom hatch only if the JSON you send contains that <code>"patterns"</code> section. To use one from a script:</p>
+    <p>Hatches and sampler symbols you make on this page are <b>not stored on the server</b>. They are saved inside the log's JSON, in a section called <code>"patterns"</code>: as SVG markup, or, for a hatch kept as a picture, as a long line of encoded text. The API draws a custom hatch only if the JSON you send contains that <code>"patterns"</code> section. To use one from a script:</p>
     <ol class="steps">
         <li>On this page, click <b>Hatches…</b>, add your hatch (the three steps in that window), and close the window.</li>
-        <li>Click <b>Format</b>. The JSON editor now has a <code>"patterns"</code> section at the end. For example, a hatch with the code <code>FILL</code> looks like this, with the image cut short here:
+        <li>Click <b>Format</b>. The JSON editor now has a <code>"patterns"</code> section at the end. For example, a hatch with the code <code>FILL</code> looks like this, with the SVG cut short here:
             <pre><code>"patterns": {
   "FILL": {
-    "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA…",
-    "width": 96,
-    "height": 96,
+    "svg": "&lt;svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 96 96\" width=\"96\" height=\"96\"&gt;&lt;path fill=\"rgb(0,0,0)\" d=\"M 12 4 L 20 4 …\"/&gt;&lt;/svg&gt;",
     "name": "Fill"
   }
 },</code></pre>
         </li>
-        <li>Copy the JSON: click in the editor, press <kbd>Ctrl</kbd>+<kbd>A</kbd> (<kbd>⌘</kbd>+<kbd>A</kbd> on a Mac) to select all of it, then <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy. Selecting all is easier than picking out the <code>"patterns"</code> section, because the image line is very long.</li>
+        <li>Copy the JSON: click in the editor, press <kbd>Ctrl</kbd>+<kbd>A</kbd> (<kbd>⌘</kbd>+<kbd>A</kbd> on a Mac) to select all of it, then <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy. Selecting all is easier than picking out the <code>"patterns"</code> section, because the <code>"svg"</code> or <code>"image"</code> line can be long.</li>
         <li>Paste it into a new text file and save it, for example as <code>hatches.json</code>.</li>
         <li>In the JSON your script sends, add the <code>"patterns"</code> section from that file, and set <code>"hatch": "FILL"</code> on each layer that should use it. For a sampler symbol, set a sample's <code>"type"</code> to its code instead. A code that replaces a built-in one, such as <code>SM</code>, needs no <code>"hatch"</code>: every layer with that USCS symbol uses it.</li>
     </ol>
@@ -240,6 +238,14 @@ r = requests.post("https://uclageo.com/boring-log-viewer/api/render",
                   params={"format": "svg"}, json=log)
 r.raise_for_status()
 open("boring.svg", "w", encoding="utf-8").write(r.text)</code></pre>
+    <p>You can also write a simple hatch by hand. This one draws diagonal lines, one tile 40 × 20 px (the tile's size comes from its <code>viewBox</code>); single quotes inside the SVG save escaping them in JSON:</p>
+    <pre><code>"patterns": {
+  "SLOPE": {
+    "name": "Sloping lines",
+    "svg": "&lt;svg viewBox='0 0 40 20'&gt;&lt;line x1='0' y1='20' x2='40' y2='0' stroke='black' stroke-width='1.5'/&gt;&lt;/svg&gt;"
+  }
+}</code></pre>
+    <p>Only drawing elements (<code>path</code>, <code>rect</code>, <code>circle</code>, <code>ellipse</code>, <code>line</code>, <code>polyline</code>, <code>polygon</code>, <code>g</code>) and fill and stroke attributes are kept; titles and editor metadata (from Inkscape or Illustrator) are dropped, and anything else, such as text, embedded images, <code>&lt;style&gt;</code> or scripts, is rejected with a message saying what to change.</p>
     <p>If a layer uses a code that isn't defined in <code>"patterns"</code>, the API returns a 422 error naming the layer and the code. To reuse a hatch in another log on this page, paste the <code>"patterns"</code> section into that log's JSON, or add the image again with the <b>Hatches…</b> window.</p>
 </section>
 </body>

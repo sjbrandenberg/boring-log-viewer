@@ -68,18 +68,27 @@
       "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_]{0,15}$" },
       "additionalProperties": {
         "type": "object",
-        "required": ["image", "width", "height"],
+        "description": "One pattern: either \"svg\" (SVG markup) or \"image\" (a PNG, JPEG or SVG data URI) with \"width\" and \"height\".",
+        "oneOf": [
+          { "required": ["svg"], "properties": { "svg": true, "image": false } },
+          { "required": ["image", "width", "height"], "properties": { "image": true, "width": true, "height": true, "svg": false } }
+        ],
         "additionalProperties": false,
         "properties": {
           "name": { "description": "Label in the legend, e.g. \"Fill\". Defaults to the built-in name, or the code.", "type": "string", "maxLength": 80 },
           "kind": { "description": "\"soil\" for a graphic log pattern (tiled), \"sampler\" for a sampler symbol (stretched to the sample interval).", "enum": ["soil", "sampler"], "default": "soil" },
+          "svg": {
+            "description": "The pattern as SVG markup, e.g. \"<svg viewBox='0 0 40 20'><line x1='0' y1='20' x2='40' y2='0' stroke='black'/></svg>\". Only drawing elements (path, rect, circle, ellipse, line, polyline, polygon, g) and paint attributes are kept. Its size comes from the viewBox, or width and height in px, unless \"width\" and \"height\" are given.",
+            "type": "string",
+            "maxLength": 350000
+          },
           "image": {
             "description": "The image as a base64 data URI: data:image/png;base64,..., data:image/jpeg;base64,... or data:image/svg+xml;base64,....",
             "type": "string",
             "maxLength": 350000,
             "pattern": "^data:image/(png|jpeg|svg\\+xml);base64,[A-Za-z0-9+/]+={0,2}$"
           },
-          "width": { "description": "Width of the image in pixels (sets the tile's aspect ratio).", "type": "number", "exclusiveMinimum": 0, "maximum": 4096 },
+          "width": { "description": "Width of the image in pixels (sets the tile's aspect ratio). Optional with \"svg\".", "type": "number", "exclusiveMinimum": 0, "maximum": 4096 },
           "height": { "description": "Height of the image in pixels.", "type": "number", "exclusiveMinimum": 0, "maximum": 4096 },
           "tile_width": { "description": "Width of one tile on the log, px. Defaults to the width of the graphic log column.", "type": "number", "minimum": 4, "maximum": 400 }
         }
