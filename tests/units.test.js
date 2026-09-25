@@ -102,3 +102,12 @@ test('wrapText keeps every line within the width', () => {
     assert.deepEqual(wrapText('a\nb', 100, 10), ['a', 'b']);
     assert.deepEqual(wrapText(null, 100, 10), []);
 });
+
+test('inferHatch reads sorting as the inverse of grading', () => {
+    // NGL, Gibbs B-1 (Treasure Island): drawn as SW before this was handled.
+    assert.equal(inferHatch('SAND, olive gray, well-sorted, very fine to fine, loose'), 'SP');
+    assert.equal(inferHatch('Sand, lt. olive brown, well sorted, fine to medium'), 'SP');
+    assert.equal(inferHatch('SAND, brown, poorly sorted, fine to coarse'), 'SW');
+    assert.equal(inferHatch('GRAVEL, well-sorted, rounded'), 'GP');
+    assert.equal(inferHatch('well graded SAND with gravel'), 'SW');
+});

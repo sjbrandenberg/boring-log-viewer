@@ -60,7 +60,10 @@ export function inferHatch(description) {
     const symbol = text.match(SYMBOL_IN_TEXT);
     if (symbol) return symbol[2] ? `${symbol[1]}-${symbol[2]}` : symbol[1];
 
-    const words = text.toLowerCase().split(/[^a-z]+/).filter(Boolean);
+    // Sorting is the geologist's inverse of grading: "well-sorted" sand is
+    // poorly graded, and "poorly sorted" sand is well graded.
+    const words = text.toLowerCase().split(/[^a-z]+/).filter(Boolean)
+        .flatMap((w, i, all) => (all[i + 1] === 'sorted' && (w === 'well' || w === 'poorly') ? [w === 'well' ? 'poorly' : 'well'] : [w]));
     if (words.includes('peat')) return 'PT';
 
     // 2. The principal soil type. Logs conventionally capitalize it
