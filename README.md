@@ -99,7 +99,9 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   depth within a layer ("thin sand lens"). They are drawn in italics in the
   material description column, with a tick at their depth.
 - **`references`**: a list of `{ text, url }` for the sources of the data (the
-  report or paper the boring comes from), listed below the legend. An http(s)
+  report or paper the boring comes from), listed in the header, after the
+  metadata, so they're seen before a tall log (below the legend when the header
+  is turned off). An http(s)
   `url` is shown after the text, unless the text already contains it, and is a
   link in SVG output; other values (e.g. "Personal communication") aren't
   linked. `references=false` leaves them off.
@@ -146,7 +148,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 | `columns` | see `DEFAULT_COLUMNS` | Column ids, in order |
 | `hide_empty_columns` | true | Drop columns with no data |
 | `header`, `legend` | true | Metadata block above, legend below |
-| `references` | true | The document's references, below the legend |
+| `references` | true | The document's references, in the header (below the legend without one) |
 | `title` | `metadata.boring_name` | Title text |
 | `depth_range` | `[0, deepest]` | `[top, bottom]` in display units |
 | `font_size` | 10 | px |

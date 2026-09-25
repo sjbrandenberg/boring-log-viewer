@@ -37,7 +37,7 @@ const DEFAULTS = {
     hide_empty_columns: true,
     header: true,
     legend: true,
-    references: true,    // list the document's references below the legend
+    references: true,    // list the document's references in the header (below the legend without one)
     title: null,
     units: null,         // display length units, 'm' or 'ft'; defaults to the data's units
     unit_weight: null,   // display unit weight units, 'kN/m3' or 'pcf'
@@ -420,6 +420,13 @@ function metadataFields(doc, u) {
     return fields;
 }
 
+// A reference's text with its http(s) url after it (unless the text has it), and the url to link.
+function referenceText(ref) {
+    const url = /^https?:\/\/[^\s"<>]+$/i.test(String(ref.url ?? '').trim()) ? ref.url.trim() : null;
+    return { url, full: url && !ref.text.includes(url) ? `${ref.text.trim()} ${url}` : ref.text.trim() };
+}
+const linked = (url, body) => (url ? `<a href="${escapeXml(url)}" target="_blank">${body}</a>` : body);
+
 function drawHeader(doc, opt, u, x0, width, y0, fs) {
     const out = [];
     const lh = fs * 1.2;
@@ -453,6 +460,19 @@ function drawHeader(doc, opt, u, x0, width, y0, fs) {
         out.push(text(x0, y + fs, 'Notes: ', { bold: true }));
         lines.forEach((ln, j) => out.push(text(x0 + labelW, y + fs + j * lh, ln)));
         y += lines.length * lh + 2;
+    }
+    // The sources of the data, full width, so they're seen before a tall log.
+    const refs = opt.references ? doc.references ?? [] : [];
+    if (refs.length) {
+        const label = refs.length > 1 ? 'References: ' : 'Reference: ';
+        const labelW = measureText(label, fs, true);
+        out.push(text(x0, y + fs, label, { bold: true }));
+        for (const ref of refs) {
+            const { url, full } = referenceText(ref);
+            const lines = wrapText(full, width - labelW, fs);
+            out.push(linked(url, lines.map((ln, j) => text(x0 + labelW, y + fs + j * lh, ln)).join('')));
+            y += lines.length * lh + 2;
+        }
     }
     return { svg: out.join(''), bottom: y + 6 };
 }
@@ -814,18 +834,15 @@ export function renderBoringLog(input, options = {}) {
         }
     }
 
-    // References: the sources of the data, wrapped across the page; an http(s)
-    // url follows the text (unless the text already has it) and is a link.
-    if (opt.references && doc.references?.length) {
+    // References are in the header; without one, they go below the legend.
+    if (opt.references && !opt.header && doc.references?.length) {
         let ry = bottom + 10;
         out.push(text(MARGIN, ry + fs, doc.references.length > 1 ? 'References' : 'Reference', { bold: true }));
         ry += fs + 8;
         for (const ref of doc.references) {
-            const url = /^https?:\/\/[^\s"<>]+$/i.test(String(ref.url ?? '').trim()) ? ref.url.trim() : null;
-            const full = url && !ref.text.includes(url) ? `${ref.text.trim()} ${url}` : ref.text.trim();
+            const { url, full } = referenceText(ref);
             const lines = wrapText(full, width - 2 * MARGIN - 12, fs);
-            const body = lines.map((ln, i) => text(MARGIN + (i ? 12 : 0), ry + fs * 0.85 + i * lh, ln)).join('');
-            out.push(url ? `<a href="${escapeXml(url)}" target="_blank">${body}</a>` : body);
+            out.push(linked(url, lines.map((ln, i) => text(MARGIN + (i ? 12 : 0), ry + fs * 0.85 + i * lh, ln)).join('')));
             ry += lines.length * lh + 4;
         }
         bottom = ry;

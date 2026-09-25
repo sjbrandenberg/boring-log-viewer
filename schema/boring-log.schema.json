@@ -95,7 +95,7 @@
       }
     },
     "references": {
-      "description": "Sources of the data, e.g. the report or paper the boring comes from. Listed below the legend; an http(s) url is shown after the text (unless the text contains it) and linked in SVG output.",
+      "description": "Sources of the data, e.g. the report or paper the boring comes from. Listed in the header, after the metadata (below the legend when the header is off); an http(s) url is shown after the text (unless the text contains it) and linked in SVG output.",
       "type": "array",
       "maxItems": 50,
       "items": {

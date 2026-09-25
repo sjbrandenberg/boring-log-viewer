@@ -281,7 +281,7 @@ test('the added sampler types validate and are named in the legend', () => {
     assert.doesNotMatch(textOf(svg), /Other sampler/);
 });
 
-test('references are listed below the legend, with http(s) urls linked', () => {
+test('references are listed in the header, with http(s) urls linked', () => {
     const doc = oneLayer({
         references: [
             { text: 'Author, A. (2001). A report on the site.', url: 'https://doi.org/10.1234/example' },
@@ -291,7 +291,12 @@ test('references are listed below the legend, with http(s) urls linked', () => {
     });
     assert.deepEqual(validateBoringLog(doc).errors, []);
     const svg = renderBoringLog(doc);
-    assert.match(textOf(svg), /References/);
+    assert.match(textOf(svg), /References:/);
+    // in the header: before the column headings of the log
+    assert.ok(svg.indexOf('Author, A. (2001)') < svg.indexOf('Material description'), 'references come before the log');
+    // without a header they go below the legend instead
+    const noHeader = renderBoringLog(doc, { header: false });
+    assert.ok(noHeader.indexOf('Author, A. (2001)') > noHeader.indexOf('Legend'), 'below the legend without a header');
     assert.match(textOf(svg), /Author, A\. \(2001\)\. A report on the site\. https:\/\/doi\.org\/10\.1234\/example/);
     assert.equal(textOf(svg).split('https://example.org/site').length - 1, 1, 'a url already in the text is not repeated');
     assert.match(svg, /<a href="https:\/\/doi\.org\/10\.1234\/example" target="_blank">/);
@@ -300,7 +305,7 @@ test('references are listed below the legend, with http(s) urls linked', () => {
     assert.doesNotMatch(textOf(renderBoringLog(doc, { references: false })), /References|Author, A\./);
     // one reference: singular heading; a long one wraps
     const long = renderBoringLog(oneLayer({ references: [{ text: 'Word '.repeat(200) }] }));
-    assert.match(textOf(long), /Reference /);
+    assert.match(textOf(long), /Reference: /);
     assert.ok((long.match(/<text[^>]*>Word Word/g) ?? []).length > 3, 'long reference wraps onto several lines');
     assert.ok(validateBoringLog(oneLayer({ references: [{ text: 'x', doi: 'y' }] })).errors.length, 'unknown fields are errors');
 });
