@@ -742,3 +742,28 @@ function fittedTextLeft(x, y, str, maxWidth, fs) {
     if (w > maxWidth) size = Math.max(6, (fs * maxWidth) / w);
     return text(x, y, str, { size: size === fs ? undefined : size });
 }
+
+// ---------------------------------------------------------------- swatches
+//
+// Small standalone SVGs of the built-in hatches and sampler symbols, for pickers
+// and help pages. They draw exactly what the log draws.
+
+// A built-in USCS hatch filling a width x height box, or '' for an unknown code.
+export function hatchSwatch(code, { width = 40, height = 24 } = {}) {
+    const tile = HATCH_TILES[code];
+    if (!tile) return '';
+    const id = `swatch-${code}`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+        + `<defs><pattern id="${id}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="scale(${r((40 / 104) * 1000) / 1000})">${tile.body}</pattern></defs>`
+        + `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" fill="url(#${id})" stroke="#000" stroke-width="1"/></svg>`;
+}
+
+// A built-in sampler symbol, as in the log's sample type column.
+export function samplerSwatch(type, { width = 16, height = 24 } = {}) {
+    if (!SAMPLER_NAMES[type]) return '';
+    const bulk = `swatch-bulk-${type}`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+        + (type === 'Bulk' ? `<defs><pattern id="${bulk}" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="#000" stroke-width="1"/></pattern></defs>` : '')
+        + samplerSymbol(type, 1, 1, width - 2, height - 2, bulk)
+        + '</svg>';
+}

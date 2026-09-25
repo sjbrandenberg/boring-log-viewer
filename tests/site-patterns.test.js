@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import ImageTracer from 'imagetracerjs';
-import { addPattern, removePattern, listPatterns, thresholdPixels, tidyTracedSvg, base64Utf8, svgSize } from '../site/lib.js';
-import { validateBoringLog } from '../src/index.js';
+import { addPattern, removePattern, listPatterns, thresholdPixels, tidyTracedSvg, base64Utf8, svgSize, patternTargets, applyPattern } from '../site/lib.js';
+import { validateBoringLog, hatchSwatch, samplerSwatch, USCS_SYMBOLS, SAMPLER_NAMES } from '../src/index.js';
 
 const base = JSON.stringify({ schema_version: '1.0', layers: [{ top: 0, bottom: 1, hatch: 'FILL' }] });
 const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAAAAADhZOFXAAAAHklEQVR4nGNg+A8BDP8ZYAwoiwGKEQQDqgKEnv8MANjRN8mfoGgcAAAAAElFTkSuQmCC';
@@ -54,4 +54,35 @@ test('svgSize reads width/height or the viewBox', () => {
 
 test('base64Utf8 handles non-Latin text', () => {
     assert.equal(Buffer.from(base64Utf8('<svg>é–</svg>'), 'base64').toString('utf8'), '<svg>é–</svg>');
+});
+
+test('the dialog lists layers or samples and applies the code to the ticked ones', () => {
+    const text = JSON.stringify({
+        schema_version: '1.0',
+        units: { length: 'ft' },
+        layers: [{ top: 0, bottom: 4, description: 'Rubble fill' }, { top: 4, bottom: 9, description: 'silty SAND', uscs: 'SM' }],
+        samples: [{ top: 2, bottom: 3.5, name: 'S-1', type: 'SPT' }],
+    });
+    assert.deepEqual(patternTargets(text, 'soil'), [
+        { index: 0, label: '0–4 ft · Rubble fill', current: '' },
+        { index: 1, label: '4–9 ft · silty SAND', current: 'SM' },
+    ]);
+    assert.deepEqual(patternTargets(text, 'sampler'), [{ index: 0, label: '2–3.5 ft · S-1', current: 'SPT' }]);
+
+    const withHatch = applyPattern(addPattern(text, 'FILL', { image: png, width: 8, height: 8 }), 'FILL', 'soil', [0]);
+    const doc = JSON.parse(withHatch);
+    assert.equal(doc.layers[0].hatch, 'FILL');
+    assert.equal(doc.layers[1].hatch, undefined, 'unticked layers are left alone');
+    assert.equal(doc.layers[1].uscs, 'SM', '"uscs" is never changed');
+    assert.deepEqual(validateBoringLog(withHatch).errors, []);
+
+    const withSampler = applyPattern(addPattern(text, 'Vane', { image: png, width: 8, height: 8, kind: 'sampler' }), 'Vane', 'sampler', [0]);
+    assert.equal(JSON.parse(withSampler).samples[0].type, 'Vane');
+    assert.deepEqual(validateBoringLog(withSampler).errors, []);
+});
+
+test('every built-in hatch and sampler has a swatch for the reference list', () => {
+    for (const code of USCS_SYMBOLS) assert.match(hatchSwatch(code), /^<svg[^>]*>.*fill="url\(#swatch-/s, code);
+    for (const type of Object.keys(SAMPLER_NAMES)) assert.match(samplerSwatch(type), /^<svg[^>]*><.*<\/svg>$/s, type);
+    assert.equal(hatchSwatch('FILL'), '');
 });

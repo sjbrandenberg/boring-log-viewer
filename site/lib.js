@@ -230,3 +230,43 @@ export function svgSize(svgText) {
     }
     return width > 0 && height > 0 ? { width, height } : null;
 }
+
+// The layers (for a soil hatch) or samples (for a sampler symbol) a new pattern can
+// be applied to, as { index, label, current } for the dialog's checklist.
+export function patternTargets(text, kind) {
+    let doc;
+    try {
+        doc = JSON.parse(text);
+    } catch {
+        return [];
+    }
+    const unit = doc?.units?.length ?? 'm';
+    const depth = (top, bottom) => `${top}–${bottom} ${unit}`;
+    const clip = s => (s && s.length > 60 ? `${s.slice(0, 57)}…` : s ?? '');
+    if (kind === 'sampler') {
+        return (Array.isArray(doc?.samples) ? doc.samples : []).map((s, index) => ({
+            index,
+            label: `${depth(s?.top, s?.bottom)}${s?.name ? ` · ${s.name}` : ''}`,
+            current: s?.type ?? 'Other',
+        }));
+    }
+    return (Array.isArray(doc?.layers) ? doc.layers : []).map((l, index) => ({
+        index,
+        label: `${depth(l?.top, l?.bottom)}${l?.description ? ` · ${clip(l.description)}` : ''}`,
+        current: l?.hatch ?? l?.uscs ?? '',
+    }));
+}
+
+// Returns the document text with "hatch" (soil) or "type" (sampler) set to code on
+// the chosen layers or samples.
+export function applyPattern(text, code, kind, indices) {
+    const doc = parseDoc(text);
+    const list = kind === 'sampler' ? doc.samples : doc.layers;
+    for (const i of indices) {
+        if (Array.isArray(list) && list[i] && typeof list[i] === 'object') {
+            if (kind === 'sampler') list[i].type = code;
+            else list[i].hatch = code;
+        }
+    }
+    return JSON.stringify(doc, null, 2);
+}

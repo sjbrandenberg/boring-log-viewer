@@ -204,7 +204,7 @@ textarea {
 .pattern-list li { display: flex; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--border); }
 .pattern-list img { width: 40px; height: 24px; object-fit: cover; border: 1px solid var(--border); background: #fff; }
 .pattern-list span { flex: 1; }
-.pattern-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; align-items: end; }
+.pattern-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; align-items: start; }
 .pattern-form > label { display: flex; flex-direction: column; gap: 3px; font-size: 0.9em; }
 .pattern-trace, .pattern-previews, .pattern-form > p, .pattern-actions { grid-column: 1 / -1; }
 .pattern-trace { border: 1px solid var(--border); border-radius: var(--radius); margin: 0; padding: 8px 12px; }
@@ -216,6 +216,22 @@ textarea {
 .pattern-previews figcaption { font-size: 0.8em; color: var(--muted); }
 .pattern-error { color: var(--error); background: var(--error-bg); padding: 6px 10px; border-radius: var(--radius); margin: 0; }
 .pattern-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.pattern-form .step { grid-column: 1 / -1; margin: 12px 0 0; font-size: 0.95rem; }
+.pattern-form .small { font-size: 0.82em; }
+.pattern-targets { grid-column: 1 / -1; list-style: none; margin: 0; padding: 4px 8px; max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.pattern-targets:empty { display: none; }
+.pattern-targets label { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; font-size: 0.9em; }
+.pattern-json { grid-column: 1 / -1; font-size: 0.9em; }
+.pattern-json pre { background: var(--code-bg); padding: 8px; border-radius: var(--radius); overflow-x: auto; margin: 4px 0 0; }
+.pattern-done { color: var(--ok); margin: 0; }
+.builtins { margin: 6px 0; }
+.builtins summary { cursor: pointer; font-weight: 600; }
+.builtin-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 4px 16px; }
+.builtin-list li { display: flex; align-items: center; gap: 8px; }
+.builtin-list li span:not(.swatch) { flex: 1; font-size: 0.9em; }
+.builtin-list .swatch { display: inline-flex; width: 40px; justify-content: center; background: #fff; }
+.builtin-list button { font-size: 0.8em; padding: 2px 8px; }
 
 @media (max-width: 900px) {
     .site-header { padding: 16px 16px 8px; }

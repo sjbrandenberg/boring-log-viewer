@@ -67,9 +67,11 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   letter) adds a new one: set a layer's `hatch`, or a sample's `type`, to it.
   Custom codes also work in dual patterns such as `"hatch": "SP-FILL"`. Images
   are embedded in the SVG, so logs stay self-contained. The web page's
-  **Patterns…** button builds these entries from an image file, scaling large
+  **Hatches…** button builds these entries from an image file, scaling large
   images down to 512 px and optionally tracing black-and-white patterns to
-  vector shapes (with imagetracerjs).
+  vector shapes (with imagetracerjs), and sets `hatch` or `type` on the layers
+  or samples the user ticks, so no JSON editing is needed. It also lists the
+  built-in hatches and sampler symbols, each with a Replace button.
 - **`null` means "not given"**, so database exports can be passed through
   without cleaning. Unknown property names are errors, which catches typos.
 
