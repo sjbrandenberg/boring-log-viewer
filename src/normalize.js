@@ -181,5 +181,7 @@ export function normalizeBoringLog(input) {
         groundwater: [...(doc.groundwater ?? [])].sort((a, b) => a.depth - b.depth),
         // A note without text has nothing to draw.
         depth_notes: (doc.depth_notes ?? []).filter(n => n.description).sort((a, b) => a.depth - b.depth),
+        // (Only when given, so documents without references keep their pattern ids.)
+        ...(Array.isArray(doc.references) ? { references: doc.references.filter(r => r && typeof r.text === 'string' && r.text.trim()) } : {}),
     };
 }

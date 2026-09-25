@@ -94,6 +94,20 @@
         }
       }
     },
+    "references": {
+      "description": "Sources of the data, e.g. the report or paper the boring comes from. Listed below the legend; an http(s) url is shown after the text (unless the text contains it) and linked in SVG output.",
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "required": ["text"],
+        "additionalProperties": false,
+        "properties": {
+          "text": { "type": "string", "maxLength": 2000 },
+          "url": { "type": "string", "maxLength": 1000 }
+        }
+      }
+    },
     "depth_notes": {
       "description": "Observations at a single depth within a layer, e.g. 'trace gravel' or 'thin sand lens'. Drawn in italics in the material description column, marked at their depth.",
       "type": "array",

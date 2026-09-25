@@ -52,6 +52,7 @@ function formValues() {
         png_scale: form.png_scale.value,
         header: form.header.checked,
         legend: form.legend.checked,
+        references: form.references.checked,
         fit_text: form.fit_text.checked,
         hide_empty_columns: form.hide_empty_columns.checked,
     };

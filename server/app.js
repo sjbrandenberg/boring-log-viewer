@@ -54,7 +54,7 @@ function number(value, name, min, max, problems) {
 export function parseQuery(query) {
     const problems = [];
     const known = new Set(['format', 'units', 'unit_weight', 'diameter_units', 'width', 'height', 'scale', 'png_scale',
-        'fit_text', 'font_size', 'columns', 'hide_empty_columns', 'header', 'legend', 'infer_uscs', 'infer_materials', 'title', 'id_prefix', 'download', 'loca_id']);
+        'fit_text', 'font_size', 'columns', 'hide_empty_columns', 'header', 'legend', 'references', 'infer_uscs', 'infer_materials', 'title', 'id_prefix', 'download', 'loca_id']);
     for (const key of Object.keys(query)) {
         if (!known.has(key)) problems.push({ path: `?${key}`, message: 'unknown query parameter' });
     }
@@ -73,7 +73,7 @@ export function parseQuery(query) {
     set('height', number(query.height, 'height', 50, 20000, problems));
     set('scale', number(query.scale, 'scale', 0.1, 10000, problems));
     set('font_size', number(query.font_size, 'font_size', 6, 24, problems));
-    for (const key of ['fit_text', 'hide_empty_columns', 'header', 'legend', 'infer_uscs', 'infer_materials']) set(key, flag(query[key], key, problems));
+    for (const key of ['fit_text', 'hide_empty_columns', 'header', 'legend', 'references', 'infer_uscs', 'infer_materials']) set(key, flag(query[key], key, problems));
     if (query.title !== undefined) options.title = String(query.title).slice(0, 200);
     if (query.id_prefix !== undefined) {
         if (/^[A-Za-z][\w-]{0,40}$/.test(query.id_prefix)) options.id_prefix = query.id_prefix;

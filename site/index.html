@@ -55,6 +55,7 @@
             <label>Width <input name="width" type="number" min="300" max="4000" step="50" value="800"> px</label>
             <label><input name="header" type="checkbox" checked> Header</label>
             <label><input name="legend" type="checkbox" checked> Legend</label>
+            <label title="List the document's references below the legend"><input name="references" type="checkbox" checked> References</label>
             <label title="Stretch the depth scale until every description fits beside its layer"><input name="fit_text" type="checkbox" checked> Fit text</label>
             <label><input name="hide_empty_columns" type="checkbox" checked> Hide empty columns</label>
             <span class="spacer"></span>
@@ -75,7 +76,10 @@
 </main>
 
 <dialog id="patterns-dialog" class="patterns-dialog" aria-labelledby="patterns-title">
-    <h2 id="patterns-title">Hatches and sampler symbols</h2>
+    <div class="dialog-head">
+        <h2 id="patterns-title">Hatches and sampler symbols</h2>
+        <button id="pattern-x" type="button" class="dialog-x" aria-label="Close" title="Close">&times;</button>
+    </div>
     <p>Draw a layer with your own hatch, or a sample with your own symbol, from a PNG, JPG or SVG image. Follow the steps below; you don't need to edit the JSON yourself.</p>
 
     <h3>In this log</h3>
@@ -179,6 +183,8 @@
         <dd><code>depth</code>, <code>date</code>, <code>note</code>.</dd>
         <dt><code>depth_notes[]</code></dt>
         <dd><code>depth</code> and <code>description</code>: an observation at one depth within a layer, drawn in italics in the material description column.</dd>
+        <dt><code>references[]</code></dt>
+        <dd><code>text</code> and <code>url</code>: the sources of the data (e.g. the report the boring comes from), listed below the legend; an http(s) <code>url</code> is a link in the SVG.</dd>
         <dt><code>patterns</code></dt>
         <dd>Your own graphic log patterns and sampler symbols, by code: <code>{ "FILL": { "name": "Fill", "svg": "&lt;svg viewBox='0 0 40 20'&gt;&lt;line x1='0' y1='20' x2='40' y2='0' stroke='black'/&gt;&lt;/svg&gt;" } }</code>, as SVG markup (drawing elements only: <code>path</code>, <code>rect</code>, <code>circle</code>, <code>ellipse</code>, <code>line</code>, <code>polyline</code>, <code>polygon</code>, <code>g</code>), or as a picture: <code>"image": "data:image/png;base64,…"</code> with <code>"width"</code> and <code>"height"</code> in px. Add <code>"kind": "sampler"</code> for a sampler symbol, and <code>tile_width</code> (px) to change the tile size. A USCS code or built-in sampler name replaces the built-in pattern. The <b>Hatches…</b> button builds these entries from an image file and applies them to the layers or samples you pick. They are saved in the JSON, not on the server; to use them with the API, see <a href="#api-hatches">using your own hatches with the API</a>.</dd>
     </dl>

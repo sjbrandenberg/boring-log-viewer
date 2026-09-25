@@ -263,6 +263,7 @@ export function setUpPatternsDialog({ getText, setText }) {
         dialog.showModal();
     });
     $('pattern-close').addEventListener('click', () => dialog.close());
+    $('pattern-x').addEventListener('click', () => dialog.close());
     // Links to the help below the page close the window so the help is visible.
     for (const link of dialog.querySelectorAll('a[data-close-dialog]')) link.addEventListener('click', () => dialog.close());
 

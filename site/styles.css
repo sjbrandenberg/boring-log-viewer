@@ -198,7 +198,35 @@ textarea {
     padding: 16px 20px;
 }
 .patterns-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
-.patterns-dialog h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.patterns-dialog h2 { margin: 0; font-size: 1.2rem; }
+/* Title bar with the close (X) button; stays at the top while the window scrolls. */
+.dialog-head {
+    position: sticky;
+    top: -16px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: -16px -20px 8px;
+    padding: 10px 12px 10px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+.dialog-x {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.dialog-x:hover, .dialog-x:focus-visible { background: var(--code-bg); color: var(--text); }
 .patterns-dialog h3 { margin: 16px 0 6px; font-size: 1rem; }
 .muted { color: var(--muted); font-size: 0.9em; }
 .pattern-list { list-style: none; margin: 0; padding: 0; }

@@ -37,6 +37,7 @@ const DEFAULTS = {
     hide_empty_columns: true,
     header: true,
     legend: true,
+    references: true,    // list the document's references below the legend
     title: null,
     units: null,         // display length units, 'm' or 'ft'; defaults to the data's units
     unit_weight: null,   // display unit weight units, 'kN/m3' or 'pcf'
@@ -811,6 +812,23 @@ export function renderBoringLog(input, options = {}) {
             });
             bottom = ly + fs + 8 + Math.ceil(cell / perRow) * rowH;
         }
+    }
+
+    // References: the sources of the data, wrapped across the page; an http(s)
+    // url follows the text (unless the text already has it) and is a link.
+    if (opt.references && doc.references?.length) {
+        let ry = bottom + 10;
+        out.push(text(MARGIN, ry + fs, doc.references.length > 1 ? 'References' : 'Reference', { bold: true }));
+        ry += fs + 8;
+        for (const ref of doc.references) {
+            const url = /^https?:\/\/[^\s"<>]+$/i.test(String(ref.url ?? '').trim()) ? ref.url.trim() : null;
+            const full = url && !ref.text.includes(url) ? `${ref.text.trim()} ${url}` : ref.text.trim();
+            const lines = wrapText(full, width - 2 * MARGIN - 12, fs);
+            const body = lines.map((ln, i) => text(MARGIN + (i ? 12 : 0), ry + fs * 0.85 + i * lh, ln)).join('');
+            out.push(url ? `<a href="${escapeXml(url)}" target="_blank">${body}</a>` : body);
+            ry += lines.length * lh + 4;
+        }
+        bottom = ry;
     }
 
     const height = Math.ceil(bottom + MARGIN);

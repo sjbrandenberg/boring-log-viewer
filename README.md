@@ -98,6 +98,11 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 - **`depth_notes`**: a list of `{ depth, description }` for observations at one
   depth within a layer ("thin sand lens"). They are drawn in italics in the
   material description column, with a tick at their depth.
+- **`references`**: a list of `{ text, url }` for the sources of the data (the
+  report or paper the boring comes from), listed below the legend. An http(s)
+  `url` is shown after the text, unless the text already contains it, and is a
+  link in SVG output; other values (e.g. "Personal communication") aren't
+  linked. `references=false` leaves them off.
 - **`patterns`**: your own graphic log patterns and sampler symbols, by code:
   `{ "FILL": { "name": "Fill", "svg": "<svg viewBox='0 0 40 20'><line x1='0' y1='20' x2='40' y2='0' stroke='black'/></svg>" } }`.
   Each entry has either `svg`, SVG markup whose size comes from its `viewBox`
@@ -141,6 +146,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 | `columns` | see `DEFAULT_COLUMNS` | Column ids, in order |
 | `hide_empty_columns` | true | Drop columns with no data |
 | `header`, `legend` | true | Metadata block above, legend below |
+| `references` | true | The document's references, below the legend |
 | `title` | `metadata.boring_name` | Title text |
 | `depth_range` | `[0, deepest]` | `[top, bottom]` in display units |
 | `font_size` | 10 | px |
@@ -261,7 +267,7 @@ curl -X POST -H "Content-Type: text/plain" --data-binary @site.ags "https://ucla
 - **Format:** `?format=svg|png|html`. Without it, the `Accept` header decides
   (with q-values). An unknown format gets 406.
 - **Query parameters:** the render options (`units`, `width`, `height`, `scale`,
-  `font_size`, `columns` as a comma list, `header`, `legend`, `fit_text`,
+  `font_size`, `columns` as a comma list, `header`, `legend`, `references`, `fit_text`,
   `hide_empty_columns`, `title`, `id_prefix`, `unit_weight`, `diameter_units`),
   plus `png_scale` (0.5–4, default 2) and `download=true`, which sets
   `Content-Disposition: attachment`. Unknown or invalid parameters get 400,

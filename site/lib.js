@@ -120,6 +120,7 @@ export function renderOptions(form) {
         legend: form.legend,
         fit_text: form.fit_text,
         hide_empty_columns: form.hide_empty_columns,
+        ...(form.references !== undefined ? { references: form.references } : {}),
     };
     const width = Number(form.width);
     if (Number.isFinite(width) && width >= 300) options.width = Math.min(width, 4000);
