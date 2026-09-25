@@ -17,7 +17,9 @@ const sandDots = r => scatter(r, 34, 8, 2, (x, y) => dot(x, y, 1.1));
 
 // ---- fines (silt, clay, organic), full strength and as a lighter dual overlay
 const SILT = verticals(3, SW);
-const SILT_DUAL = verticals(2, SW, 0, W / 4);
+// Two lines at a quarter and three quarters across, clear of the column's middle
+// (where they would look like the divider of a split dual) and its edges.
+const SILT_DUAL = verticals(2, SW);
 const CLAY = slantFamily(3, 2, SW, 1);
 const CLAY_DUAL = slantFamily(2, 2, SW, 1);
 const HIGH_SILT = verticals(3, SW * 0.85, 4);
