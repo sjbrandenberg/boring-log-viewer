@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic DIGGS example for the importer tests (not real data). -->
+<Diggs xmlns="http://diggsml.org/schemas/2.6" xmlns:diggs_geo="http://diggsml.org/schemas/2.6/geotechnical" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:glr="http://www.opengis.net/gml/3.3/lr" xmlns:xlink="http://www.w3.org/1999/xlink" gml:id="example">
+  <project>
+    <Project gml:id="P1">
+      <gml:name>Levee Upgrade &amp; Crossing (synthetic example)</gml:name>
+    </Project>
+  </project>
+  <samplingFeature>
+    <Borehole gml:id="BH_B-1">
+      <gml:name>B-1</gml:name>
+      <role>
+        <Role>
+          <rolePerformed>Logger</rolePerformed>
+          <businessAssociate><BusinessAssociate gml:id="BA1"><gml:name>A. Logger</gml:name></BusinessAssociate></businessAssociate>
+        </Role>
+      </role>
+      <role>
+        <Role>
+          <rolePerformed>Drilling Contractor</rolePerformed>
+          <businessAssociate><BusinessAssociate gml:id="BA2"><gml:name>Example Drilling Co.</gml:name></BusinessAssociate></businessAssociate>
+        </Role>
+      </role>
+      <remark><Remark><content><![CDATA[Hole backfilled with grout <after> completion]]></content></Remark></remark>
+      <projectRef xlink:href="#P1"/>
+      <referencePoint>
+        <PointLocation gml:id="pl-B-1">
+          <gml:pos srsDimension="3" srsName="urn:diggs:def:crs:DIGGS:0.1:4326_5702" uomLabels="dega dega ft">-121.5 38.25 12.5</gml:pos>
+        </PointLocation>
+      </referencePoint>
+      <linearReferencing>
+        <LinearSpatialReferenceSystem gml:id="lsr-B-1">
+          <glr:lrm>
+            <glr:LinearReferencingMethod gml:id="lrm-B-1">
+              <glr:name>chainage</glr:name>
+              <glr:units>ft</glr:units>
+            </glr:LinearReferencingMethod>
+          </glr:lrm>
+        </LinearSpatialReferenceSystem>
+      </linearReferencing>
+      <whenConstructed>
+        <TimeInterval gml:id="t-B-1"><start>2024-05-01</start><end>2024-05-02T16:00:00</end></TimeInterval>
+      </whenConstructed>
+      <totalMeasuredDepth uom="ft">30</totalMeasuredDepth>
+      <constructionMethod>
+        <BoreholeConstructionMethod gml:id="cm-B-1">
+          <gml:name>Soil Drill Method</gml:name>
+          <constructionMethod>
+            <Specification gml:id="spec-B-1"><gml:name>Hollow-stem auger</gml:name></Specification>
+          </constructionMethod>
+          <constructionEquipment>
+            <Equipment gml:id="eq-B-1"><gml:name>CME 75</gml:name><class>Drill Rig</class></Equipment>
+          </constructionEquipment>
+        </BoreholeConstructionMethod>
+      </constructionMethod>
+      <waterStrike>
+        <WaterStrike gml:id="ws-B-1">
+          <status>During drilling</status>
+          <waterStrikeReadings>
+            <WaterStrikeReading gml:id="wsr-B-1">
+              <waterLocation><PointLocation gml:id="wl-B-1" srsName="#lsr-B-1"><gml:pos>8.5</gml:pos></PointLocation></waterLocation>
+            </WaterStrikeReading>
+          </waterStrikeReadings>
+        </WaterStrike>
+      </waterStrike>
+    </Borehole>
+  </samplingFeature>
+  <samplingFeature>
+    <Borehole gml:id="BH_B-2">
+      <gml:name>B-2</gml:name>
+      <linearReferencing>
+        <LinearSpatialReferenceSystem gml:id="lsr-B-2">
+          <glr:lrm xlink:href="https://diggsml.org/def/crs/DIGGS/0.1/lrm.xml#md_m"/>
+        </LinearSpatialReferenceSystem>
+      </linearReferencing>
+    </Borehole>
+  </samplingFeature>
+  <observation>
+    <LithologySystem gml:id="ls-B-1">
+      <samplingFeatureRef xlink:href="#BH_B-1"/>
+      <lithologyObservation>
+        <LithologyObservation gml:id="lo-1">
+          <location><LinearExtent gml:id="le-1"><gml:posList srsName="#lsr-B-1">0 6</gml:posList></LinearExtent></location>
+          <primaryLithology>
+            <Lithology gml:id="l-1">
+              <classificationCode codeSpace="USCS">CL</classificationCode>
+              <lithDescription>Stiff brown lean CLAY with sand, moist</lithDescription>
+            </Lithology>
+          </primaryLithology>
+        </LithologyObservation>
+      </lithologyObservation>
+      <lithologyObservation>
+        <LithologyObservation gml:id="lo-2">
+          <location><LinearExtent gml:id="le-2"><gml:posList srsName="#lsr-B-1">6 20</gml:posList></LinearExtent></location>
+          <primaryLithology>
+            <Lithology gml:id="l-2">
+              <classificationCode codeSpace="USCS"></classificationCode>
+              <lithDescription></lithDescription>
+              <color><Color gml:id="c-2"><colorName>gray</colorName></Color></color>
+              <constituent><Constituent gml:id="k-2a"><codeValue>sand</codeValue><abundanceCode>Major</abundanceCode></Constituent></constituent>
+              <constituent><Constituent gml:id="k-2b"><codeValue>trace silt</codeValue><abundanceCode>Minor</abundanceCode></Constituent></constituent>
+              <fieldProperties><FieldProperties gml:id="f-2"><consistency>medium dense</consistency><moistureCondition>wet</moistureCondition></FieldProperties></fieldProperties>
+            </Lithology>
+          </primaryLithology>
+        </LithologyObservation>
+      </lithologyObservation>
+      <lithologyObservation>
+        <LithologyObservation gml:id="lo-note">
+          <location><LinearExtent gml:id="le-note"><gml:posList srsName="#lsr-B-1">3</gml:posList></LinearExtent></location>
+          <primaryLithology><Lithology gml:id="l-note"><lithDescription>@ 3 ft: shell fragments</lithDescription></Lithology></primaryLithology>
+        </LithologyObservation>
+      </lithologyObservation>
+      <lithologyObservation>
+        <LithologyObservation gml:id="lo-3">
+          <location><LinearExtent gml:id="le-3"><gml:posList srsName="#lsr-B-1">20</gml:posList></LinearExtent></location>
+          <primaryLithology><Lithology gml:id="l-3"><classificationCode>GP</classificationCode></Lithology></primaryLithology>
+        </LithologyObservation>
+      </lithologyObservation>
+    </LithologySystem>
+  </observation>
+  <samplingActivity>
+    <SamplingActivity gml:id="SA-1">
+      <gml:name>S-1</gml:name>
+      <samplingFeatureRef xlink:href="#BH_B-1"/>
+      <samplingLocation><LinearExtent gml:id="sl-1" srsName="#lsr-B-1"><gml:posList>10 11.5</gml:posList></LinearExtent></samplingLocation>
+      <samplingMethod><Specification gml:id="sm-1"><gml:name>SS</gml:name></Specification></samplingMethod>
+      <totalSampleRecoveryLength uom="in">12</totalSampleRecoveryLength>
+    </SamplingActivity>
+  </samplingActivity>
+  <samplingActivity>
+    <SamplingActivity gml:id="SA-2">
+      <gml:name>T-2</gml:name>
+      <samplingFeatureRef xlink:href="#BH_B-1"/>
+      <samplingLocation><LinearExtent gml:id="sl-2" srsName="#lsr-B-1"><gml:posList>3 5</gml:posList></LinearExtent></samplingLocation>
+      <samplingMethod><Specification gml:id="sm-2"><gml:name>ST</gml:name></Specification></samplingMethod>
+    </SamplingActivity>
+  </samplingActivity>
+  <measurement>
+    <Test gml:id="SPT-1">
+      <gml:name>SPT</gml:name>
+      <samplingFeatureRef xlink:href="#BH_B-1"/>
+      <outcome>
+        <TestResult gml:id="tr-1">
+          <location><LinearExtent gml:id="tl-1"><gml:posList srsName="#lsr-B-1">10 11.5</gml:posList></LinearExtent></location>
+          <results><ResultSet>
+            <parameters><PropertyParameters gml:id="pp-1"><properties>
+              <Property index="1" gml:id="pr-1"><propertyName>N-Value</propertyName><propertyClass>n_value</propertyClass></Property>
+            </properties></PropertyParameters></parameters>
+            <dataValues cs="," ts=" ">14</dataValues>
+          </ResultSet></results>
+        </TestResult>
+      </outcome>
+      <procedure>
+        <diggs_geo:DrivenPenetrationTest gml:id="dpt-1">
+          <diggs_geo:driveSet><diggs_geo:DriveSet gml:id="d1"><diggs_geo:index>1</diggs_geo:index><diggs_geo:blowCount>4</diggs_geo:blowCount></diggs_geo:DriveSet></diggs_geo:driveSet>
+          <diggs_geo:driveSet><diggs_geo:DriveSet gml:id="d2"><diggs_geo:index>2</diggs_geo:index><diggs_geo:blowCount>6</diggs_geo:blowCount></diggs_geo:DriveSet></diggs_geo:driveSet>
+          <diggs_geo:driveSet><diggs_geo:DriveSet gml:id="d3"><diggs_geo:index>3</diggs_geo:index><diggs_geo:blowCount>8</diggs_geo:blowCount></diggs_geo:DriveSet></diggs_geo:driveSet>
+        </diggs_geo:DrivenPenetrationTest>
+      </procedure>
+    </Test>
+  </measurement>
+  <measurement>
+    <Test gml:id="LAB-1">
+      <gml:name>Atterberg limits and density</gml:name>
+      <samplingFeatureRef xlink:href="#BH_B-1"/>
+      <outcome>
+        <TestResult gml:id="tr-2">
+          <location><LinearExtent gml:id="tl-2"><gml:posList srsName="#lsr-B-1">3 5</gml:posList></LinearExtent></location>
+          <results><ResultSet>
+            <parameters><PropertyParameters gml:id="pp-2"><properties>
+              <Property index="1" gml:id="pr-2"><propertyName>Liquid Limit</propertyName><propertyClass>liquid_limit</propertyClass><uom>%</uom></Property>
+              <Property index="2" gml:id="pr-3"><propertyName>Plastic Limit</propertyName><propertyClass>plastic_limit</propertyClass><uom>%</uom></Property>
+            </properties></PropertyParameters></parameters>
+            <dataValues cs="," ts=" ">38 19</dataValues>
+          </ResultSet></results>
+        </TestResult>
+      </outcome>
+    </Test>
+  </measurement>
+  <measurement>
+    <Test gml:id="LAB-2">
+      <samplingFeatureRef xlink:href="#BH_B-1"/>
+      <outcome>
+        <TestResult gml:id="tr-3">
+          <location><LinearExtent gml:id="tl-3"><gml:posList srsName="#lsr-B-1">3 5</gml:posList></LinearExtent></location>
+          <results><ResultSet>
+            <parameters><PropertyParameters gml:id="pp-3"><properties>
+              <Property index="1" gml:id="pr-4"><propertyClass>Natural Water Content</propertyClass><uom>%</uom></Property>
+              <Property index="2" gml:id="pr-5"><propertyClass>Density, Dry</propertyClass><uom>pcf</uom></Property>
+              <Property index="3" gml:id="pr-6"><propertyClass>USCS Group Symbol</propertyClass></Property>
+            </properties></PropertyParameters></parameters>
+            <dataValues cs="," ts=" ">24.5,101.2,CL</dataValues>
+          </ResultSet></results>
+        </TestResult>
+      </outcome>
+    </Test>
+  </measurement>
+</Diggs>

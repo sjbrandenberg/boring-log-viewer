@@ -105,12 +105,15 @@ test('malformed, empty, oversized and non-JSON bodies get clear errors', async (
     const empty = await render('', '');
     assert.equal(empty.statusCode, 400);
 
+    const pdf = await app.inject({ method: 'POST', url: '/api/render', payload: '%PDF-1.4', headers: { 'content-type': 'application/pdf' } });
+    assert.equal(pdf.statusCode, 415);
     const xml = await app.inject({ method: 'POST', url: '/api/render', payload: '<log/>', headers: { 'content-type': 'application/xml' } });
-    assert.equal(xml.statusCode, 415);
+    assert.equal(xml.statusCode, 400);
+    assert.equal(xml.json().error, 'Not an AGS4 or DIGGS file');
     // Plain text is read as an AGS4 file
     const text = await app.inject({ method: 'POST', url: '/api/render', payload: 'hello', headers: { 'content-type': 'text/plain' } });
     assert.equal(text.statusCode, 400);
-    assert.equal(text.json().error, 'Not an AGS4 file');
+    assert.equal(text.json().error, 'Not an AGS4 or DIGGS file');
 
     const small = await buildApp({ bodyLimit: 100 });
     const big = await small.inject({ method: 'POST', url: '/api/render', payload: coastal, headers: { 'content-type': 'application/json' } });
@@ -228,4 +231,42 @@ test('an AGS4 file renders directly, choosing the borehole with ?loca_id', async
     // loca_id means nothing for a JSON body
     const jsonWithId = await render('?loca_id=BH01', coastal);
     assert.equal(jsonWithId.statusCode, 400);
+});
+
+// ---- DIGGS input
+
+const diggsFile = readFileSync(new URL('./fixtures/example.diggs.xml', import.meta.url), 'utf8');
+const postXml = (url, body = diggsFile) => app.inject({ method: 'POST', url, payload: body, headers: { 'content-type': 'application/xml' } });
+
+test('POST /api/diggs converts every borehole in a DIGGS file', async () => {
+    const res = await postXml('/api/diggs');
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.json().documents.map(d => d.loca_id), ['B-1', 'B-2']);
+    const wrong = await app.inject({ method: 'POST', url: '/api/diggs', payload: agsFile, headers: { 'content-type': 'text/plain' } });
+    assert.equal(wrong.statusCode, 400);
+    assert.equal(wrong.json().error, 'Not a DIGGS file');
+});
+
+test('a DIGGS file renders directly; boreholes without strata are refused', async () => {
+    const one = await postXml('/api/render?loca_id=B-1&format=svg');
+    assert.equal(one.statusCode, 200);
+    assert.match(one.body, /Levee Upgrade &amp; Crossing/);
+    const empty = await postXml('/api/render?loca_id=B-2');
+    assert.equal(empty.statusCode, 422);
+    assert.match(empty.json().errors[0].message, /B-2 has no strata \(LithologyObservations/);
+    const broken = await postXml('/api/render', '<Diggs><x></Diggs>');
+    assert.equal(broken.statusCode, 422);
+    assert.equal(broken.json().error, 'Invalid DIGGS file');
+});
+
+test('files may be larger than the JSON limit', async () => {
+    const small = await buildApp({ bodyLimit: 100, fileBodyLimit: 200000 });
+    const res = await small.inject({ method: 'POST', url: '/api/diggs', payload: diggsFile, headers: { 'content-type': 'application/xml' } });
+    assert.equal(res.statusCode, 200);
+    const tiny = await buildApp({ bodyLimit: 100, fileBodyLimit: 1000 });
+    const big = await tiny.inject({ method: 'POST', url: '/api/diggs', payload: diggsFile, headers: { 'content-type': 'application/xml' } });
+    assert.equal(big.statusCode, 413);
+    assert.match(big.json().errors[0].message, /limit is 1000 bytes/);
+    await small.close();
+    await tiny.close();
 });

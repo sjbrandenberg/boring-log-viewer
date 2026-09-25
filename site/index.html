@@ -28,11 +28,11 @@
             <select id="example" aria-label="Load an example">
                 <option value="">Load example…</option>
             </select>
-            <label class="button" title="A boring log JSON file, or an AGS4 (.ags) file">
+            <label class="button" title="A boring log JSON file, an AGS4 (.ags) file, or a DIGGS (.xml) file">
                 Open file…
-                <input id="file" type="file" accept=".json,application/json,.ags,text/plain" hidden>
+                <input id="file" type="file" accept=".json,application/json,.ags,text/plain,.xml,.diggs,application/xml,text/xml" hidden>
             </label>
-            <select id="ags-hole" aria-label="Borehole from the AGS file" hidden></select>
+            <select id="ags-hole" aria-label="Borehole from the imported file" hidden></select>
             <button id="format" type="button">Format</button>
             <button id="clear" type="button">Clear</button>
             <button id="patterns-open" type="button" title="Use your own hatches or sampler symbols">Hatches…</button>
@@ -187,7 +187,7 @@
 
 <section id="api" class="format">
     <h2>API</h2>
-    <p>To render from a script or another website, send the JSON (or an <a href="#api-ags">AGS4 file</a>) as the body of a <code>POST</code> request to <code>https://uclageo.com/boring-log-viewer/api/render</code> with <code>Content-Type: application/json</code>. The response is the log as SVG (the default), PNG or an HTML page.</p>
+    <p>To render from a script or another website, send the JSON (or an <a href="#api-ags">AGS4 or DIGGS file</a>) as the body of a <code>POST</code> request to <code>https://uclageo.com/boring-log-viewer/api/render</code> with <code>Content-Type: application/json</code>. The response is the log as SVG (the default), PNG or an HTML page.</p>
     <pre><code>curl -X POST -H "Content-Type: application/json" --data-binary @boring.json \
      "https://uclageo.com/boring-log-viewer/api/render?format=png&amp;units=ft" -o boring.png</code></pre>
     <pre><code>import requests
@@ -209,11 +209,12 @@ open("boring.svg", "w", encoding="utf-8").write(r.text)</code></pre>
         <dt>Other endpoints</dt>
         <dd><code>POST api/validate</code> returns <code>{ valid, errors, warnings }</code>. <code>GET api/schema</code> returns the JSON Schema, and <code>GET api/health</code> reports whether the service is up.</dd>
     </dl>
-    <h3 id="api-ags">AGS4 files</h3>
+    <h3 id="api-ags">AGS4 and DIGGS files</h3>
     <p>An AGS4 file can be sent as it is, with <code>Content-Type: text/plain</code>. It is converted to the JSON format (strata, samples, SPT results, water content, Atterberg limits, fines, densities and water strikes) and drawn; add <code>loca_id</code> to choose the borehole when the file has more than one. <code>POST api/ags</code> returns the converted JSON for every borehole instead, for editing or checking. The same conversion runs on this page when you open an <code>.ags</code> file.</p>
+    <p>DIGGS XML files (2.5, 2.6 and 3.x) work the same way: send one with <code>Content-Type: application/xml</code> to <code>api/render</code> (with <code>loca_id</code> for the borehole name) or to <code>api/diggs</code> for the converted JSON, or open it on this page. Strata come from the lithology observations, samples from the sampling activities, and SPT and laboratory values from the test results. Files may be up to 10 MB.</p>
     <pre><code>curl -X POST -H "Content-Type: text/plain" --data-binary @site.ags \
      "https://uclageo.com/boring-log-viewer/api/render?loca_id=BH01&amp;format=png" -o BH01.png</code></pre>
-    <p>Requests are limited to 1 MB, 2,000 layers and 5,000 samples. Submitted data is not stored.</p>
+    <p>Requests are limited to 1 MB of JSON (10 MB for AGS4 and DIGGS files), 2,000 layers and 5,000 samples. Submitted data is not stored.</p>
 
     <h3 id="api-hatches">Using your own hatches with the API</h3>
     <p>Hatches and sampler symbols you make on this page are <b>not stored on the server</b>. They are saved inside the log's JSON, in a section called <code>"patterns"</code>: as SVG markup, or, for a hatch kept as a picture, as a long line of encoded text. The API draws a custom hatch only if the JSON you send contains that <code>"patterns"</code> section. To use one from a script:</p>

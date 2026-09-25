@@ -183,8 +183,9 @@ validator, into `public/`, which is the folder Apache serves. The page runs
 entirely in the browser:
 
 - Paste JSON, open a `.json` file, drag one onto the editor, or load an example.
-- Open an AGS4 (`.ags`) file: it is converted to JSON in the browser, with a
-  borehole picker when the file has more than one (see [AGS4 import](#ags4-import)).
+- Open an AGS4 (`.ags`) or DIGGS (`.xml`) file: it is converted to JSON in the
+  browser, with a borehole picker when the file has more than one (see
+  [AGS4 import](#ags4-import) and [DIGGS import](#diggs-import)).
 - Syntax and schema errors are listed with their location. Clicking one selects
   the offending text in the editor.
 - The preview updates as you type.
@@ -216,6 +217,28 @@ term for fill, is drawn with the fill hatch. Tested on the synthetic
 `tests/fixtures/example.ags` and on 48 real boreholes exported from the BGS
 National Geoscience Data Centre. AGS3 files are rejected with a message.
 
+## DIGGS import
+
+DIGGS XML files (versions 2.5, 2.6 and 3.x, https://diggsml.org) are read the
+same way, by `diggsToBoringLogs()` in `src/diggs.js`, which has its own small
+XML reader (no DTDs or external entities) so it runs in the browser too. One
+document per `Borehole` (also `TestPit`, `Trench`; CPT soundings are skipped):
+
+| DIGGS | becomes |
+|---|---|
+| `Project`, `Borehole` | metadata: project, name, latitude/longitude/elevation from `referencePoint` (x y z, i.e. longitude first), dates, construction method and rig, logger and drilling contractor from the roles, remarks |
+| linear referencing | the document's length unit (ft or m), from each borehole's `LinearReferencingMethod` |
+| `LithologyObservation` | layers: `lithDescription`, or one composed from consistency, color, major and minor constituents and moisture; USCS from `classificationCode`/`legendCode`. An observation at a single depth inside a stratum becomes a depth note ("@ 4.5'; reddish brown"); outside one it starts a stratum |
+| `SamplingActivity` | samples: method codes such as SS/SPT, ST/SH (Shelby), core sizes, bulk; recovery converted to the log's units |
+| `Test` results | SPT N-value and drive-set blows; water content, liquid and plastic limits, nonplastic, fines, dry density (as unit weight, pcf for logs in feet), specific gravity, USCS symbol. Matched to samples by `sampleRef`, else by depth |
+| `WaterStrike` | groundwater |
+
+Property names vary between files (`n_value`, "N-Value"), so results are
+matched on their class and name. Tested on a synthetic
+`tests/fixtures/example.diggs.xml` and the official DIGGS examples
+(github.com/DIGGSml/diggs-examples): the Ohio DOT projects (13 borings), the
+annotated DIGGS 3 borehole, and the Bolivian grading example.
+
 ## Render API
 
 `server/` is a Fastify service (`npm start`, which listens on
@@ -223,8 +246,9 @@ National Geoscience Data Centre. AGS3 files are rejected with a message.
 
 | endpoint | returns |
 |---|---|
-| `POST /api/render` | The log as SVG (default), PNG or HTML. The body is the boring log JSON, or an AGS4 file sent as `text/plain` (`?loca_id=` picks the borehole; required when the file has several). |
+| `POST /api/render` | The log as SVG (default), PNG or HTML. The body is the boring log JSON, an AGS4 file sent as `text/plain`, or a DIGGS file sent as `application/xml` (`?loca_id=` picks the borehole; required when the file has several). |
 | `POST /api/ags` | An AGS4 file (`text/plain`) converted to `{ documents: [{ loca_id, document }], warnings }` |
+| `POST /api/diggs` | A DIGGS file (`application/xml`) converted the same way |
 | `POST /api/validate` | `{ valid, errors, warnings }` |
 | `GET /api/schema` | The JSON Schema |
 | `GET /api/health` | `{ status, version, endpoints }` |
@@ -244,10 +268,11 @@ curl -X POST -H "Content-Type: text/plain" --data-binary @site.ags "https://ucla
   so a typo is reported instead of ignored.
 - **Errors** use one shape, `{ error, errors: [{ path, message }] }`:
   - 400: malformed JSON (with the parser's position) or a bad query parameter.
-  - 415: a body that isn't `application/json` (or `text/plain` for AGS4).
-  - 422 for AGS4: not AGS4 (e.g. AGS3), no `LOCA` group, no borehole chosen
-    from several, or a borehole with no strata.
-  - 413: a body over 1 MB.
+  - 415: a body that isn't `application/json` (or `text/plain` for AGS4, `application/xml` for DIGGS).
+  - 422 for AGS4 and DIGGS: not AGS4 (e.g. AGS3) or malformed XML, no
+    `LOCA` group or `Borehole`, no borehole chosen from several, or a borehole
+    with no strata.
+  - 413: a JSON body over 1 MB, or an AGS4/DIGGS file over 10 MB.
   - 422: an invalid log, more than 2,000 layers or 5,000 samples, or a PNG over
     40 megapixels.
   - 429: over the rate limit (60 requests per minute per client by default).

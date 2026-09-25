@@ -5,4 +5,5 @@ export { DUAL_NAMES, inferHatch, inferUscs, layerHatch, USCS_SYMBOLS, USCS_NAMES
 export { LITHOLOGY, LITHOLOGY_GROUPS } from './lithology.js';
 export { inferMaterial } from './materials.js';
 export { parseAgs, agsToBoringLogs, looksLikeAgs, AgsError } from './ags.js';
+export { parseXml, diggsToBoringLogs, looksLikeDiggs, DiggsError } from './diggs.js';
 export { measureText, wrapText } from './text.js';

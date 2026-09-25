@@ -2,8 +2,10 @@
 // it with fastify.inject() without opening a port.
 //
 //   POST /api/render    body: boring log JSON  ->  SVG, PNG or HTML
-//                       (or an AGS4 file as text/plain; ?loca_id= picks the borehole)
+//                       (or an AGS4 file as text/plain, or a DIGGS file as
+//                       application/xml; ?loca_id= picks the borehole)
 //   POST /api/ags       body: AGS4 file        ->  { documents: [{ loca_id, document }], warnings }
+//   POST /api/diggs     body: DIGGS XML file   ->  { documents: [{ loca_id, document }], warnings }
 //   POST /api/validate  body: boring log JSON  ->  { valid, errors, warnings }
 //   GET  /api/schema                           ->  the JSON Schema
 //   GET  /api/health                           ->  { status, version }
@@ -11,7 +13,9 @@ import Fastify from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { Resvg } from '@resvg/resvg-js';
 import { readFileSync } from 'node:fs';
-import { renderBoringLog, validateBoringLog, schema, DEFAULT_COLUMNS, agsToBoringLogs, looksLikeAgs, AgsError } from '../src/index.js';
+import {
+    renderBoringLog, validateBoringLog, schema, DEFAULT_COLUMNS, agsToBoringLogs, looksLikeAgs, AgsError, diggsToBoringLogs, looksLikeDiggs, DiggsError,
+} from '../src/index.js';
 import { escapeXml } from '../src/text.js';
 import { loadFonts } from './fonts.js';
 
@@ -135,8 +139,10 @@ function filename(doc, ext) {
     return `${String(name).replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '') || 'boring-log'}.${ext}`;
 }
 
-export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 1024 * 1024, trustProxy = '127.0.0.1' } = {}) {
-    const app = Fastify({ logger, bodyLimit, trustProxy });
+// bodyLimit applies to JSON; AGS4 and DIGGS files, which carry whole projects,
+// may be up to fileBodyLimit.
+export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 1024 * 1024, fileBodyLimit = 10 * 1024 * 1024, trustProxy = '127.0.0.1' } = {}) {
+    const app = Fastify({ logger, bodyLimit: Math.max(bodyLimit, fileBodyLimit), trustProxy });
     const fontFiles = loadFonts();
 
     // The API is public and takes no credentials, so any site may call it.
@@ -167,7 +173,9 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
     // Own JSON parser, so a syntax error reports JSON.parse's message (with
     // its position) rather than Fastify's generic one.
     app.removeAllContentTypeParsers();
+    const tooLarge = limit => Object.assign(new Error('too large'), { statusCode: 413, code: 'FST_ERR_CTP_BODY_TOO_LARGE', limit });
     app.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => {
+        if (Buffer.byteLength(body) > bodyLimit) return done(tooLarge(bodyLimit));
         if (body.trim() === '') return done(Object.assign(new Error('empty body'), { statusCode: 400, code: 'EMPTY_BODY' }));
         try {
             done(null, JSON.parse(body));
@@ -175,17 +183,20 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
             done(Object.assign(new Error(e.message), { statusCode: 400, code: 'INVALID_JSON' }));
         }
     });
-    // AGS4 files arrive as plain text.
-    app.addContentTypeParser(['text/plain', 'application/x-ags', 'text/csv'], { parseAs: 'string' }, (request, body, done) => done(null, body));
+    // AGS4 files arrive as plain text, DIGGS files as XML.
+    app.addContentTypeParser(['text/plain', 'application/x-ags', 'text/csv', 'application/xml', 'text/xml'], { parseAs: 'string' }, (request, body, done) => {
+        if (Buffer.byteLength(body) > fileBodyLimit) return done(tooLarge(fileBodyLimit));
+        done(null, body);
+    });
 
     // Error bodies share one shape: { error, errors: [{ path, message }] }.
     app.setErrorHandler((err, request, reply) => {
         if (err.statusCode === 429) return reply.code(429).send(err);
         if (err.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
-            return reply.code(413).send({ error: 'Request body too large', errors: [{ path: '', message: `limit is ${bodyLimit} bytes` }] });
+            return reply.code(413).send({ error: 'Request body too large', errors: [{ path: '', message: `limit is ${err.limit ?? fileBodyLimit} bytes` }] });
         }
         if (err.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {
-            return reply.code(415).send({ error: 'Unsupported Content-Type', errors: [{ path: '', message: 'send the boring log as application/json, or an AGS4 file as text/plain' }] });
+            return reply.code(415).send({ error: 'Unsupported Content-Type', errors: [{ path: '', message: 'send the boring log as application/json, an AGS4 file as text/plain, or a DIGGS file as application/xml' }] });
         }
         if (err.code === 'EMPTY_BODY') {
             return reply.code(400).send({ error: 'Empty request body', errors: [{ path: '', message: 'send the boring log JSON as the request body' }] });
@@ -217,33 +228,43 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
     app.get('/api/health', async () => ({
         status: 'ok',
         version,
-        endpoints: ['POST /api/render', 'POST /api/ags', 'POST /api/validate', 'GET /api/schema', 'GET /api/health'],
+        endpoints: ['POST /api/render', 'POST /api/ags', 'POST /api/diggs', 'POST /api/validate', 'GET /api/schema', 'GET /api/health'],
     }));
 
     app.get('/api/schema', async (request, reply) => reply.type('application/schema+json').send(schema));
 
     app.post('/api/validate', async (request) => validateBoringLog(request.body));
 
-    // Converts an AGS4 file, or sends a 422 and returns null.
-    function fromAgs(text, reply) {
-        if (typeof text !== 'string' || !looksLikeAgs(text)) {
-            reply.code(400).send({ error: 'Not an AGS4 file', errors: [{ path: '', message: 'send the AGS4 file as the request body with Content-Type: text/plain' }] });
+    // Converts an AGS4 or DIGGS file (kind 'ags', 'diggs', or either), or sends
+    // an error reply and returns null.
+    const FILE_KINDS = {
+        ags: { label: 'AGS4', looks: looksLikeAgs, convert: agsToBoringLogs, Err: AgsError, how: 'an AGS4 file with Content-Type: text/plain' },
+        diggs: { label: 'DIGGS', looks: looksLikeDiggs, convert: diggsToBoringLogs, Err: DiggsError, how: 'a DIGGS XML file with Content-Type: application/xml' },
+    };
+    function fromFile(text, reply, only) {
+        const kinds = only ? [FILE_KINDS[only]] : Object.values(FILE_KINDS);
+        const kind = typeof text === 'string' ? kinds.find(k => k.looks(text)) : null;
+        if (!kind) {
+            const what = kinds.map(k => k.label).join(' or ');
+            reply.code(400).send({ error: `Not ${only === 'diggs' ? 'a' : 'an'} ${what} file`, errors: [{ path: '', message: `send ${kinds.map(k => k.how).join(', or ')}` }] });
             return null;
         }
         try {
-            return agsToBoringLogs(text);
+            return { ...kind.convert(text), kind };
         } catch (e) {
-            if (!(e instanceof AgsError)) throw e;
-            reply.code(422).send({ error: 'Invalid AGS4 file', errors: [{ path: '', message: e.message }] });
+            if (!(e instanceof kind.Err)) throw e;
+            reply.code(422).send({ error: `Invalid ${kind.label} file`, errors: [{ path: '', message: e.message }] });
             return null;
         }
     }
 
-    app.post('/api/ags', async (request, reply) => {
-        const converted = fromAgs(request.body, reply);
-        if (!converted) return reply;
-        return converted;
-    });
+    for (const only of ['ags', 'diggs']) {
+        app.post(`/api/${only}`, async (request, reply) => {
+            const converted = fromFile(request.body, reply, only);
+            if (!converted) return reply;
+            return { documents: converted.documents, warnings: converted.warnings };
+        });
+    }
 
     app.post('/api/render', async (request, reply) => {
         const format = chooseFormat(request.query.format, request.headers.accept);
@@ -258,8 +279,8 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
 
         let doc = request.body;
         if (typeof doc === 'string') {
-            // An AGS4 file: draw one of its boreholes.
-            const converted = fromAgs(doc, reply);
+            // An AGS4 or DIGGS file: draw one of its boreholes.
+            const converted = fromFile(doc, reply);
             if (!converted) return reply;
             const ids = converted.documents.map(d => d.loca_id);
             const pick = locaId !== undefined ? converted.documents.find(d => d.loca_id === locaId) : converted.documents.length === 1 ? converted.documents[0] : null;
@@ -272,12 +293,12 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
             if (!pick.document.layers.length) {
                 return reply.code(422).send({
                     error: 'Nothing to draw',
-                    errors: [{ path: '/layers', message: `borehole ${pick.loca_id} has no strata (GEOL rows with a top and base)` }],
+                    errors: [{ path: '/layers', message: `borehole ${pick.loca_id} has no strata (${converted.kind.label === 'AGS4' ? 'GEOL rows with a top and base' : 'LithologyObservations with a depth'})` }],
                 });
             }
             doc = pick.document;
         } else if (locaId !== undefined) {
-            return reply.code(400).send({ error: 'Invalid query parameters', errors: [{ path: '?loca_id', message: 'only used with an AGS4 file' }] });
+            return reply.code(400).send({ error: 'Invalid query parameters', errors: [{ path: '?loca_id', message: 'only used with an AGS4 or DIGGS file' }] });
         }
         const result = checkDocument(doc, reply);
         if (!result) return reply;
