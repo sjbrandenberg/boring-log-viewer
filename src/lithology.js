@@ -3,7 +3,8 @@
 // from the reviewed "Hatch library proposal" spreadsheet (Sep. 2026); the tile
 // artwork is drawn by scripts/lithology-art.js into src/hatches.js.
 //   fallback: the hatch drawn when this code has no tile of its own
-//   keywords: description words that point to it (for a future, reviewed inference step)
+//   keywords: description words that point to it (the reviewed inference rules are in materials.js)
+// LOAM and PUMICE were added after the review of NGL descriptions (Sep. 2026).
 export const LITHOLOGY = {
     FILL: { name: "Fill", group: "Fill and man-made", fallback: null, keywords: ["fill"] },
     FILL_HYD: { name: "Hydraulic fill", group: "Fill and man-made", fallback: "FILL", keywords: ["hydraulic fill"] },
@@ -17,12 +18,13 @@ export const LITHOLOGY = {
     SHELL: { name: "Shell or shelly soil", group: "Natural materials", fallback: null, keywords: ["shell", "shells", "coquina", "shell hash"] },
     COBBLES: { name: "Cobbles and boulders", group: "Natural materials", fallback: null, keywords: ["cobble", "cobbles", "boulder", "boulders"] },
     WOOD: { name: "Wood or organic debris", group: "Natural materials", fallback: null, keywords: ["wood", "timber", "roots", "organic debris"] },
-    ASH: { name: "Volcanic ash, pumice or tephra", group: "Natural materials", fallback: null, keywords: ["ash", "pumice", "tephra", "scoria (loose)"] },
+    ASH: { name: "Volcanic ash or tephra", group: "Natural materials", fallback: null, keywords: ["ash", "tephra"] },
     CEMENTED: { name: "Cemented soil, caliche or hardpan", group: "Natural materials", fallback: null, keywords: ["cemented", "caliche", "hardpan", "duripan"] },
     LOESS: { name: "Loess", group: "Natural materials", fallback: null, keywords: ["loess"] },
     MARL: { name: "Marl", group: "Natural materials", fallback: null, keywords: ["marl"] },
     DIATOMITE: { name: "Diatomaceous earth", group: "Natural materials", fallback: null, keywords: ["diatomaceous", "diatomite (soil)"] },
     BENTONITE: { name: "Bentonite", group: "Natural materials", fallback: null, keywords: ["bentonite"] },
+    LOAM: { name: "Loam", group: "Natural materials", fallback: null, keywords: ["loam", "sandy loam", "silt loam", "clay loam"] },
     QUICK_CLAY: { name: "Sensitive (quick) clay", group: "Natural materials", fallback: null, keywords: ["sensitive clay", "quick clay"] },
     WATER: { name: "Water", group: "Non-material intervals", fallback: null, keywords: ["water (over-water borings)"] },
     NO_RECOVERY: { name: "No recovery", group: "Non-material intervals", fallback: null, keywords: ["no recovery", "not recovered"] },
@@ -58,6 +60,7 @@ export const LITHOLOGY = {
     TUFF: { name: "Tuff", group: "Rock: igneous (pyroclastic)", fallback: "ROCK_IGN", keywords: ["tuff", "welded tuff"] },
     VOLC_BRECCIA: { name: "Volcanic breccia", group: "Rock: igneous (pyroclastic)", fallback: "ROCK_IGN", keywords: ["volcanic breccia", "agglomerate"] },
     SCORIA: { name: "Scoria", group: "Rock: igneous (pyroclastic)", fallback: "ROCK_IGN", keywords: ["scoria (rock)"] },
+    PUMICE: { name: "Pumice", group: "Rock: igneous (pyroclastic)", fallback: "ROCK_IGN", keywords: ["pumice"] },
     SLATE: { name: "Slate", group: "Rock: metamorphic (foliated)", fallback: "ROCK_MET", keywords: ["slate"] },
     PHYLLITE: { name: "Phyllite", group: "Rock: metamorphic (foliated)", fallback: "ROCK_MET", keywords: ["phyllite"] },
     SCHIST: { name: "Schist", group: "Rock: metamorphic (foliated)", fallback: "ROCK_MET", keywords: ["schist"] },

@@ -8,7 +8,7 @@ const codes = Object.keys(LITHOLOGY);
 const log = layers => ({ schema_version: '1.0', layers });
 
 test('every built-in material has a tile, a name and a group, and codes follow the pattern-code rule', () => {
-    assert.equal(codes.length, 65);
+    assert.equal(codes.length, 67);
     for (const code of codes) {
         assert.ok(HATCH_TILES[code], `${code} has a tile`);
         assert.match(code, /^[A-Za-z][A-Za-z0-9_]{0,15}$/, code);

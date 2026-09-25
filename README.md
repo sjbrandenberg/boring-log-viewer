@@ -36,8 +36,8 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   `cm`, `m`, `in` or `ft`. SI is the default.
 - **`layers`**: one object per stratum, `{ top, bottom, description, uscs, hatch }`.
   The graphic log uses `hatch` if given (use `"none"` to leave it blank), then
-  `uscs`, then a symbol inferred from the description (e.g. "silty SAND" gives
-  SM). The USCS hatches follow the Caltrans *Soil and Rock Logging,
+  a material or rock named in the description (see below), then `uscs`, then a
+  symbol inferred from the description (e.g. "silty SAND" gives SM). The USCS hatches follow the Caltrans *Soil and Rock Logging,
   Classification, and Presentation Manual* (2010) legend. Coarse dual symbols
   (`GW-GM`, `SP-SM`, `SC-SM`...) are drawn as one Caltrans-style tile: the
   coarse soil's grain with a lighter silt or clay overlay. Other pairs, such as
@@ -52,7 +52,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   bare SAND or GRAVEL, and "clayey SILT" get none. The rules are in
   `inferUscs()` in `src/classify.js`; they were reviewed against 655 layer
   descriptions from the NGL database.
-- **Built-in hatches besides USCS**: 65 materials a layer can use through
+- **Built-in hatches besides USCS**: 67 materials a layer can use through
   `hatch`, e.g. `"hatch": "FILL"` or `"hatch": "SANDSTONE"`, also in dual
   patterns such as `SP-FILL`. Their names and groups are in `src/lithology.js`;
   the artwork is drawn by `scripts/lithology-art.js`, with rock patterns after
@@ -60,9 +60,20 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   (FGDC-STD-013-2006, section 37) at a density that reads in a 40 px column
   (run `npm run build:hatches` after changing it or `scripts/uscs-art.js`, and
   `node scripts/hatch-catalog.js catalog.png --all` to see them all). A code without its own tile falls back along its chain, e.g. SANDSTONE
-  to ROCK_SED to ROCK. They are not inferred from descriptions yet.
+  to ROCK_SED to ROCK.
+  They are also inferred from the description when it names the principal
+  material (`inferMaterial()` in `src/materials.js`, reviewed against 802 NGL
+  layer descriptions): fill as the principal material, a leading label
+  ("FILL: silty sand") or an origin tag ("(HYDRAULIC FILL)"); asphalt, concrete
+  and base course; topsoil, shells, cobbles, wood, ash, pumice, loam; no
+  recovery or core loss; and rock names ("SHALE, black, hard"; "rock, clay" is
+  CLAYSTONE). A minor constituent ("with trace shells") never counts, and a
+  soil named in capitals outranks a material that isn't ("coarse pumice SAND"
+  is sand). Bentonite is drawn as CH. An inferred material wins over `uscs`
+  (a fill layer is drawn as FILL, with its USCS symbol still in the USCS
+  column); `infer_materials=false` turns this off.
   - Fill and man-made: `FILL`, `FILL_HYD`, `FILL_ENG`, `FILL_UNDOC`, `DEBRIS`, `ASPHALT`, `CONCRETE`, `BASE_COURSE`
-  - Natural materials: `TOPSOIL`, `SHELL`, `COBBLES`, `WOOD`, `ASH`, `CEMENTED`, `LOESS`, `MARL`, `DIATOMITE`, `BENTONITE`, `QUICK_CLAY`
+  - Natural materials: `TOPSOIL`, `SHELL`, `COBBLES`, `WOOD`, `ASH`, `CEMENTED`, `LOESS`, `MARL`, `DIATOMITE`, `BENTONITE`, `LOAM`, `QUICK_CLAY`
   - Non-material intervals: `WATER`, `NO_RECOVERY`, `VOID`
   - Rock: category: `ROCK`, `ROCK_SED`, `ROCK_IGN`, `ROCK_MET`
   - Rock: transitional: `WEATHERED`, `IGM`
@@ -70,7 +81,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   - Rock: sedimentary (chemical/organic): `LIMESTONE`, `DOLOMITE`, `CHALK`, `CHERT`, `COAL`, `EVAPORITE`
   - Rock: igneous (intrusive): `GRANITE`, `GRANODIORITE`, `DIORITE`, `GABBRO`, `PERIDOTITE`
   - Rock: igneous (extrusive): `BASALT`, `ANDESITE`, `DACITE`, `RHYOLITE`
-  - Rock: igneous (pyroclastic): `TUFF`, `VOLC_BRECCIA`, `SCORIA`
+  - Rock: igneous (pyroclastic): `TUFF`, `VOLC_BRECCIA`, `SCORIA`, `PUMICE`
   - Rock: metamorphic (foliated): `SLATE`, `PHYLLITE`, `SCHIST`, `GNEISS`
   - Rock: metamorphic (non-foliated): `QUARTZITE`, `MARBLE`, `HORNFELS`, `SERPENTINITE`, `GREENSTONE`
   - Rock: fault rock: `FAULT_GOUGE`, `FAULT_BRECCIA`, `MYLONITE`
@@ -134,6 +145,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 | `depth_range` | `[0, deepest]` | `[top, bottom]` in display units |
 | `font_size` | 10 | px |
 | `infer_uscs` | true | For layers without `uscs`, show a USCS symbol inferred from the description, in parentheses (see below) |
+| `infer_materials` | true | For layers without `hatch`, draw a material or rock hatch named in the description (fill, asphalt, topsoil, shale...), ahead of `uscs` |
 | `id_prefix` | hash of the data | Prefix for `<pattern>` ids. Logs with different data get different ids, so several can share a page. |
 
 Column ids: `depth`, `elevation`, `groundwater`, `graphic`, `uscs`,

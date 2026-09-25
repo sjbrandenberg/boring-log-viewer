@@ -3,6 +3,7 @@
 // browser, in Node for the API, and in tests.
 import { normalizeBoringLog } from './normalize.js';
 import { DUAL_NAMES, inferUscs, layerHatch, USCS_NAMES, USCS_SYMBOLS } from './classify.js';
+import { inferMaterial } from './materials.js';
 import { HATCH_TILES } from './hatches.js';
 import { LITHOLOGY } from './lithology.js';
 
@@ -43,6 +44,7 @@ const DEFAULTS = {
     depth_range: null,   // [top, bottom] in display units
     id_prefix: null,     // prefix for pattern ids; needed if several logs share a page
     infer_uscs: true,    // show a USCS symbol inferred from the description, in parentheses, when none is given
+    infer_materials: true, // draw a material or rock hatch (fill, asphalt, shale...) named in the description
 };
 
 
@@ -500,7 +502,11 @@ export function renderBoringLog(input, options = {}) {
     // Convert everything drawn on the depth axis to display units up front.
     const layers = doc.layers.map(l => {
         const inferred = opt.infer_uscs && !l.uscs && !l.hatch ? inferUscs(l.description) : null;
-        return { ...l, top: u.length(l.top), bottom: u.length(l.bottom), ...(inferred ? { uscs_inferred: inferred.uscs } : {}) };
+        const material = opt.infer_materials && !l.hatch ? inferMaterial(l.description) : null;
+        return {
+            ...l, top: u.length(l.top), bottom: u.length(l.bottom),
+            ...(inferred ? { uscs_inferred: inferred.uscs } : {}), ...(material ? { material_inferred: material } : {}),
+        };
     });
     const samples = doc.samples.map(s => ({ ...s, top: u.length(s.top), bottom: u.length(s.bottom) }));
     const groundwater = doc.groundwater.map(g => ({ ...g, depth: u.length(g.depth) }));

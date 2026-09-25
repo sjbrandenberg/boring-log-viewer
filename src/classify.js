@@ -236,11 +236,12 @@ export function inferUscs(description) {
     return null;
 }
 
-// Resolves the hatch to draw for a layer: explicit hatch, then USCS (recorded,
-// then strictly inferred), then the looser keyword inference. Returns an array
-// of 0, 1 or 2 codes.
+// Resolves the hatch to draw for a layer: explicit hatch, then a material or rock
+// named in the description (fill, topsoil, no recovery... win over a USCS symbol;
+// see materials.js), then USCS (recorded, then strictly inferred), then the
+// looser keyword inference. Returns an array of 0, 1 or 2 codes.
 export function layerHatch(layer) {
-    const code = layer.hatch ?? layer.uscs ?? layer.uscs_inferred ?? inferHatch(layer.description);
+    const code = layer.hatch ?? layer.material_inferred ?? layer.uscs ?? layer.uscs_inferred ?? inferHatch(layer.description);
     if (!code || code === 'none') return [];
     return code.split(/[-/]/);
 }

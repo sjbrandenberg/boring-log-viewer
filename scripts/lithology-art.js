@@ -37,6 +37,8 @@ export function lithologyArt() {
         LOESS: () => grid(9, 7, (x, y) => path(`M${f(x)} ${f(y - 5)} q1.2 2.5 0 5 t0 5`, T)),                    // FGDC 684
         MARL: () => dashRows(6, 11, 21, T) + grid(5, 6, (x, y) => line(x, y - 3, x, y + 3, T)),                      // FGDC 623
         DIATOMITE: r => scatter(r, 9, 22, 6, (x, y) => line(x - 5, y - 1.5, x + 5, y - 1.5, T) + line(x - 5, y + 1.5, x + 5, y + 1.5, T) + ellipse(x, y, 2, 1.5, T)), // FGDC 653
+        // Loam: sand dots with short silt (vertical) and clay (diagonal) dashes.
+        LOAM: r => dots(r, 14, 1, 9) + scatter(r, 7, 18, 4, dash(6, T, Math.PI / 2)) + scatter(r, 7, 18, 4, dash(6, T, -Math.PI / 4)),
         BENTONITE: r => hlines(2, T) + hlines(2, T, 'black', 3) + scatter(r, 9, 20, 6, (x, y) => line(x - 5, y, x + 3, y, T) + line(x + 3, y, x + 5.5, y - 2.5, T) + line(x + 3, y, x + 5.5, y + 2.5, T)), // FGDC 662
         QUICK_CLAY: () => slantFamily(3, 2, T, 1) + waves(2, 4, 2, SW),
         // ---- Non-material intervals
@@ -102,6 +104,8 @@ export function lithologyArt() {
             ? path(`M${f(x - 2.5)} ${f(y - 3)} L${f(x)} ${f(y)} L${f(x + 2.5)} ${f(y - 3)} M${f(x)} ${f(y)} L${f(x)} ${f(y + 3)}`, T)
             : path(`M${f(x - 2.5)} ${f(y + 3)} L${f(x)} ${f(y - 3)} L${f(x + 2.5)} ${f(y + 3)}`, T)), false),
         VOLC_BRECCIA: r => scatter(r, 10, 20, 6, perElement(() => shard(r, 5, T))) + scatter(r, 5, 26, 6, perElement(() => shard(r, 4, T, '#999'))) + dots(r, 18, 0.8, 7), // FGDC 715
+        // Pumice: elongated vesicles.
+        PUMICE: r => scatter(r, 16, 13, 4, perElement(i => (x, y) => ellipse(x, y, 3 + (i % 3) * 0.6, 1.3, T, 'none', -20))) + dots(r, 8, 0.8, 10),
         SCORIA: r => scatter(r, 12, 16, 3.5, (x, y) => ring(x, y, 2.5, T)) + scatter(r, 12, 14, 3, vee(2.4, T)),
         // ---- Metamorphic
         SLATE: () => slantFamily(10, 1, T * 0.8, -1) + slantFamily(2, 1, T * 1.4, -1),                                    // FGDC 703
