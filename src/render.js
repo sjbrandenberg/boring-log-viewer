@@ -282,8 +282,14 @@ function fittedText(cx, y, str, maxWidth, fs) {
     return text(cx, y, str, { anchor: 'middle', size: size === fs ? undefined : size });
 }
 
-function samplerSymbol(type, x, y, w, h, patternId) {
+function samplerSymbol(type, x, y, w, h, patternId, custom) {
     const box = `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#fff" stroke="#000" stroke-width="1.2"/>`;
+    if (custom) {
+        // A user-supplied sampler symbol: the image stretched to the sample interval, framed.
+        return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#fff"/>`
+            + `<image href="${escapeXml(custom.image)}" x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" preserveAspectRatio="none"/>`
+            + `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="none" stroke="#000" stroke-width="1.2"/>`;
+    }
     const cx = x + w / 2;
     const my = y + h / 2;
     switch (type) {
@@ -489,14 +495,29 @@ export function renderBoringLog(input, options = {}) {
         if (codes.length === 2) dualRight.add(codes[1]);
     }
     const hatchScale = graphic.w / 104;
+    // The tile for a graphic-log code: the document's own pattern (an image, tiled
+    // at tile_width px, one tile across the column by default) or the built-in one.
+    const customPatterns = doc.patterns ?? {};
+    const soilPattern = code => (customPatterns[code] && customPatterns[code].kind !== 'sampler' ? customPatterns[code] : null);
+    const tileFor = code => {
+        const custom = soilPattern(code);
+        if (custom) {
+            const tw = custom.tile_width ?? graphic.w;
+            const th = tw * custom.height / custom.width;
+            return { width: r(tw), height: r(th), scale: 1, body: `<image href="${escapeXml(custom.image)}" width="${r(tw)}" height="${r(th)}" preserveAspectRatio="none"/>` };
+        }
+        return HATCH_TILES[code] ? { ...HATCH_TILES[code], scale: hatchScale } : null;
+    };
+    const hatchName = code => soilPattern(code)?.name ?? USCS_NAMES[code] ?? code;
+    const samplerPattern = type => (customPatterns[type]?.kind === 'sampler' ? customPatterns[type] : null);
     for (const code of [...usedHatches].sort()) {
-        const tile = HATCH_TILES[code];
+        const tile = tileFor(code);
         if (!tile) continue;
-        defs.push(`<pattern id="${prefix}-${code}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(graphic.x)} ${r(y0)}) scale(${r(hatchScale * 1000) / 1000})">${tile.body}</pattern>`);
+        defs.push(`<pattern id="${prefix}-${code}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(graphic.x)} ${r(y0)}) scale(${r(tile.scale * 1000) / 1000})">${tile.body}</pattern>`);
         // The right half of a dual symbol starts its pattern at the divider, so the
         // pattern's own lines don't sit beside the divider.
         if (dualRight.has(code)) {
-            defs.push(`<pattern id="${prefix}-${code}-right" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(graphic.x + graphic.w / 2)} ${r(y0)}) scale(${r(hatchScale * 1000) / 1000})">${tile.body}</pattern>`);
+            defs.push(`<pattern id="${prefix}-${code}-right" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(graphic.x + graphic.w / 2)} ${r(y0)}) scale(${r(tile.scale * 1000) / 1000})">${tile.body}</pattern>`);
         }
     }
     const usedSamplers = new Set(samples.map(s => s.type ?? 'Other'));
@@ -543,7 +564,7 @@ export function renderBoringLog(input, options = {}) {
             }
         } else if (c.kind === 'graphic') {
             for (const l of layers) {
-                const codes = layerHatch(l).filter(h => HATCH_TILES[h]);
+                const codes = layerHatch(l).filter(h => tileFor(h));
                 const top = yOf(l.top);
                 const h = (l.bottom - l.top) * scale;
                 const parts = codes.length ? codes : [null];
@@ -578,7 +599,7 @@ export function renderBoringLog(input, options = {}) {
             for (const s of samples) {
                 const top = yOf(s.top);
                 const h = Math.max((s.bottom - s.top) * scale, 3);
-                out.push(samplerSymbol(s.type ?? 'Other', c.x + 5, top, c.w - 10, h, `${prefix}-bulk`));
+                out.push(samplerSymbol(s.type ?? 'Other', c.x + 5, top, c.w - 10, h, `${prefix}-bulk`, samplerPattern(s.type)));
             }
         } else if (c.kind === 'sample_value') {
             for (const row of rows) {
@@ -631,20 +652,24 @@ export function renderBoringLog(input, options = {}) {
     if (opt.legend) {
         const items = [];
         for (const code of [...usedHatches].sort()) {
-            if (HATCH_TILES[code]) items.push({ kind: 'hatch', code, label: `${code} – ${USCS_NAMES[code]}` });
+            if (tileFor(code)) items.push({ kind: 'hatch', code, label: `${code} – ${hatchName(code)}` });
         }
         const duals = new Set();
         for (const l of layers) {
-            const codes = layerHatch(l).filter(h => HATCH_TILES[h]);
+            const codes = layerHatch(l).filter(h => tileFor(h));
             if (codes.length === 2) duals.add(codes.join('-'));
         }
         for (const dual of [...duals].sort()) {
             const [a, b] = dual.split('-');
-            const name = DUAL_NAMES[dual] ?? `${USCS_NAMES[a]} / ${USCS_NAMES[b].toLowerCase()}`;
+            const name = (!soilPattern(a) && !soilPattern(b) && DUAL_NAMES[dual]) || `${hatchName(a)} / ${hatchName(b).toLowerCase()}`;
             items.push({ kind: 'dual', codes: [a, b], label: `${dual} – ${name} (left: ${a}, right: ${b})` });
         }
         for (const type of Object.keys(SAMPLER_NAMES)) {
-            if (usedSamplers.has(type)) items.push({ kind: 'sampler', type, label: SAMPLER_NAMES[type] });
+            if (usedSamplers.has(type)) items.push({ kind: 'sampler', type, label: samplerPattern(type)?.name ?? SAMPLER_NAMES[type] });
+        }
+        // Sampler types defined only in the document's patterns
+        for (const type of [...usedSamplers].filter(t => !SAMPLER_NAMES[t]).sort()) {
+            items.push({ kind: 'sampler', type, label: samplerPattern(type)?.name ?? type });
         }
         for (const g of doc.groundwater) {
             const details = [g.date, g.note].filter(Boolean).join(', ');
@@ -671,18 +696,20 @@ export function renderBoringLog(input, options = {}) {
                 const ix = MARGIN + (it.cell % perRow) * itemW;
                 const iy = ly + fs + 8 + Math.floor(it.cell / perRow) * rowH;
                 if (it.kind === 'hatch') {
-                    defs.push(`<pattern id="${prefix}-legend-${it.code}" patternUnits="userSpaceOnUse" width="104" height="93" patternTransform="translate(${r(ix)} ${r(iy)}) scale(${r(hatchScale * 1000) / 1000})">${HATCH_TILES[it.code].body}</pattern>`);
+                    const tile = tileFor(it.code);
+                    defs.push(`<pattern id="${prefix}-legend-${it.code}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(ix)} ${r(iy)}) scale(${r(tile.scale * 1000) / 1000})">${tile.body}</pattern>`);
                     out.push(`<rect x="${r(ix)}" y="${r(iy)}" width="30" height="16" fill="url(#${prefix}-legend-${it.code})" stroke="#000" stroke-width="0.75"/>`);
                 } else if (it.kind === 'dual') {
                     it.codes.forEach((code, k) => {
                         const id = `${prefix}-legend-${it.codes.join('-')}-${k}`;
-                        defs.push(`<pattern id="${id}" patternUnits="userSpaceOnUse" width="104" height="93" patternTransform="translate(${r(ix + k * 15)} ${r(iy)}) scale(${r(hatchScale * 1000) / 1000})">${HATCH_TILES[code].body}</pattern>`);
+                        const tile = tileFor(code);
+                        defs.push(`<pattern id="${id}" patternUnits="userSpaceOnUse" width="${tile.width}" height="${tile.height}" patternTransform="translate(${r(ix + k * 15)} ${r(iy)}) scale(${r(tile.scale * 1000) / 1000})">${tile.body}</pattern>`);
                         out.push(`<rect x="${r(ix + k * 15)}" y="${r(iy)}" width="15" height="16" fill="url(#${id})"/>`);
                     });
                     out.push(line(ix + 15, iy, ix + 15, iy + 16, 0.75));
                     out.push(`<rect x="${r(ix)}" y="${r(iy)}" width="30" height="16" fill="none" stroke="#000" stroke-width="0.75"/>`);
                 } else if (it.kind === 'sampler') {
-                    out.push(samplerSymbol(it.type, ix + 9, iy, 12, 16, `${prefix}-bulk`));
+                    out.push(samplerSymbol(it.type, ix + 9, iy, 12, 16, `${prefix}-bulk`, samplerPattern(it.type)));
                 } else if (it.kind === 'text') {
                     out.push(text(ix + 15, iy + 12, it.symbol, { anchor: 'middle' }));
                 } else {

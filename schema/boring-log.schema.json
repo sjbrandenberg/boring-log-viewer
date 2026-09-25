@@ -61,6 +61,30 @@
         }
       }
     },
+    "patterns": {
+      "description": "Custom graphic log patterns and sampler symbols, by code. A code equal to a USCS symbol or a built-in sampler type replaces the built-in pattern; any other code adds a new one, used by setting a layer's `hatch` or a sample's `type` to it.",
+      "type": "object",
+      "maxProperties": 30,
+      "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_]{0,15}$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["image", "width", "height"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "description": "Label in the legend, e.g. \"Fill\". Defaults to the built-in name, or the code.", "type": "string", "maxLength": 80 },
+          "kind": { "description": "\"soil\" for a graphic log pattern (tiled), \"sampler\" for a sampler symbol (stretched to the sample interval).", "enum": ["soil", "sampler"], "default": "soil" },
+          "image": {
+            "description": "The image as a base64 data URI: data:image/png;base64,..., data:image/jpeg;base64,... or data:image/svg+xml;base64,....",
+            "type": "string",
+            "maxLength": 350000,
+            "pattern": "^data:image/(png|jpeg|svg\\+xml);base64,[A-Za-z0-9+/]+={0,2}$"
+          },
+          "width": { "description": "Width of the image in pixels (sets the tile's aspect ratio).", "type": "number", "exclusiveMinimum": 0, "maximum": 4096 },
+          "height": { "description": "Height of the image in pixels.", "type": "number", "exclusiveMinimum": 0, "maximum": 4096 },
+          "tile_width": { "description": "Width of one tile on the log, px. Defaults to the width of the graphic log column.", "type": "number", "minimum": 4, "maximum": 400 }
+        }
+      }
+    },
     "depth_notes": {
       "description": "Observations at a single depth within a layer, e.g. 'trace gravel' or 'thin sand lens'. Drawn in italics in the material description column, marked at their depth.",
       "type": "array",
@@ -92,9 +116,9 @@
             "pattern": "^(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?$"
           },
           "hatch": {
-            "description": "Graphic log pattern. Defaults to the pattern for `uscs`, then to one inferred from `description`. Use \"none\" for no pattern.",
+            "description": "Graphic log pattern: a USCS symbol, a dual symbol such as SP-SM, or a code defined in `patterns`. Defaults to the pattern for `uscs`, then to one inferred from `description`. Use \"none\" for no pattern.",
             "type": "string",
-            "pattern": "^(none|(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?)$"
+            "pattern": "^(none|[A-Za-z][A-Za-z0-9_]{0,15}([-/][A-Za-z][A-Za-z0-9_]{0,15})?)$"
           }
         }
       }
@@ -110,8 +134,11 @@
           "bottom": { "type": "number", "minimum": 0 },
           "name": { "type": "string" },
           "type": {
-            "description": "Sampler type; controls the symbol drawn in the sample column.",
-            "enum": ["SPT", "ModCal", "Shelby", "Piston", "Bulk", "Core", "Other"],
+            "description": "Sampler type; controls the symbol drawn in the sample column. One of the built-in types, or a sampler code defined in `patterns`.",
+            "anyOf": [
+              { "enum": ["SPT", "ModCal", "Shelby", "Piston", "Bulk", "Core", "Other"] },
+              { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,15}$" }
+            ],
             "default": "Other"
           },
           "description": { "type": "string" },

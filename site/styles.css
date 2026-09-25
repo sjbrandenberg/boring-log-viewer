@@ -186,6 +186,37 @@ textarea {
 .fields dt { margin-top: 10px; font-weight: 600; }
 .fields dd { margin-left: 16px; }
 
+/* ------------------------------------------------------------ custom patterns dialog */
+.patterns-dialog {
+    width: min(720px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    padding: 16px 20px;
+}
+.patterns-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+.patterns-dialog h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.patterns-dialog h3 { margin: 16px 0 6px; font-size: 1rem; }
+.muted { color: var(--muted); font-size: 0.9em; }
+.pattern-list { list-style: none; margin: 0; padding: 0; }
+.pattern-list li { display: flex; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.pattern-list img { width: 40px; height: 24px; object-fit: cover; border: 1px solid var(--border); background: #fff; }
+.pattern-list span { flex: 1; }
+.pattern-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; align-items: end; }
+.pattern-form > label { display: flex; flex-direction: column; gap: 3px; font-size: 0.9em; }
+.pattern-trace, .pattern-previews, .pattern-form > p, .pattern-actions { grid-column: 1 / -1; }
+.pattern-trace { border: 1px solid var(--border); border-radius: var(--radius); margin: 0; padding: 8px 12px; }
+.pattern-trace label { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; }
+.pattern-previews { display: flex; flex-wrap: wrap; gap: 16px; }
+.pattern-previews figure { margin: 0; }
+.pattern-previews img, .pattern-tiled { width: 120px; height: 90px; object-fit: contain; border: 1px solid var(--border); background-color: #fff; }
+.pattern-tiled { background-repeat: repeat; }
+.pattern-previews figcaption { font-size: 0.8em; color: var(--muted); }
+.pattern-error { color: var(--error); background: var(--error-bg); padding: 6px 10px; border-radius: var(--radius); margin: 0; }
+.pattern-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
 @media (max-width: 900px) {
     .site-header { padding: 16px 16px 8px; }
     .layout { grid-template-columns: 1fr; padding: 0 16px 16px; }

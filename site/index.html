@@ -34,6 +34,7 @@
             </label>
             <button id="format" type="button">Format</button>
             <button id="clear" type="button">Clear</button>
+            <button id="patterns-open" type="button" title="Use your own graphic log patterns or sampler symbols">Patterns…</button>
         </div>
         <textarea id="json" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Boring log JSON" placeholder='{ "schema_version": "1.0", "layers": [ … ] }'></textarea>
         <p id="status" class="status idle" role="status" aria-live="polite"></p>
@@ -71,6 +72,45 @@
     </section>
 </main>
 
+<dialog id="patterns-dialog" class="patterns-dialog" aria-labelledby="patterns-title">
+    <h2 id="patterns-title">Custom patterns</h2>
+    <p>Use your own graphic log pattern or sampler symbol from a PNG, JPG or SVG image. A code that matches a USCS symbol (e.g. <code>SM</code>) or a built-in sampler (e.g. <code>SPT</code>) replaces the built-in one. Any other code adds a new pattern: set a layer's <code>hatch</code>, or a sample's <code>type</code>, to the code. Patterns are saved in the JSON, so they travel with the log.</p>
+
+    <h3>In this log</h3>
+    <p id="pattern-none" class="muted">No custom patterns yet.</p>
+    <ul id="pattern-list" class="pattern-list"></ul>
+
+    <h3>Add a pattern</h3>
+    <form id="pattern-form" class="pattern-form">
+        <label>Code <input name="code" required maxlength="16" placeholder="e.g. FILL" autocomplete="off"></label>
+        <label>Used as
+            <select name="kind">
+                <option value="soil">Soil pattern (graphic log)</option>
+                <option value="sampler">Sampler symbol</option>
+            </select>
+        </label>
+        <label>Legend label <input name="name" maxlength="80" placeholder="e.g. Fill"></label>
+        <label>Image <input name="file" type="file" accept="image/png,image/jpeg,image/svg+xml,.svg" required></label>
+        <label>Tile width <input name="tile_width" type="number" min="4" max="400" step="1" placeholder="column width"> px</label>
+        <fieldset id="pattern-trace" class="pattern-trace" hidden>
+            <label><input name="vector" type="checkbox"> Convert to vector (black-and-white line patterns)</label>
+            <label>Threshold <input id="pattern-threshold" type="range" min="16" max="240" value="128"></label>
+            <p class="muted">An embedded image looks exactly like your file but shows its pixels when zoomed. A converted one stays sharp at any size, but check the preview: fine dots or shading can be lost.</p>
+        </fieldset>
+        <div class="pattern-previews">
+            <figure><img id="pattern-original" alt=""><figcaption>Image</figcaption></figure>
+            <figure hidden><img id="pattern-traced" alt=""><figcaption>Converted to vector</figcaption></figure>
+            <figure hidden><div id="pattern-tiled" class="pattern-tiled"></div><figcaption>Tiled as in the log</figcaption></figure>
+        </div>
+        <p id="pattern-hint" class="muted"></p>
+        <p id="pattern-error" class="pattern-error" role="alert" hidden></p>
+        <div class="pattern-actions">
+            <button type="submit" class="primary">Add to log</button>
+            <button id="pattern-close" type="button">Close</button>
+        </div>
+    </form>
+</dialog>
+
 <section id="format" class="format">
     <h2>JSON format</h2>
     <p>A boring log is one JSON object. Only <code>schema_version</code> and <code>layers</code> are required. Depths are measured down from the ground surface. Fields set to <code>null</code> are treated as missing. A misspelled field name is reported as an error, so typos don't go unnoticed.</p>
@@ -100,6 +140,8 @@
         <dd><code>depth</code>, <code>date</code>, <code>note</code>.</dd>
         <dt><code>depth_notes[]</code></dt>
         <dd><code>depth</code> and <code>description</code>: an observation at one depth within a layer, drawn in italics in the material description column.</dd>
+        <dt><code>patterns</code></dt>
+        <dd>Your own graphic log patterns and sampler symbols, by code: <code>{ "FILL": { "name": "Fill", "image": "data:image/png;base64,…", "width": 64, "height": 64 } }</code>. Add <code>"kind": "sampler"</code> for a sampler symbol, and <code>tile_width</code> (px) to change the tile size. A USCS code or built-in sampler name replaces the built-in pattern. The <b>Patterns…</b> button builds these entries from an image file.</dd>
     </dl>
     <p>The complete definition is in the <a href="schema/boring-log.schema.json">JSON Schema</a>.</p>
 </section>

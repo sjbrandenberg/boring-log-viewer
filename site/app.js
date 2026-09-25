@@ -2,6 +2,7 @@
 // the log as SVG or PNG, or print it to PDF. Everything runs in the browser.
 import { renderBoringLog, validateBoringLog, BoringLogError } from '../src/index.js';
 import { syntaxErrorLocation, locatePointer, downloadName, renderOptions, summarize } from './lib.js';
+import { setUpPatternsDialog } from './patterns.js';
 import coastal from '../tests/fixtures/coastal-style.json' with { type: 'json' };
 import vspdb from '../tests/fixtures/vspdb-style.json' with { type: 'json' };
 import dense from '../tests/fixtures/dense-text.json' with { type: 'json' };
@@ -303,6 +304,8 @@ form.addEventListener('input', scheduleUpdate);
 form.addEventListener('submit', e => e.preventDefault());
 
 $('fit').addEventListener('change', e => preview.classList.toggle('fit', e.target.checked));
+
+setUpPatternsDialog({ getText: () => editor.value, setText });
 
 // ------------------------------------------------------------ start
 

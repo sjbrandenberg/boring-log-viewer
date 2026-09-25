@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
+    "imagetracerjs": "^1.2.6",
     "opentype.js": "^2.0.0"
   },
   "license": "MIT",

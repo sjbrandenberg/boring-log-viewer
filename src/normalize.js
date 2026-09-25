@@ -24,6 +24,34 @@ export function stripNulls(value) {
     return value;
 }
 
+const USCS_CODES = new Set(['GW', 'GP', 'GM', 'GC', 'SW', 'SP', 'SM', 'SC', 'ML', 'CL', 'OL', 'MH', 'CH', 'OH', 'PT']);
+const BUILT_IN_SAMPLERS = new Set(['SPT', 'ModCal', 'Shelby', 'Piston', 'Bulk', 'Core', 'Other']);
+
+// Checks the schema cannot express: a layer's hatch must be a USCS symbol or a
+// soil pattern defined in the document, and a sample's type a built-in sampler
+// or a sampler pattern defined in it.
+export function checkPatternReferences(doc) {
+    const errors = [];
+    const patterns = doc.patterns && typeof doc.patterns === 'object' ? doc.patterns : {};
+    const kindOf = code => (patterns[code] ? patterns[code].kind ?? 'soil' : null);
+    (Array.isArray(doc.layers) ? doc.layers : []).forEach((layer, i) => {
+        if (typeof layer?.hatch !== 'string' || layer.hatch === 'none') return;
+        for (const code of layer.hatch.split(/[-/]/)) {
+            const kind = kindOf(code);
+            if (kind === 'sampler') errors.push({ path: `/layers/${i}/hatch`, message: `"${code}" is a sampler pattern, not a soil pattern` });
+            else if (!kind && !USCS_CODES.has(code)) errors.push({ path: `/layers/${i}/hatch`, message: `unknown pattern "${code}": use a USCS symbol or define it in patterns` });
+        }
+    });
+    (Array.isArray(doc.samples) ? doc.samples : []).forEach((sample, i) => {
+        const type = sample?.type;
+        if (typeof type !== 'string' || BUILT_IN_SAMPLERS.has(type)) return;
+        const kind = kindOf(type);
+        if (kind === 'soil') errors.push({ path: `/samples/${i}/type`, message: `"${type}" is a soil pattern; give it "kind": "sampler" to use it as a sampler symbol` });
+        else if (!kind) errors.push({ path: `/samples/${i}/type`, message: `unknown sampler type "${type}": use a built-in type or define it in patterns` });
+    });
+    return errors;
+}
+
 // Checks the schema cannot express: intervals must have bottom > top.
 // Overlapping layers are a warning; the renderer draws them anyway.
 export function checkDepths(doc) {
@@ -91,7 +119,15 @@ export function normalizeBoringLog(input) {
     numeric(doc.samples, 'samples', ['top', 'bottom']);
     numeric(doc.groundwater, 'groundwater', ['depth']);
     numeric(doc.depth_notes, 'depth_notes', ['depth']);
-    issues.push(...checkDepths(doc).errors);
+    issues.push(...checkDepths(doc).errors, ...checkPatternReferences(doc));
+    // The schema checks this for validated input; the renderer can also be called
+    // directly, and only image data URIs may go into the SVG.
+    for (const [code, p] of Object.entries(doc.patterns && typeof doc.patterns === 'object' ? doc.patterns : {})) {
+        if (!p || typeof p.image !== 'string' || !/^data:image\/(png|jpeg|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/.test(p.image)) {
+            issues.push({ path: `/patterns/${code}/image`, message: 'must be a base64 data URI of a PNG, JPEG or SVG image' });
+        }
+        if (!(p?.width > 0) || !(p?.height > 0)) issues.push({ path: `/patterns/${code}`, message: 'needs a positive width and height' });
+    }
     if (issues.length) {
         throw new BoringLogError(`Boring log has ${issues.length} problem${issues.length > 1 ? 's' : ''}`, issues);
     }

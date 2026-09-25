@@ -134,3 +134,99 @@ export function summarize(doc) {
     if (doc.groundwater?.length) parts.push(count(doc.groundwater.length, 'groundwater reading'));
     return parts.join(', ');
 }
+
+// ------------------------------------------------------------ custom patterns
+
+export const PATTERN_CODE = /^[A-Za-z][A-Za-z0-9_]{0,15}$/;
+export const MAX_PATTERN_SIDE = 512;      // px; larger images are scaled down
+export const MAX_PATTERN_URI = 340000;    // characters of data URI (the schema allows 350000)
+
+function parseDoc(text) {
+    let doc;
+    try {
+        doc = JSON.parse(text);
+    } catch (e) {
+        throw new Error(`Fix the JSON first (${e.message}).`);
+    }
+    if (!doc || typeof doc !== 'object' || Array.isArray(doc)) throw new Error('The JSON must be an object.');
+    return doc;
+}
+
+// The document's custom patterns as [code, entry] pairs; [] if the JSON can't be read.
+export function listPatterns(text) {
+    try {
+        const p = parseDoc(text).patterns;
+        return p && typeof p === 'object' ? Object.entries(p) : [];
+    } catch {
+        return [];
+    }
+}
+
+// Returns the document text with the pattern added (or replaced), pretty-printed.
+export function addPattern(text, code, entry) {
+    if (!PATTERN_CODE.test(code)) throw new Error('The code must start with a letter and use only letters, digits and _ (up to 16 characters).');
+    const doc = parseDoc(text);
+    doc.patterns = { ...(doc.patterns && typeof doc.patterns === 'object' ? doc.patterns : {}), [code]: entry };
+    return JSON.stringify(doc, null, 2);
+}
+
+export function removePattern(text, code) {
+    const doc = parseDoc(text);
+    if (doc.patterns && typeof doc.patterns === 'object') {
+        delete doc.patterns[code];
+        if (!Object.keys(doc.patterns).length) delete doc.patterns;
+    }
+    return JSON.stringify(doc, null, 2);
+}
+
+// Black and white copy of RGBA pixels: dark enough pixels become black, the rest
+// (and transparent pixels) white. threshold is 0-255 on luminance.
+export function thresholdPixels(data, threshold = 128) {
+    const out = new Uint8ClampedArray(data.length);
+    for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3] / 255;
+        const luma = (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) * alpha + 255 * (1 - alpha);
+        const v = luma < threshold ? 0 : 255;
+        out[i] = out[i + 1] = out[i + 2] = v;
+        out[i + 3] = 255;
+    }
+    return out;
+}
+
+// Tidies imagetracer output for use as a pattern: drops the white shapes (so the
+// tile is transparent), the "desc" attribute and default attributes, and gives the
+// SVG its pixel size.
+export function tidyTracedSvg(svg, width, height) {
+    return svg
+        .replace(/<path fill="rgb\(255,255,255\)"[^>]*\/>/g, '')
+        .replace(/\s+desc="[^"]*"/, '')
+        .replace(/ stroke="rgb\(0,0,0\)" stroke-width="0" opacity="1"/g, '')
+        .replace(/<svg /, `<svg width="${width}" height="${height}" `);
+}
+
+// Base64 of a string's UTF-8 bytes (btoa only handles Latin-1).
+export function base64Utf8(text) {
+    const bytes = new TextEncoder().encode(text);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(binary);
+}
+
+// Pixel size of an SVG from its width/height attributes or viewBox, or null.
+export function svgSize(svgText) {
+    const tag = (svgText.match(/<svg\b[^>]*>/i) || [''])[0];
+    const attr = name => {
+        const m = tag.match(new RegExp(String.raw`\s${name}\s*=\s*["']\s*([\d.]+)(px)?\s*["']`, 'i'));
+        return m ? Number(m[1]) : null;
+    };
+    let width = attr('width');
+    let height = attr('height');
+    const vb = tag.match(/viewBox\s*=\s*["']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*["']/i);
+    if ((!width || !height) && vb) {
+        const [vw, vh] = [Number(vb[1]), Number(vb[2])];
+        if (width) height = (width * vh) / vw;       // keep the viewBox's aspect ratio
+        else if (height) width = (height * vw) / vh;
+        else [width, height] = [vw, vh];
+    }
+    return width > 0 && height > 0 ? { width, height } : null;
+}

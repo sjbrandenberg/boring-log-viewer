@@ -55,6 +55,21 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
 - **`depth_notes`**: a list of `{ depth, description }` for observations at one
   depth within a layer ("thin sand lens"). They are drawn in italics in the
   material description column, with a tick at their depth.
+- **`patterns`**: your own graphic log patterns and sampler symbols, by code:
+  `{ "FILL": { "name": "Fill", "image": "data:image/png;base64,...", "width": 96, "height": 96 } }`.
+  `image` is a base64 data URI of a PNG, JPEG or SVG (at most 350,000
+  characters); `width` and `height` are its pixel size. Add `"kind": "sampler"`
+  for a sampler symbol (stretched to fill the sample's box), and `tile_width`
+  (px on the log) to change how large a soil tile is drawn; by default one tile
+  spans the graphic log column. A code equal to a USCS symbol (`SM`) or a
+  built-in sampler (`SPT`) replaces the built-in pattern everywhere in the log.
+  Any other code (letters, digits and `_`, up to 16 characters, starting with a
+  letter) adds a new one: set a layer's `hatch`, or a sample's `type`, to it.
+  Custom codes also work in dual patterns such as `"hatch": "SP-FILL"`. Images
+  are embedded in the SVG, so logs stay self-contained. The web page's
+  **Patterns…** button builds these entries from an image file, scaling large
+  images down to 512 px and optionally tracing black-and-white patterns to
+  vector shapes (with imagetracerjs).
 - **`null` means "not given"**, so database exports can be passed through
   without cleaning. Unknown property names are errors, which catches typos.
 
