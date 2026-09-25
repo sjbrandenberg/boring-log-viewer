@@ -233,6 +233,10 @@ textarea {
 .builtin-list .swatch { display: inline-flex; width: 40px; justify-content: center; background: #fff; }
 .builtin-list button { font-size: 0.8em; padding: 2px 8px; }
 
+.format .steps li { margin: 6px 0; }
+.format .steps pre { margin: 6px 0; }
+kbd { font-family: inherit; font-size: 0.85em; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; background: var(--surface); }
+
 @media (max-width: 900px) {
     .site-header { padding: 16px 16px 8px; }
     .layout { grid-template-columns: 1fr; padding: 0 16px 16px; }

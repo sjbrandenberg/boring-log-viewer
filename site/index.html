@@ -128,6 +128,8 @@
         </div>
     </form>
 
+    <p class="muted">Hatches are saved in this log's JSON, not on the server. To use one in API requests or in another log, copy its <code>"patterns"</code> section: see <a href="#api-hatches" data-close-dialog>using your own hatches with the API</a>.</p>
+
     <h3>Built-in codes</h3>
     <p class="muted">These already exist. Use one as the code in step 1 to replace it with your own image everywhere in this log.</p>
     <details class="builtins" open>
@@ -170,7 +172,7 @@
         <dt><code>depth_notes[]</code></dt>
         <dd><code>depth</code> and <code>description</code>: an observation at one depth within a layer, drawn in italics in the material description column.</dd>
         <dt><code>patterns</code></dt>
-        <dd>Your own graphic log patterns and sampler symbols, by code: <code>{ "FILL": { "name": "Fill", "image": "data:image/png;base64,…", "width": 64, "height": 64 } }</code>. Add <code>"kind": "sampler"</code> for a sampler symbol, and <code>tile_width</code> (px) to change the tile size. A USCS code or built-in sampler name replaces the built-in pattern. The <b>Hatches…</b> button builds these entries from an image file and applies them to the layers or samples you pick.</dd>
+        <dd>Your own graphic log patterns and sampler symbols, by code: <code>{ "FILL": { "name": "Fill", "image": "data:image/png;base64,…", "width": 64, "height": 64 } }</code>. Add <code>"kind": "sampler"</code> for a sampler symbol, and <code>tile_width</code> (px) to change the tile size. A USCS code or built-in sampler name replaces the built-in pattern. The <b>Hatches…</b> button builds these entries from an image file and applies them to the layers or samples you pick. They are saved in the JSON, not on the server; to use them with the API, see <a href="#api-hatches">using your own hatches with the API</a>.</dd>
     </dl>
     <p>The complete definition is in the <a href="schema/boring-log.schema.json">JSON Schema</a>.</p>
 </section>
@@ -200,6 +202,39 @@ open("boring.svg", "w", encoding="utf-8").write(r.text)</code></pre>
         <dd><code>POST api/validate</code> returns <code>{ valid, errors, warnings }</code>. <code>GET api/schema</code> returns the JSON Schema, and <code>GET api/health</code> reports whether the service is up.</dd>
     </dl>
     <p>Requests are limited to 1 MB, 2,000 layers and 5,000 samples. Submitted data is not stored.</p>
+
+    <h3 id="api-hatches">Using your own hatches with the API</h3>
+    <p>Hatches and sampler symbols you make on this page are <b>not stored on the server</b>. They are saved inside the log's JSON, in a section called <code>"patterns"</code>, and the image itself is stored there as a long line of text. The API draws a custom hatch only if the JSON you send contains that <code>"patterns"</code> section. To use one from a script:</p>
+    <ol class="steps">
+        <li>On this page, click <b>Hatches…</b>, add your hatch (the three steps in that window), and close the window.</li>
+        <li>Click <b>Format</b>. The JSON editor now has a <code>"patterns"</code> section at the end. For example, a hatch with the code <code>FILL</code> looks like this, with the image cut short here:
+            <pre><code>"patterns": {
+  "FILL": {
+    "image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA…",
+    "width": 96,
+    "height": 96,
+    "name": "Fill"
+  }
+},</code></pre>
+        </li>
+        <li>Copy the JSON: click in the editor, press <kbd>Ctrl</kbd>+<kbd>A</kbd> (<kbd>⌘</kbd>+<kbd>A</kbd> on a Mac) to select all of it, then <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy. Selecting all is easier than picking out the <code>"patterns"</code> section, because the image line is very long.</li>
+        <li>Paste it into a new text file and save it, for example as <code>hatches.json</code>.</li>
+        <li>In the JSON your script sends, add the <code>"patterns"</code> section from that file, and set <code>"hatch": "FILL"</code> on each layer that should use it. For a sampler symbol, set a sample's <code>"type"</code> to its code instead. A code that replaces a built-in one, such as <code>SM</code>, needs no <code>"hatch"</code>: every layer with that USCS symbol uses it.</li>
+    </ol>
+    <p>A script can read the saved file and add its hatches to every log it sends:</p>
+    <pre><code>import json, requests
+
+hatches = json.load(open("hatches.json"))["patterns"]   # the JSON copied from this page
+
+log = json.load(open("boring.json"))
+log["patterns"] = hatches
+log["layers"][0]["hatch"] = "FILL"                      # the layers that use the hatch
+
+r = requests.post("https://uclageo.com/boring-log-viewer/api/render",
+                  params={"format": "svg"}, json=log)
+r.raise_for_status()
+open("boring.svg", "w", encoding="utf-8").write(r.text)</code></pre>
+    <p>If a layer uses a code that isn't defined in <code>"patterns"</code>, the API returns a 422 error naming the layer and the code. To reuse a hatch in another log on this page, paste the <code>"patterns"</code> section into that log's JSON, or add the image again with the <b>Hatches…</b> window.</p>
 </section>
 </body>
 </html>
