@@ -214,11 +214,16 @@ export function agsToBoringLogs(text) {
             // Refusal is reported as blows/penetration in mm, seating drive first
             // ("25/75 50/150"): keep the main drive, "50/150mm".
             const drives = rep && !/^N\s*=/i.test(rep) ? [...rep.matchAll(/(\d+)\s*\/\s*(\d+)/g)] : [];
+            // Many files give only the report, "N=36 (18,29/36,-,-,-)": N, then the
+            // blows of the two seating and four main 75 mm increments.
+            const reported = rep?.match(/^N\s*=\s*(\d+)\s*(?:\(([^)]*)\))?/i);
             if (drives.length) s.blow_count = `${drives.at(-1)[1]}/${drives.at(-1)[2]}mm`;
             else if (n !== undefined) s.blow_count = n;
+            else if (reported) s.blow_count = Number(reported[1]);
             else if (rep) s.blow_count = rep;
-            const inc = [1, 2, 3, 4, 5, 6].map(k => num(r[`ISPT_INC${k}`]));
-            if (inc.every(v => v !== undefined)) s.blows = [inc[0] + inc[1], inc[2] + inc[3], inc[4] + inc[5]];
+            let inc = [1, 2, 3, 4, 5, 6].map(k => num(r[`ISPT_INC${k}`]));
+            if (!inc.every(v => v !== undefined) && reported?.[2]) inc = reported[2].split(/[,/]/).map(num);
+            if (inc.length === 6 && inc.every(v => v !== undefined)) s.blows = [inc[0] + inc[1], inc[2] + inc[3], inc[4] + inc[5]];
             if (num(r.ISPT_ERAT) > 0) s.energy_ratio = num(r.ISPT_ERAT);
             const pen = [1, 2, 3, 4, 5, 6].map(k => num(r[`ISPT_PEN${k}`])).filter(v => v !== undefined);
             if (pen.length) s.bottom = s.top + pen.reduce((a, b) => a + b, 0) / 1000;

@@ -143,14 +143,35 @@ function columnRegistry(u) {
     };
 }
 
+// The widest a value column grows to fit its values (px), as a multiple of its
+// usual width and absolutely.
+const VALUE_WIDEN_FACTOR = 3;
+const VALUE_WIDEN_MAX = 150;
+
 function resolveColumns(doc, opt, u, totalWidth) {
     const registry = columnRegistry(u);
     const cols = [];
-    for (const id of opt.columns) {
+    // Depth, graphic log and description are always drawn, in their usual places.
+    const ids = [...opt.columns];
+    for (const id of ['depth', 'graphic', 'description']) {
+        if (!ids.includes(id)) {
+            const before = DEFAULT_COLUMNS.slice(DEFAULT_COLUMNS.indexOf(id) + 1).find(c => ids.includes(c));
+            ids.splice(before ? ids.indexOf(before) : ids.length, 0, id);
+        }
+    }
+    for (const id of ids) {
         const def = registry[id];
         if (!def) throw new Error(`Unknown column "${id}". Known columns: ${Object.keys(registry).join(', ')}`);
         if (opt.hide_empty_columns && !def.always && !def.hasData(doc)) continue;
-        cols.push({ id, ...def });
+        const c = { id, ...def };
+        // A value column widens to fit its longest value (e.g. "N=36 (18,29/36,-,-,-)")
+        // rather than shrinking the text, taking the room from the flexible columns.
+        if (c.kind === 'sample_value' && c.width) {
+            const widest = Math.max(0, ...doc.samples.map(s => c.value(s)).filter(v => v !== undefined && v !== '')
+                .map(v => measureText(String(v), opt.font_size) + 8));
+            if (widest > c.width) c.width = Math.round(Math.min(widest, c.width * VALUE_WIDEN_FACTOR, VALUE_WIDEN_MAX));
+        }
+        cols.push(c);
     }
     const fixed = cols.reduce((n, c) => n + (c.width ?? 0), 0);
     const flexTotal = cols.reduce((n, c) => n + (c.flex ?? 0), 0);
@@ -249,10 +270,42 @@ function rowAlignScale(wrappedRows, dTop, fs) {
             if (a > 0) need = Math.max(need, rowLead(fs) / a);
             return;
         }
-        const gap = a - (rowAnchor(wrappedRows[i - 1].sample) - dTop);
+        const prev = wrappedRows[i - 1].sample;
+        // Samples that overlap in depth (a bulk sample and an SPT at 2.7 m) can't have
+        // their rows side by side at any scale: the rows stack, and don't stretch the log.
+        if (row.sample.top < prev.bottom - 1e-9) return;
+        const gap = a - (rowAnchor(prev) - dTop);
         if (gap > 0) need = Math.max(need, wrappedRows[i - 1].height / gap);
     });
     return need;
+}
+
+// Side-by-side lanes for samples that overlap in depth: { lane, of } per sample
+// (samples sorted by top), where `of` is the lanes its overlapping group uses.
+function sampleLanes(samples) {
+    const out = [];
+    let group = [];
+    let groupEnd = -Infinity;
+    const close = () => {
+        const n = Math.max(1, ...group.map(k => out[k].lane + 1));
+        for (const k of group) out[k].of = n;
+        group = [];
+    };
+    const ends = [];
+    samples.forEach((s, k) => {
+        if (s.top >= groupEnd - 1e-9) {
+            close();
+            ends.length = 0;
+        }
+        let lane = ends.findIndex(e => e <= s.top + 1e-9);
+        if (lane < 0) lane = ends.length;
+        ends[lane] = s.bottom;
+        out[k] = { lane, of: 1 };
+        group.push(k);
+        groupEnd = Math.max(groupEnd, s.bottom);
+    });
+    close();
+    return out;
 }
 
 // Places the rows: each row's first line level with the middle of its sample,
@@ -707,11 +760,15 @@ export function renderBoringLog(input, options = {}) {
                 }
             }
         } else if (c.kind === 'sample_symbol') {
-            for (const s of samples) {
+            // Samples overlapping in depth are drawn side by side.
+            const lanes = sampleLanes(samples);
+            samples.forEach((s, k) => {
                 const top = yOf(s.top);
                 const h = Math.max((s.bottom - s.top) * scale, 3);
-                out.push(samplerSymbol(s.type ?? 'Other', c.x + 5, top, c.w - 10, h, `${prefix}-bulk`, samplerPattern(s.type)));
-            }
+                const { lane, of } = lanes[k];
+                const w = (c.w - 10 - (of - 1) * 2) / of;
+                out.push(samplerSymbol(s.type ?? 'Other', c.x + 5 + lane * (w + 2), top, w, h, `${prefix}-bulk`, samplerPattern(s.type)));
+            });
         } else if (c.kind === 'sample_value') {
             for (const row of rows) {
                 const v = c.value(row.sample);

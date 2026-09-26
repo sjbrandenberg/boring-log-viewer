@@ -309,3 +309,35 @@ test('references are listed in the header, with http(s) urls linked', () => {
     assert.ok((long.match(/<text[^>]*>Word Word/g) ?? []).length > 3, 'long reference wraps onto several lines');
     assert.ok(validateBoringLog(oneLayer({ references: [{ text: 'x', doi: 'y' }] })).errors.length, 'unknown fields are errors');
 });
+
+test('overlapping samples do not stretch the log, and are drawn side by side', () => {
+    // A bulk sample and an SPT starting at the same depth, with slightly different bases
+    const doc = oneLayer({
+        layers: [{ top: 0, bottom: 12, description: 'Brown silty SAND' }],
+        samples: [
+            { top: 2.7, bottom: 3.1, type: 'Bulk', name: 'B-1' },
+            { top: 2.7, bottom: 3.15, type: 'SPT', name: 'S-1', blow_count: 12 },
+            { top: 6, bottom: 6.45, type: 'SPT', name: 'S-2', blow_count: 20 },
+        ],
+    });
+    const svg = renderBoringLog(doc, { id_prefix: 't' });
+    assert.ok(Number(svg.match(/height="(\d+)"/)[1]) < 2000, 'not stretched to the cap');
+    // the two symbols share the sample column: two narrower boxes side by side
+    const boxes = [...svg.matchAll(/<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)" height="[\d.]+" fill="(?:#fff|url\(#t-bulk\))" stroke="#000" stroke-width="1\.2"\/>/g)]
+        .map(m => [Number(m[1]), Number(m[2])]);
+    const [a, b] = boxes;
+    assert.ok(a && b && a[1] === b[1] && b[0] >= a[0] + a[1], `side by side: ${JSON.stringify(boxes)}`);
+});
+
+test('value columns widen to fit long values instead of shrinking them', () => {
+    const doc = oneLayer({ samples: [{ top: 1, bottom: 1.45, type: 'SPT', blow_count: 'N=36 (18,29/36,-,-,-)' }] });
+    const svg = renderBoringLog(doc);
+    const t = svg.match(/<text[^>]*>N=36 \(18,29\/36,-,-,-\)<\/text>/)[0];
+    assert.doesNotMatch(t, /font-size/, 'drawn at the normal size');
+});
+
+test('depth, graphic and description are drawn even if columns leaves them out', () => {
+    const svg = renderBoringLog(oneLayer(), { columns: ['depth', 'uscs'] });
+    assert.match(textOf(svg), /Graphic log/);
+    assert.match(textOf(svg), /Material description/);
+});

@@ -69,3 +69,11 @@ test('files that are not AGS4 are rejected with a reason', () => {
     assert.throws(() => agsToBoringLogs('hello'), AgsError);
     assert.throws(() => agsToBoringLogs('"GROUP","PROJ"\n"HEADING","PROJ_ID"\n"DATA","X"'), /no LOCA group/);
 });
+
+test('SPT reports given only as text ("N=36 (18,29/36,-,-,-)") give N and the blows per 150 mm', () => {
+    const ags = AGS.replace('"DATA","BH01","4.00","24","N=24","2","3","5","6","6","7","71"', '"DATA","BH01","4.00","","N=24 (2,3/5,6,6,7)","","","","","","",""')
+        .replace('"DATA","BH01","6.00","50","25/75 50/150","","","","","","",""', '"DATA","BH01","6.00","","N=36 (18,29/36,-,-,-)","","","","","","",""');
+    const { samples } = agsToBoringLogs(ags).documents[0].document;
+    const spt = samples.filter(s => s.type === 'SPT');
+    assert.deepEqual(spt.map(s => [s.top, s.blow_count, s.blows]), [[4, 24, [5, 11, 13]], [6, 36, undefined]]);
+});
