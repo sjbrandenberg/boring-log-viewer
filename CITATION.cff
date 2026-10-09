@@ -25,7 +25,7 @@ authors:
     affiliation: "AFFILIATION"
     orcid: "https://orcid.org/0000-0000-0000-0000"
 version: "0.1.0"
-date-released: "YYYY-MM-DD"
+date-released: "2026-10-09"
 license: MIT
 repository-code: "https://github.com/sjbrandenberg/boring-log-viewer"
 url: "https://sjbrandenberg.github.io/boring-log-viewer/"
