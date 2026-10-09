@@ -293,36 +293,29 @@ entirely in the browser:
   clicking a marker opens that log. It zooms to the logs within 50 km of the
   one being edited. The map tiles are the only thing the page loads from
   elsewhere. Leaflet draws the map and is bundled into the page.
-- **Cross-sections:** press **Draw section line** under the map, click points
-  along the section (a click on a boring puts a point on it), and double-click
-  or press **Finish line**. The borings within a set distance of the line
-  (100 m by default) are projected onto it, and the **Cross-section** view
-  beside **Boring log** shows them at their distances along the line, with
-  layers connected between neighbouring borings. It downloads as SVG or PNG
-  like a log. See [Cross-sections](#cross-sections).
-- The view switch (**Boring log**, **Cross-section**, **3D**) is at the top of
-  the preview, with only the options that apply to that view below it: legend,
-  header, references and column options for a log; "Layers between borings"
-  (colours or USCS hatches) for a section; vertical exaggeration and opacity
-  for the 3D model.
+- The page draws boring logs only. Cross-sections and the 3D model of a set
+  of borings are on the site page that `POST /api/site` returns (see
+  [Site API](#site-api-for-ngl), [Cross-sections](#cross-sections) and
+  [3D view](#3d-view)); `site/map.js` can still draw a section line, but
+  this page doesn't use it.
 - Syntax and schema errors are listed with their location. Clicking one selects
   the offending text in the editor.
 - The preview updates as you type.
-- Download as SVG or PNG (1×, 2× or 3×), or print to PDF (the print style shows
+- Download as SVG or PNG (1× to 4×), or print to PDF (the print style shows
   only the log).
 - The open logs and option settings are kept in the browser's local storage.
 
 Four examples are the synthetic test fixtures. The others are real borings
 from one site in Nantou, Taiwan (`examples/NAS-1.json` to `NAS-4.json`, from the
-PEER Taiwan Ground Failure Database via the NGL database): NAS-3 alone, or all
-four at once in four tabs. They show no-recovery samples and USCS symbols that
+PEER Taiwan Ground Failure Database via the NGL database), which open together
+in four tabs. They show no-recovery samples and USCS symbols that
 don't match their descriptions.
 
 ## Cross-sections
 
 `renderSection(entries, options)` and `placeAlongLine(points, line, corridor)`
-in `src/section.js` draw a section from several borings; the web page uses
-them with a line drawn on the map. How the layers are connected:
+in `src/section.js` draw a section from several borings; the site page and
+`/api/site/section` use them for the suggested sections or a given line. How the layers are connected:
 
 1. Each boring's layers are grouped into units: consecutive layers of the same
    main soil (gravel, sand, silt, clay, organic soils and peat) or material
@@ -376,11 +369,10 @@ them with a line drawn on the map. How the layers are connected:
    layer is labelled once, where it has the most room, e.g. "Clayey and silty
    SAND (SC, SM)" (just the symbols when the name doesn't fit); the boring
    columns keep their hatches. `style: 'hatch'` draws the USCS hatches between
-   borings instead. The web page has a switch for it in the Cross-section view.
+   borings instead. The site page has a switch for it on its Cross-sections tab.
 
 A section line can be at most 10 km long (`MAX_SECTION_LENGTH` in
-`src/section.js`): on the map, a click that would make it longer is refused
-with a message, and the API answers 400 for a longer `?line=`. The suggested
+`src/section.js`): the API answers 400 for a longer `?line=`. The suggested
 sections of a site are not limited.
 
 The vertical axis is elevation when every boring has `metadata.elevation`,
@@ -390,8 +382,8 @@ automatic interpretation and the figure says so.
 
 ## 3D view
 
-The **3D** view (beside **Boring log** and **Cross-section**) draws the open
-logs that have coordinates (within 50 km of the one being edited) as a block
+The site page's **3D model** tab (`site/block.js`) draws the site's borings
+that have coordinates as a block
 model with three.js, in the style of Rocscience Settle3's soil profile: a box
 around the borings (12 % margin) with the layers as coloured solids, the
 borings as columns coloured by their layers (always drawn on top), the water
@@ -428,7 +420,9 @@ How the model is built (`src/model3d.js`, with `src/geometry.js`):
 6. The vertical exaggeration starts so the deepest boring is about 0.3 of the
    box's width, and can be changed with a slider.
 
-**Slice:** press **Slice** and click two points on the model, A and A′. The
+**Slice** (not offered on the site page; `startSlice()` and the other slice
+functions of `setUpBlock()` in `site/block.js` are there for a page that
+wants it): two points on the model, A and A′, are picked with clicks. The
 block is cut along the vertical plane through them: the side nearer the
 camera is cut away (**Flip side** cuts the other), and the cut face shows the
 layers. Below the view, the slice from A to A′ is drawn as a 2D section of the
@@ -440,7 +434,7 @@ layers it cuts and the vertical exaggeration. It downloads as SVG or PNG. A
 slice can be at most 10 km long. The 3D **PNG** includes the cut; the 3D
 **SVG** shows the whole block.
 
-Drag to turn, right-drag to move, scroll to zoom. **SVG** and **PNG** save the
+Drag to turn, right-drag (or Shift-drag) to move, scroll to zoom. **SVG** and **PNG** save the
 current view (angle, exaggeration, opacity), cropped to the model, with the
 legend below it:
 
