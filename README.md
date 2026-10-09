@@ -1,13 +1,3 @@
-# Boring log viewer (logs only)
-
-This copy of the viewer has the **web page's cross-section and 3D views
-removed**: no Cross-section or 3D tabs, no section-line drawing under the map,
-and no slice. Everything else is the same: the log, the map of open logs,
-the Layout… and Hatches… windows, AGS4/DIGGS import, downloads. The full
-version is in `../boring-log-viewer-main`. The library (`src/`) and the API
-(`server/`) are unchanged here, so they still include `renderSection` and the
-site endpoints; the README below describes the full version.
-
 # Boring log viewer
 
 Renders a geotechnical boring log from JSON as a standalone SVG. The same
