@@ -1,0 +1,49 @@
+# Citation metadata for this repository (https://citation-file-format.github.io).
+# GitHub reads it from the default branch for the "Cite this repository" button.
+# Before publishing: fill in the authors, set the version and date to the
+# release's, and change the license to BSD-3-Clause once the repository is
+# relicensed. After DesignSafe publishes it, add the DOI (see the end).
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Boring Log Viewer"
+abstract: >-
+  Renders geotechnical boring logs from JSON, AGS4 or DIGGS data as standalone
+  SVG drawings: graphic log with USCS and material symbols, material
+  descriptions, samples, blow counts, laboratory specimens and groundwater.
+  It also draws automatic cross-sections and a 3D layer model from several
+  borings at a site. It runs as a web page in the browser, as a render API
+  for scripts, and as a JavaScript module.
+authors:
+  - given-names: "FIRSTNAME"
+    family-names: "LASTNAME"
+    email: "EMAIL@EXAMPLE.EDU"
+    affiliation: "AFFILIATION"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+  - given-names: "FIRSTNAME"
+    family-names: "LASTNAME"
+    affiliation: "AFFILIATION"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+version: "0.1.0"
+date-released: "YYYY-MM-DD"
+license: MIT
+repository-code: "https://github.com/sjbrandenberg/boring-log-viewer"
+url: "https://sjbrandenberg.github.io/boring-log-viewer/"
+keywords:
+  - geotechnical engineering
+  - boring log
+  - borehole log
+  - subsurface investigation
+  - USCS
+  - standard penetration test
+  - AGS4
+  - DIGGS
+  - cross-section
+  - natural hazards
+  - liquefaction
+  - SVG
+# After DesignSafe assigns the DOI, uncomment and fill in:
+# identifiers:
+#   - type: doi
+#     value: "10.17603/ds2-XXXX-XXXX"
+#     description: "DesignSafe Data Depot publication"

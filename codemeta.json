@@ -1,0 +1,67 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "Boring Log Viewer",
+  "description": "Renders geotechnical boring logs from JSON, AGS4 or DIGGS data as standalone SVG drawings: graphic log with USCS and material symbols, material descriptions, samples, blow counts, laboratory specimens and groundwater. It also draws automatic cross-sections and a 3D layer model from several borings at a site. It runs as a web page in the browser, as a render API for scripts, and as a JavaScript module.",
+  "version": "0.1.0",
+  "dateCreated": "2026-09-24",
+  "dateModified": "YYYY-MM-DD",
+  "datePublished": "YYYY-MM-DD",
+  "license": "https://spdx.org/licenses/MIT",
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0000-0000-0000",
+      "givenName": "FIRSTNAME",
+      "familyName": "LASTNAME",
+      "email": "EMAIL@EXAMPLE.EDU",
+      "affiliation": { "@type": "Organization", "name": "AFFILIATION" }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0000-0000-0000",
+      "givenName": "FIRSTNAME",
+      "familyName": "LASTNAME",
+      "affiliation": { "@type": "Organization", "name": "AFFILIATION" }
+    }
+  ],
+  "codeRepository": "https://github.com/sjbrandenberg/boring-log-viewer",
+  "url": "https://sjbrandenberg.github.io/boring-log-viewer/",
+  "issueTracker": "https://github.com/sjbrandenberg/boring-log-viewer/issues",
+  "readme": "https://github.com/sjbrandenberg/boring-log-viewer/blob/main/README.md",
+  "buildInstructions": "https://github.com/sjbrandenberg/boring-log-viewer/blob/main/README.md#development",
+  "developmentStatus": "https://www.repostatus.org/#active",
+  "applicationCategory": "Geotechnical engineering",
+  "keywords": [
+    "geotechnical engineering",
+    "boring log",
+    "borehole log",
+    "subsurface investigation",
+    "USCS",
+    "standard penetration test",
+    "AGS4",
+    "DIGGS",
+    "cross-section",
+    "natural hazards",
+    "liquefaction",
+    "SVG"
+  ],
+  "programmingLanguage": ["JavaScript"],
+  "runtimePlatform": ["Node.js 22 or later", "Web browser"],
+  "operatingSystem": ["Linux", "Windows", "macOS"],
+  "softwareRequirements": [
+    "ajv ^8.20.0",
+    "fastify ^5.12.5",
+    "@fastify/rate-limit ^11.2.0",
+    "@resvg/resvg-js ^2.6.2",
+    "@fontsource/arimo ^5.3.0",
+    "delaunator ^5.1.0"
+  ],
+  "softwareSuggestions": [
+    "esbuild ^0.28.2 (building the web page)",
+    "leaflet ^1.9.4 (map, bundled into the web page)",
+    "three ^0.186.1 (3D model, bundled into the site page)",
+    "imagetracerjs ^1.2.6 (tracing custom hatches)",
+    "opentype.js ^2.0.0 (regenerating font metrics)"
+  ]
+}
