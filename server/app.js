@@ -159,9 +159,10 @@ function filename(doc, ext) {
 export function parseSiteQuery(query, section = false) {
     const problems = [];
     const known = new Set(['format', 'name', 'units', 'style', 'width', 'download', 'svg', 'grid', 'png_scale', 'id', 'line', 'corridor', 'title']);
-    const only = section ? ['grid', 'svg'] : ['png_scale', 'id', 'line', 'corridor', 'title'];
+    // Parameters that belong to the other site endpoint only.
+    const notForThisEndpoint = section ? ['grid', 'svg'] : ['png_scale', 'id', 'line', 'corridor', 'title'];
     for (const key of Object.keys(query)) {
-        if (!known.has(key) || only.includes(key)) problems.push({ path: `?${key}`, message: 'unknown query parameter' });
+        if (!known.has(key) || notForThisEndpoint.includes(key)) problems.push({ path: `?${key}`, message: 'unknown query parameter' });
     }
     const oneOf = (key, allowed) => {
         const v = query[key];
@@ -497,21 +498,22 @@ export async function buildApp({ logger = false, rateLimitMax = 60, bodyLimit = 
         const borings = siteBorings(site.docs);
         const located = borings.filter(b => b.lat !== null);
         let s;
+        let placed;
         if (q.id !== undefined) {
             const all = siteSummary(site.docs).sections;
             s = all.find(x => x.id === q.id);
             if (!s) {
                 return reply.code(404).send({ error: 'Section not found', errors: [{ path: '?id', message: all.length ? `the suggested sections are ${all.map(x => x.id).join(', ')}` : 'this site has no suggested sections (it needs two or more borings with coordinates)' }] });
             }
+            placed = placeAlongLine(located, s.line, s.corridor);
         } else {
             const corridor = q.corridor ?? 100;
-            const placed = placeAlongLine(located, q.line, corridor);
+            placed = placeAlongLine(located, q.line, corridor);
             s = {
                 id: 'A', name: 'Cross-section', kind: 'line', description: 'Along the line given.', line: q.line, corridor, length: Math.round(lineLength(q.line) * 10) / 10,
                 borings: placed.map(p => ({ name: p.name, index: p.index, chainage: Math.round(p.chainage * 10) / 10, offset: Math.round(p.offset * 10) / 10, side: p.side })),
             };
         }
-        const placed = placeAlongLine(located, s.line, s.corridor);
         if (!placed.length) {
             return reply.code(422).send({ error: 'Nothing to draw', errors: [{ path: '?line', message: `no boring with coordinates within ${s.corridor} m of the line; widen ?corridor=` }] });
         }

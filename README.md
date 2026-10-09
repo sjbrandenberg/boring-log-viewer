@@ -582,7 +582,7 @@ for the sections, `svg=false` to leave the section SVGs out of the JSON,
 - **JSON:** `{ name, borings: [{ index, name, latitude, longitude, depth,
   units }], sections: [...], model, warnings }`. Each section is `{ id, name,
   kind, description, line: [{ lat, lon }], corridor, length, borings: [{ name,
-  index, chainage, offset, side }], svg, warnings }`. `model` (null with fewer
+  index, chainage, offset, side }], svg, warnings }`. With `svg=true`, each section's own drawing warnings are in its `warnings`, not in the top-level `warnings`, so check both. `model` (null with fewer
   than two located borings) is `{ levels: 'elevation'|'depth', box,
   layers: [{ id, label, uscs, guessed, colour, soil, borings }], borings: [{
   index, name, x, y, ground, depth, groundwater, units: [{ top, bottom, layer
