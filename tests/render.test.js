@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { Resvg } from '@resvg/resvg-js';
-import { renderBoringLog, BoringLogError, validateBoringLog } from '../src/index.js';
+import { renderBoringLog, defaultLayout, BoringLogError, validateBoringLog } from '../src/index.js';
 
 const fixtureDir = new URL('./fixtures/', import.meta.url);
 const fixtures = readdirSync(fixtureDir).filter(f => f.endsWith('.json'));
@@ -158,7 +158,11 @@ test('sample rows line up with their samplers even when their text is long', () 
         }).map(s => s.name);
     };
     assert.deepEqual(misaligned(renderBoringLog(doc)), []);
-    assert.notDeepEqual(misaligned(renderBoringLog(doc, { fit_text: false })), [], 'without fit_text the rows are pushed down');
+    // Each remark starts level with its row, too.
+    const svg = renderBoringLog(doc);
+    const rowYs = doc.samples.map(s => Number(svg.match(new RegExp(String.raw`<text x="[\d.]+" y="([\d.]+)"[^>]*>${s.name}</text>`))[1]));
+    const remarkYs = [...svg.matchAll(/<text x="[\d.]+" y="([\d.]+)"[^>]*>Samples were obtained/g)].map(m => Number(m[1]));
+    assert.deepEqual(remarkYs, rowYs);
 });
 
 test('no sample row starts above the top of the log', () => {
@@ -251,7 +255,7 @@ test('inferred USCS symbols are shown in parentheses and drive the graphic log',
     const svg = renderBoringLog(doc);
     assert.match(svg, />\(CH\)</, 'inferred symbol in parentheses');
     assert.match(svg, />SP</, 'recorded symbol as given');
-    assert.doesNotMatch(svg, />\(SP\)</);
+    assert.match(svg, />\(SM\)</, 'with the description\'s symbol below it, since they differ');
     assert.match(textOf(svg), /USCS symbol inferred from the material description/);
     assert.match(svg, /id="[^"]+-CH"/, 'CH pattern in the graphic log');
 
@@ -340,4 +344,108 @@ test('depth, graphic and description are drawn even if columns leaves them out',
     const svg = renderBoringLog(oneLayer(), { columns: ['depth', 'uscs'] });
     assert.match(textOf(svg), /Graphic log/);
     assert.match(textOf(svg), /Material description/);
+});
+
+test('specimens are drawn as boxes in their own column, with their name and lab results', () => {
+    const doc = oneLayer({ samples: [{ top: 1, bottom: 2, name: 'U-1', type: 'Shelby', specimens: [
+        { name: 'A', top: 1.1, bottom: 1.3, water_content: 31.2, liquid_limit: 45, plastic_limit: 20 },
+        { name: 'B', top: 1.6, total_unit_weight: 18.5, remarks: 'CU triaxial' },
+    ] }] });
+    assert.equal(validateBoringLog(doc).valid, true);
+    assert.deepEqual(validateBoringLog(doc).warnings, []);
+    const svg = renderBoringLog(doc, { id_prefix: 't' });
+    const t = textOf(svg);
+    for (const s of ['Specimen', 'Specimen no.', 'Total unit wt.', 'Remarks', 'U-1', 'A', 'B', '31.2', '45', '20', '18.5', 'CU triaxial']) assert.ok(t.includes(s), s);
+    assert.equal((svg.match(/fill="#d9d9d9"/g) ?? []).length, 3, 'two specimen boxes and the legend');
+});
+
+test('lab results on a sample are shown level with it, without a specimen box, with a warning', () => {
+    const legacy = oneLayer({ samples: [{ top: 1, bottom: 1.5, type: 'SPT', water_content: 22 }] });
+    const explicit = oneLayer({ samples: [{ top: 1, bottom: 1.5, type: 'SPT', specimens: [{ water_content: 22 }] }] });
+    const { warnings } = validateBoringLog(legacy);
+    assert.match(warnings[0].message, /without a specimen box/);
+    assert.doesNotMatch(renderBoringLog(legacy, { id_prefix: 't' }), /#d9d9d9/);
+    assert.equal(renderBoringLog(legacy, { id_prefix: 't' }), renderBoringLog(explicit, { id_prefix: 't' }));
+});
+
+test('specimen depths are checked against their sample', () => {
+    const bad = validateBoringLog(oneLayer({ samples: [{ top: 1, bottom: 2, specimens: [{ top: 1.5, bottom: 1.2 }] }] }));
+    assert.equal(bad.valid, false);
+    assert.equal(bad.errors[0].path, '/samples/0/specimens/0');
+    const outside = validateBoringLog(oneLayer({ samples: [{ top: 1, bottom: 2, specimens: [{ top: 2.5, water_content: 20 }] }] }));
+    assert.equal(outside.valid, true);
+    assert.match(outside.warnings[0].message, /outside its sample/);
+    assert.throws(() => renderBoringLog(oneLayer({ samples: [{ top: 1, bottom: 2, specimens: [{ top: 1.5, bottom: 1.2 }] }] })), BoringLogError);
+});
+
+test('samples have remarks only: a description is shown at the start of them', () => {
+    const doc = oneLayer({ samples: [{ top: 1, bottom: 1.5, type: 'SPT', description: 'Wet', remarks: 'Refusal' }] });
+    assert.match(validateBoringLog(doc).warnings[0].message, /remarks, not a description/);
+    const t = textOf(renderBoringLog(doc));
+    assert.ok(!t.includes('Sample description'));
+    assert.ok(t.includes('Wet; Refusal'));
+});
+
+test('a layout sets the columns, their relative widths and labels, the width and the font size', () => {
+    const doc = oneLayer({
+        samples: [{ top: 1, bottom: 1.5, name: 'S-1', type: 'SPT', blow_count: 9, custom: { pocket_pen: 1.25 },
+            specimens: [{ name: 'A', top: 1.1, bottom: 1.3, water_content: 22, custom: { cu: 45 } }] }],
+        layout: {
+            width: 1000, font_size: 11,
+            columns: ['depth', { id: 'graphic', width: 2 }, { id: 'description', width: 10, label: 'Soil' },
+                { id: 'pp', source: 'sample', field: 'pocket_pen', label: 'PP (tsf)', width: 2, decimals: 1 },
+                { id: 'cu', source: 'specimen', label: 'cu (kPa)', width: 2 }, { id: 'notes', source: 'blank', label: 'Notes', width: 4 }],
+        },
+    });
+    assert.deepEqual(validateBoringLog(doc).errors, []);
+    const svg = renderBoringLog(doc, { id_prefix: 't' });
+    assert.match(svg, /^<svg[^>]* width="1000"[^>]* font-size="11"/);
+    const t = textOf(svg);
+    for (const s of ['Soil', 'PP (tsf)', '1.3', 'cu (kPa)', '45', 'Notes']) assert.ok(t.includes(s), s);
+    // Only the listed columns are drawn.
+    assert.ok(!t.includes('Blow count') && !t.includes('Water content'));
+    // Widths are shared in proportion: depth (3.8) + graphic 2 + description 10 + 2 + 2 + 4 over 980 px.
+    const rules = [...svg.matchAll(/<line x1="([\d.]+)" y1="([\d.]+)" x2="\1" y2="[\d.]+" stroke="#000" stroke-width="0.75"\/>/g)].map(m => Number(m[1]));
+    const unit = 980 / 23.8;
+    assert.ok(rules.some(x => Math.abs(x - (10 + 5.8 * unit)) < 0.6), 'description starts after depth and graphic');
+    // A caller's width wins over the layout's.
+    assert.match(renderBoringLog(doc, { width: 700 }), /^<svg[^>]* width="700"/);
+    // So do the caller's columns, which can include the layout's custom ones.
+    assert.ok(textOf(renderBoringLog(doc, { columns: ['depth', 'graphic', 'description', 'cu'] })).includes('cu (kPa)'));
+});
+
+test('the default layout reproduces the built-in one', () => {
+    const doc = load('coastal-style.json');
+    const layout = defaultLayout(doc);
+    assert.equal(layout.columns[0].id, 'depth');
+    assert.ok(layout.columns.every(c => c.width > 0));
+    const plain = renderBoringLog(doc, { id_prefix: 't' });
+    const laidOut = renderBoringLog({ ...doc, layout }, { id_prefix: 't' });
+    const size = svg => svg.match(/width="(\d+)" height="(\d+)"/).slice(1).map(Number);
+    assert.ok(Math.abs(size(plain)[0] - size(laidOut)[0]) <= 1);
+    assert.equal(textOf(plain), textOf(laidOut));
+});
+
+test('layout columns are checked', () => {
+    const { errors } = validateBoringLog(oneLayer({ layout: { columns: ['depth', 'foo', { id: 'remarks', source: 'sample' }, 'depth'] } }));
+    assert.deepEqual(errors.map(e => e.path), ['/layout/columns/1', '/layout/columns/2/source', '/layout/columns/3']);
+    assert.throws(() => renderBoringLog(oneLayer({ layout: { columns: ['foo'] } })), BoringLogError);
+});
+
+test('the graphic log and its layer boundaries line up, even when the depth scale stretches a lot', () => {
+    // Long remarks on closely spaced samples make the scale stretch in many steps.
+    const remark = 'Exact specimen top and base unknown, assumed based on order listed in the boring log; No PI given, assumed PL=LL. '.repeat(2);
+    const doc = oneLayer({
+        layers: [
+            { top: 0, bottom: 5.8, description: 'CLAYEY SILT: brown', hatch: 'ML' },
+            { top: 5.8, bottom: 6.25, description: 'SW-SM: Well graded gray sand with silt' },
+            { top: 6.25, bottom: 9.6, description: 'CLAYEY SILT: gray', hatch: 'ML' },
+        ],
+        samples: [1.8, 2.5, 3.3, 4.1, 5.0, 5.8, 6.6, 7.6, 9.0].map((top, i) => ({ top, bottom: top + 0.45, name: `S-${i + 1}`, type: 'SPT', remarks: remark })),
+    });
+    const svg = renderBoringLog(doc, { id_prefix: 't' });
+    const tops = [...svg.matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="[\d.]+" height="[\d.]+" fill="url\(#t-(ML|SW-SM)\)"\/>/g)].map(m => Number(m[2]));
+    const x = svg.match(/<rect x="([\d.]+)" y="[\d.]+" width="[\d.]+" height="[\d.]+" fill="url\(#t-SW-SM\)"/)[1];
+    const lines = new Set([...svg.matchAll(new RegExp(`<line x1="${x}" y1="([\\d.]+)"`, 'g'))].map(m => Number(m[1])));
+    for (const y of tops.slice(1)) assert.ok([...lines].some(l => Math.abs(l - y) < 0.05), `boundary at ${y}`);
 });

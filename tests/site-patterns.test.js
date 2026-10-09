@@ -91,5 +91,6 @@ test('the schema lists every built-in sampler type', async () => {
     const { default: schema } = await import('../schema/boring-log.schema.json', { with: { type: 'json' } });
     const m = JSON.stringify(schema).match(/\{"enum":\["SPT"[^\]]*\]\}/);
     assert.ok(m, 'sampler enum in the schema');
-    assert.deepEqual(JSON.parse(m[0]).enum, Object.keys(SAMPLER_NAMES));
+    // NoRecovery is listed too: accepted with a warning and read as recovery 0.
+    assert.deepEqual(JSON.parse(m[0]).enum, [...Object.keys(SAMPLER_NAMES), 'NoRecovery']);
 });

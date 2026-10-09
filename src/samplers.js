@@ -23,6 +23,5 @@ export const SAMPLER_NAMES = {
     Auger: 'Auger cuttings or hand auger',
     Trench: 'Trench or test-pit sample',
     Disturbed: 'Disturbed or remolded sample',
-    NoRecovery: 'No recovery (attempted sample)',
     Other: 'Other sampler',
 };

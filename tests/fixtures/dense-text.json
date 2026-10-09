@@ -9,9 +9,9 @@
     { "top": 1.2, "bottom": 6.0, "description": "Gray elastic silt, very soft, wet" }
   ],
   "samples": [
-    { "top": 0.1, "bottom": 0.2, "name": "Bag-1", "type": "Bulk", "description": "Bulk sample for index testing", "water_content": 35.2 },
-    { "top": 0.35, "bottom": 0.45, "name": "S-2", "type": "Other", "water_content": 6.1, "remarks": "Hand-driven sampler; poor recovery" },
-    { "top": 0.6, "bottom": 0.8, "name": "Core-3", "type": "Core", "water_content": 19.0, "liquid_limit": 33, "plastic_limit": 17 },
-    { "top": 2.0, "bottom": 2.5, "name": "T-4", "type": "Shelby", "water_content": 55.0 }
+    { "top": 0.1, "bottom": 0.2, "name": "Bag-1", "type": "Bulk", "specimens": [{ "water_content": 35.2 }], "remarks": "Bulk sample for index testing" },
+    { "top": 0.35, "bottom": 0.45, "name": "S-2", "type": "Other", "remarks": "Hand-driven sampler; poor recovery", "specimens": [{ "water_content": 6.1 }] },
+    { "top": 0.6, "bottom": 0.8, "name": "Core-3", "type": "Core", "specimens": [{ "water_content": 19.0, "liquid_limit": 33, "plastic_limit": 17 }] },
+    { "top": 2.0, "bottom": 2.5, "name": "T-4", "type": "Shelby", "specimens": [{ "water_content": 55.0 }] }
   ]
 }

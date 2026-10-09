@@ -3,7 +3,8 @@
 // throwing on the first one.
 import Ajv2020 from 'ajv/dist/2020.js';
 import schema from '../schema/boring-log.schema.json' with { type: 'json' };
-import { stripNulls, checkDepths, checkPatternReferences, patternImages } from './normalize.js';
+import { uscsWarnings } from './classify.js';
+import { stripNulls, fixNoRecoverySamples, checkDepths, checkPatternReferences, patternImages, sampleLabWarnings, checkLayout } from './normalize.js';
 
 const ajv = new Ajv2020({ allErrors: true, strict: true, allowUnionTypes: true });
 const validateSchema = ajv.compile(schema);
@@ -88,7 +89,8 @@ export function validateBoringLog(input) {
             return { valid: false, errors: [{ path: '', message: `Invalid JSON: ${e.message}` }], warnings: [] };
         }
     }
-    doc = stripNulls(doc);
+    const fixed = fixNoRecoverySamples(stripNulls(doc));
+    doc = fixed.doc;
     const errors = [];
     if (!validateSchema(doc)) errors.push(...collapse(validateSchema.errors, doc));
     const target = doc && typeof doc === 'object' ? doc : {};
@@ -97,9 +99,10 @@ export function validateBoringLog(input) {
     // Reference checks only add something for fields the schema accepted.
     const flagged = new Set(errors.map(e => e.path));
     errors.push(...checkPatternReferences(target).filter(e => !flagged.has(e.path)));
+    errors.push(...checkLayout(target).filter(e => !flagged.has(e.path)));
     // Whether "svg" markup can be used (the schema only checks it's a string).
     errors.push(...patternImages(target).issues.filter(e => /\/svg$/.test(e.path) && !flagged.has(e.path)));
-    return { valid: errors.length === 0, errors, warnings: depth.warnings };
+    return { valid: errors.length === 0, errors, warnings: [...fixed.warnings, ...sampleLabWarnings(target), ...uscsWarnings(target), ...depth.warnings] };
 }
 
 export { schema };

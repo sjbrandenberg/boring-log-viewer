@@ -1,0 +1,345 @@
+{
+  "schema_version": "1.0",
+  "units": {
+    "length": "m",
+    "unit_weight": "kN/m3",
+    "diameter": "mm"
+  },
+  "metadata": {
+    "boring_name": "NAS-1",
+    "site_name": "Ming-Ju Rd/Chung-Shin Rd, Nantou, Taiwan",
+    "latitude": 23.9108,
+    "longitude": 120.69403,
+    "start_date": "2001-10-02",
+    "end_date": "2001-10-03",
+    "boring_type": "Rotary wash/percussion with 9cm fishtail bit",
+    "rig": "Tripod",
+    "diameter": 120,
+    "hammer": "Safety Hammer (per Kovacs et al., 1983); ASTM D1586",
+    "logged_by": "Daniel Chu, UCLA"
+  },
+  "references": [
+    {
+      "text": "PEER Taiwan Ground Failure Database, Nantou",
+      "url": "https://apps.peer.berkeley.edu/lifelines/research_projects/3A02/nantou.html"
+    }
+  ],
+  "groundwater": [
+    {
+      "depth": 0.99,
+      "date": "2001-10-02",
+      "note": "No date given, assumed to be first day of testing"
+    }
+  ],
+  "layers": [
+    {
+      "top": 0.0,
+      "bottom": 1.5,
+      "description": "FILL: Brown to medium brown, moist, loose fine to medium grained silty sand with some bricks"
+    },
+    {
+      "top": 1.5,
+      "bottom": 5.75,
+      "description": "SILT: Greenish brown to brown, moist to wet, medium stiff, fine clayey silt",
+      "uscs": "ML"
+    },
+    {
+      "top": 5.75,
+      "bottom": 8.5,
+      "description": "SILT: Brown to gray mottled",
+      "uscs": "ML"
+    },
+    {
+      "top": 8.5,
+      "bottom": 12.5,
+      "description": "SILT: Brown to grayish brown, wet, medium stiff, fine clayey silt",
+      "uscs": "ML"
+    },
+    {
+      "top": 12.5,
+      "bottom": 13.5,
+      "description": "SILTY CLAY: Brown to grayish brown, wet, stiff, plastic, silty clay",
+      "uscs": "CL"
+    },
+    {
+      "top": 13.5,
+      "bottom": 17.0,
+      "description": "SILT: Dark brown to greenish brown, stiff clayey silt",
+      "uscs": "ML"
+    },
+    {
+      "top": 17.0,
+      "bottom": 17.45,
+      "description": "SILTY SAND: Gray, wet, very dense sandy silt to silty sand",
+      "uscs": "SC-SM"
+    }
+  ],
+  "samples": [
+    {
+      "top": 1.05,
+      "bottom": 1.5,
+      "name": "S-1",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 6,
+      "energy_ratio": 63
+    },
+    {
+      "top": 2.55,
+      "bottom": 3.0,
+      "name": "S-2",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 8,
+      "energy_ratio": 30,
+      "specimens": [
+        {
+          "name": "NAS1-2",
+          "top": 2.55,
+          "bottom": 3,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 4.05,
+      "bottom": 4.5,
+      "name": "S-3",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 5,
+      "energy_ratio": 66,
+      "specimens": [
+        {
+          "name": "NAS1-3",
+          "top": 4.05,
+          "bottom": 4.5,
+          "water_content": 26,
+          "dry_unit_weight": 15.6,
+          "fines_content": 80,
+          "liquid_limit": 36,
+          "plastic_limit": 27,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 5.3,
+      "bottom": 5.75,
+      "name": "S-4",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 9,
+      "energy_ratio": 69,
+      "specimens": [
+        {
+          "name": "NAS1-4",
+          "top": 5.3,
+          "bottom": 5.75,
+          "water_content": 29,
+          "dry_unit_weight": 15.4,
+          "fines_content": 80,
+          "liquid_limit": 42,
+          "plastic_limit": 30,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 7.05,
+      "bottom": 7.5,
+      "name": "S-5",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 12,
+      "energy_ratio": 77,
+      "specimens": [
+        {
+          "name": "NAS1-5",
+          "top": 7.05,
+          "bottom": 7.5,
+          "water_content": 24,
+          "dry_unit_weight": 16.1,
+          "fines_content": 90,
+          "liquid_limit": 39,
+          "plastic_limit": 27,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 8.05,
+      "bottom": 8.5,
+      "name": "S-6",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 9,
+      "energy_ratio": 80,
+      "specimens": [
+        {
+          "name": "NAS1-6",
+          "top": 8.05,
+          "bottom": 8.5,
+          "water_content": 21,
+          "dry_unit_weight": 16.4,
+          "fines_content": 90,
+          "liquid_limit": 29,
+          "plastic_limit": 26,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 9.05,
+      "bottom": 9.5,
+      "name": "S-7",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 12,
+      "energy_ratio": 62,
+      "specimens": [
+        {
+          "name": "NAS1-7",
+          "top": 9.05,
+          "bottom": 9.5,
+          "water_content": 25,
+          "dry_unit_weight": 15.8,
+          "liquid_limit": 35,
+          "plastic_limit": 30,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 10.05,
+      "bottom": 10.5,
+      "name": "S-8",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 14,
+      "energy_ratio": 64,
+      "specimens": [
+        {
+          "name": "NAS1-8",
+          "top": 10.05,
+          "bottom": 10.5,
+          "water_content": 24,
+          "dry_unit_weight": 16,
+          "fines_content": 82,
+          "liquid_limit": 38,
+          "plastic_limit": 30,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 11.05,
+      "bottom": 11.5,
+      "name": "S-9",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 14,
+      "energy_ratio": 64,
+      "specimens": [
+        {
+          "name": "NAS1-9",
+          "top": 11.05,
+          "bottom": 11.5,
+          "water_content": 25,
+          "dry_unit_weight": 15.9,
+          "liquid_limit": 36,
+          "plastic_limit": 27,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 12.05,
+      "bottom": 12.5,
+      "name": "S-10",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 16,
+      "energy_ratio": 74,
+      "specimens": [
+        {
+          "name": "NAS1-10",
+          "top": 12.05,
+          "bottom": 12.5,
+          "water_content": 26,
+          "dry_unit_weight": 14.9,
+          "fines_content": 90,
+          "liquid_limit": 33,
+          "plastic_limit": 30,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 13.55,
+      "bottom": 14.0,
+      "name": "S-11",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 16,
+      "energy_ratio": 80,
+      "specimens": [
+        {
+          "name": "NAS1-11",
+          "top": 13.55,
+          "bottom": 14,
+          "water_content": 22,
+          "dry_unit_weight": 16.3,
+          "fines_content": 95,
+          "liquid_limit": 31,
+          "plastic_limit": 23,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 15.05,
+      "bottom": 15.5,
+      "name": "S-12",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 21,
+      "energy_ratio": 75,
+      "specimens": [
+        {
+          "name": "NAS1-12",
+          "top": 15.05,
+          "bottom": 15.5,
+          "water_content": 26,
+          "dry_unit_weight": 16,
+          "fines_content": 88,
+          "liquid_limit": 30,
+          "plastic_limit": 23,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 17.0,
+      "bottom": 17.45,
+      "name": "S-13",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 31,
+      "energy_ratio": 78,
+      "specimens": [
+        {
+          "name": "NAS1-13",
+          "top": 17,
+          "bottom": 17.45,
+          "water_content": 26,
+          "dry_unit_weight": 15.7,
+          "fines_content": 78,
+          "liquid_limit": 29,
+          "plastic_limit": 27,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    }
+  ]
+}

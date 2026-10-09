@@ -6,6 +6,7 @@
     <title>Boring Log Viewer</title>
     <meta name="description" content="Paste geotechnical boring log data as JSON and get a rendered boring log you can download as SVG, PNG or PDF.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="leaflet.css">
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="app.js"></script>
 </head>
@@ -13,7 +14,7 @@
 <header class="site-header">
     <div>
         <h1>Boring Log Viewer</h1>
-        <p>Paste boring log data as JSON to see the log drawn. Download it as SVG or PNG, or print it to PDF. Your data stays in your browser.</p>
+        <p>Paste boring log data as JSON to see the log drawn. Download it as SVG or PNG, or print it to PDF. Your data stays in your browser; only the map tiles for a log's location are loaded from OpenStreetMap or Esri.</p>
     </div>
     <nav>
         <a href="#format">JSON format</a>
@@ -24,16 +25,23 @@
 
 <main class="layout">
     <section id="editor-pane" class="pane editor-pane" aria-label="JSON input">
+        <div class="log-bar">
+            <button id="log-prev" type="button" class="log-nav" aria-label="Previous log" title="Previous log">&lsaquo;</button>
+            <div id="log-tabs" class="log-tabs" role="tablist" aria-label="Open logs"></div>
+            <button id="log-next" type="button" class="log-nav" aria-label="Next log" title="Next log">&rsaquo;</button>
+            <span id="log-count" class="log-count muted"></span>
+            <button id="log-new" type="button" title="Start a new, empty log">+ New</button>
+        </div>
         <div class="toolbar">
             <select id="example" aria-label="Load an example">
                 <option value="">Load example…</option>
             </select>
-            <label class="button" title="A boring log JSON file, an AGS4 (.ags) file, or a DIGGS (.xml) file">
-                Open file…
-                <input id="file" type="file" accept=".json,application/json,.ags,text/plain,.xml,.diggs,application/xml,text/xml" hidden>
+            <label class="button" title="Boring log JSON files, AGS4 (.ags) files or DIGGS (.xml) files; each opens as its own log (one per borehole)">
+                Open files…
+                <input id="file" type="file" multiple accept=".json,application/json,.ags,text/plain,.xml,.diggs,application/xml,text/xml" hidden>
             </label>
-            <select id="ags-hole" aria-label="Borehole from the imported file" hidden></select>
             <button id="format" type="button">Format</button>
+            <button id="layout-open" type="button" title="Choose the columns, their order, widths and headings, or add your own">Layout…</button>
             <button id="clear" type="button">Clear</button>
             <button id="patterns-open" type="button" title="Use your own hatches or sampler symbols">Hatches…</button>
         </div>
@@ -41,39 +49,86 @@
         <textarea id="json" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Boring log JSON" placeholder='{ "schema_version": "1.0", "layers": [ … ] }'></textarea>
         <p id="status" class="status idle" role="status" aria-live="polite"></p>
         <ul id="messages" class="messages" hidden></ul>
+        <details id="map-panel" class="map-panel" open hidden>
+            <summary>Location <span id="map-note" class="muted"></span></summary>
+            <div id="map" class="map" role="region" aria-label="Map of the open logs"></div>
+        </details>
     </section>
 
     <section class="pane preview-pane" aria-label="Preview">
+        <!-- Only the options for the view shown are visible (data-views). -->
         <form id="options" class="toolbar options">
-            <label>Units
+            <label data-views="log">Units
                 <select name="units">
                     <option value="">As in data</option>
                     <option value="m">Metric (m, kN/m³)</option>
                     <option value="ft">US (ft, pcf)</option>
                 </select>
             </label>
-            <label>Width <input name="width" type="number" min="300" max="4000" step="50" value="800"> px</label>
-            <label><input name="header" type="checkbox" checked> Header</label>
-            <label><input name="legend" type="checkbox" checked> Legend</label>
-            <label title="List the document's references in the header"><input name="references" type="checkbox" checked> References</label>
-            <label title="Stretch the depth scale until every description fits beside its layer"><input name="fit_text" type="checkbox" checked> Fit text</label>
-            <label><input name="hide_empty_columns" type="checkbox" checked> Hide empty columns</label>
+            <label data-views="log">Width <input name="width" type="number" min="300" max="4000" step="50" value="800"> px</label>
+            <label data-views="log"><input name="header" type="checkbox" checked> Header</label>
+            <label data-views="log"><input name="legend" type="checkbox" checked> Legend</label>
+            <label data-views="log" title="List the document's references in the header"><input name="references" type="checkbox" checked> References</label>
+            <label data-views="log" title="Stretch the depth scale until every description fits beside its layer"><input name="fit_text" type="checkbox" checked> Fit text</label>
+            <label data-views="log"><input name="hide_empty_columns" type="checkbox" checked> Hide empty columns</label>
+            <label data-views="log"><input id="fit" type="checkbox" checked> Scale preview to fit</label>
             <span class="spacer"></span>
-            <label>PNG
+            <label data-views="log" title="PNG resolution: times the size on screen">PNG
                 <select name="png_scale">
                     <option value="1">1×</option>
                     <option value="2" selected>2×</option>
                     <option value="3">3×</option>
+                    <option value="4">4×</option>
                 </select>
             </label>
-            <button id="download-svg" type="button" data-download class="primary">SVG</button>
+            <button id="download-svg" type="button" data-download data-views="log" class="primary">SVG</button>
             <button id="download-png" type="button" data-download class="primary">PNG</button>
-            <button id="print" type="button" data-download>Print / PDF</button>
+            <button id="print" type="button" data-download data-views="log">Print / PDF</button>
+            <button id="download-all" type="button" data-views="log" title="Every open log as SVG and PNG in one ZIP file" hidden>All logs (ZIP)</button>
         </form>
-        <label class="fit-toggle"><input id="fit" type="checkbox" checked> Scale preview to fit</label>
         <div id="preview" class="preview fit"></div>
     </section>
 </main>
+
+<dialog id="layout-dialog" class="patterns-dialog layout-dialog" aria-labelledby="layout-title">
+    <div class="dialog-head">
+        <h2 id="layout-title">Log layout</h2>
+        <button id="layout-x" type="button" class="dialog-x" aria-label="Close" title="Close">&times;</button>
+    </div>
+    <p>Choose the columns of this log, their order, widths and headings, or add your own. The preview updates as you go; the layout is saved with this log.</p>
+    <p id="layout-error" class="pattern-error" role="alert" hidden></p>
+    <div id="layout-body">
+        <div class="layout-size">
+            <label>Log width <input id="layout-width" type="number" min="300" max="4000" step="10"> px</label>
+            <label>Font size <input id="layout-font" type="number" min="6" max="24" step="0.5"> px</label>
+        </div>
+        <h3>Column widths</h3>
+        <p class="muted">Widths are relative: the columns share the log's width in proportion.</p>
+        <div id="layout-bar" class="layout-bar" aria-hidden="true"></div>
+        <table class="layout-table">
+            <thead><tr><th>Show</th><th>Column</th><th>Heading</th><th>Width</th><th>Order</th><th></th></tr></thead>
+            <tbody id="layout-rows"></tbody>
+        </table>
+        <h3>Add a column</h3>
+        <form id="layout-add" class="layout-add">
+            <label>Type
+                <select name="source">
+                    <option value="sample">Value for each sample (e.g. pocket penetrometer)</option>
+                    <option value="specimen">Value for each specimen (e.g. undrained strength)</option>
+                    <option value="blank">Blank column (for notes by hand)</option>
+                </select>
+            </label>
+            <label>Heading <input name="label" required maxlength="80" placeholder="e.g. PP (tsf)" autocomplete="off"></label>
+            <button type="submit">Add column</button>
+        </form>
+    </div>
+    <div class="pattern-actions layout-actions">
+        <button id="layout-reset" type="button" title="Remove this log's layout and use the built-in one">Use built-in layout</button>
+        <button id="layout-undo" type="button" title="Go back to how the log was when this window opened">Undo changes</button>
+        <span class="spacer"></span>
+        <button id="layout-done" type="button" class="primary">Done</button>
+    </div>
+</dialog>
 
 <dialog id="patterns-dialog" class="patterns-dialog" aria-labelledby="patterns-title">
     <div class="dialog-head">
@@ -151,6 +206,7 @@
     <details class="builtins">
         <summary>Sampler symbols</summary>
         <ul id="builtin-samplers" class="builtin-list"></ul>
+        <p class="muted"><b>NoRecovery</b> is not a sampler symbol. A sample with that type (or "NR" or "No recovery" as its type or number) is accepted with a warning, drawn as Other, and noted as "No recovery" in the remarks. Better: give the sampler that was tried as its type and set <code>"recovery": 0</code>.</p>
     </details>
 </dialog>
 
@@ -169,20 +225,24 @@
   ],
   "samples": [
     { "top": 1.5, "bottom": 1.95, "name": "S-1", "type": "SPT", "blow_count": 8,
-      "water_content": 18.2, "fines_content": 24 }
+      "specimens": [ { "name": "S-1A", "top": 1.6, "bottom": 1.75, "water_content": 18.2, "fines_content": 24 } ] }
   ]
 }</code></pre>
     <dl class="fields">
         <dt><code>units</code></dt>
         <dd><code>length</code>: <code>m</code> or <code>ft</code>. <code>unit_weight</code>: <code>kN/m3</code> or <code>pcf</code>. <code>diameter</code>: <code>mm</code>, <code>cm</code>, <code>m</code>, <code>in</code> or <code>ft</code>. Metric is the default.</dd>
         <dt><code>layers[]</code></dt>
-        <dd><code>top</code>, <code>bottom</code>, <code>description</code>, <code>uscs</code> (e.g. <code>SM</code> or <code>SP-SM</code>), and <code>hatch</code> to choose the graphic log pattern: a USCS symbol, a built-in material such as <code>FILL</code>, <code>ASPHALT</code>, <code>SANDSTONE</code> or <code>GRANITE</code> (all 67 are listed in the <b>Hatches…</b> window), or your own (<code>"none"</code> leaves it blank). Without <code>hatch</code>, a material or rock named as the principal material in the description is drawn, such as fill (also "FILL: silty sand" or "(hydraulic fill)"), asphalt, topsoil, no recovery or shale, ahead of the USCS symbol; otherwise, without <code>uscs</code>, the pattern is guessed from the description, and when the description determines a USCS symbol (e.g. "fat CLAY" or "(SP-SM)"), it is shown in parentheses.</dd>
+        <dd><code>top</code>, <code>bottom</code>, <code>description</code>, <code>uscs</code> (e.g. <code>SM</code> or <code>SP-SM</code>), and <code>hatch</code> to choose the graphic log pattern: a USCS symbol, a built-in material such as <code>FILL</code>, <code>ASPHALT</code>, <code>SANDSTONE</code> or <code>GRANITE</code> (all 67 are listed in the <b>Hatches…</b> window), or your own (<code>"none"</code> leaves it blank). Without <code>hatch</code>, a material or rock named as the principal material in the description is drawn, such as fill (also "FILL: silty sand" or "(hydraulic fill)"), asphalt, topsoil, no recovery or shale, ahead of the USCS symbol; otherwise, without <code>uscs</code>, the pattern is guessed from the description, and when the description determines a USCS symbol (e.g. "fat CLAY" or "(SP-SM)"), it is shown in parentheses. A recorded <code>uscs</code> that isn't a possible symbol (such as <code>GW-GP</code>) or that differs from the symbol the description determines (SP-SM on a "well graded SAND") gets a warning, and the symbol read from the description is shown below it in parentheses: SP-SM (SW).</dd>
         <dt><code>samples[]</code></dt>
-        <dd><code>top</code>, <code>bottom</code>, <code>name</code>, <code>type</code> (SPT, ModCal, DamesMoore, Shelby, Piston, Osterberg, Pitcher, Denison, LargeDiameter, Block, DirectPush, GelPush, Sonic, Core, TripleTube, Bulk, Grab, Composite, Auger, Trench, Disturbed, NoRecovery, Other; the <b>Hatches…</b> dialog shows each symbol), <code>blow_count</code> (a number, or text such as <code>"50/5in"</code>), <code>blows</code> (per increment, e.g. <code>[6, 8, 10]</code>), <code>energy_ratio</code>, <code>water_content</code>, <code>dry_unit_weight</code>, <code>specific_gravity</code>, <code>fines_content</code>, <code>liquid_limit</code>, <code>plastic_limit</code>, <code>nonplastic</code>, <code>sampler_diameter</code>, <code>recovery</code>, <code>description</code>, <code>remarks</code>.</dd>
+        <dd><code>top</code>, <code>bottom</code>, <code>name</code>, <code>type</code> (SPT, ModCal, DamesMoore, Shelby, Piston, Osterberg, Pitcher, Denison, LargeDiameter, Block, DirectPush, GelPush, Sonic, Core, TripleTube, Bulk, Grab, Composite, Auger, Trench, Disturbed, Other, and NoRecovery, which is accepted with a warning and noted as "No recovery" in the remarks; the <b>Hatches…</b> dialog shows each symbol), <code>blow_count</code> (a number, or text such as <code>"50/5in"</code>), <code>blows</code> (per increment, e.g. <code>[6, 8, 10]</code>), <code>energy_ratio</code>, <code>sampler_diameter</code>, <code>recovery</code>, <code>remarks</code> (a sample has remarks, not a description), <code>specimens</code>. <code>recovery</code> is the recovered length and is noted in the remarks ("Recovery 0.36 m (80%)"); use <code>"recovery": 0</code> for no recovery and keep the sampler that was tried as <code>type</code>.</dd>
+        <dt><code>samples[].specimens[]</code></dt>
+        <dd>The specimens tested in the laboratory, as in NGL (SPEC, with its INDX and PLAS results): <code>name</code>, <code>top</code>, <code>bottom</code>, <code>water_content</code>, <code>total_unit_weight</code>, <code>dry_unit_weight</code>, <code>specific_gravity</code>, <code>fines_content</code>, <code>liquid_limit</code>, <code>plastic_limit</code>, <code>nonplastic</code>, <code>remarks</code>. Each is drawn as a box over its depth range in the Specimen column, with its name and results on a row level with it. A specimen without <code>top</code> gets no box and its results are shown level with the sample; with <code>top</code> only, it is drawn at that depth. Lab results put on the sample itself are shown the same way, with a warning.</dd>
         <dt><code>groundwater[]</code></dt>
         <dd><code>depth</code>, <code>date</code>, <code>note</code>.</dd>
         <dt><code>depth_notes[]</code></dt>
         <dd><code>depth</code> and <code>description</code>: an observation at one depth within a layer, drawn in italics in the material description column.</dd>
+        <dt><code>layout</code></dt>
+        <dd>How the log is laid out: <code>width</code> (px), <code>font_size</code>, and <code>columns</code>, the columns in order. Each is a column id or an object with <code>id</code>, a relative <code>width</code> (the columns share the log's width in proportion) and a <code>label</code>. A new id with <code>"source": "sample"</code> or <code>"specimen"</code> shows each sample's or specimen's <code>custom</code> value (<code>"custom": { "pocket_pen": 1.5 }</code>; <code>field</code> names the key if it isn't the id, <code>decimals</code> rounds numbers), and <code>"source": "blank"</code> adds an empty column. You don't need to write this by hand: the <b>Layout…</b> window sets all of it, including the values of custom columns.</dd>
         <dt><code>references[]</code></dt>
         <dd><code>text</code> and <code>url</code>: the sources of the data (e.g. the report the boring comes from), listed in the header above the log; an http(s) <code>url</code> is a link in the SVG.</dd>
         <dt><code>patterns</code></dt>

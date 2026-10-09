@@ -114,7 +114,7 @@ export function inferHatch(description) {
 // ("lean to fat CLAY"), bare SAND or GRAVEL, and "clayey SILT" get no symbol.
 
 // Dual symbols D2487 uses
-const DUALS = new Set(['GW-GM', 'GW-GC', 'GP-GM', 'GP-GC', 'SW-SM', 'SW-SC', 'SP-SM', 'SP-SC', 'GC-GM', 'SC-SM', 'CL-ML']);
+const DUALS = new Set(Object.keys(DUAL_NAMES));
 const SYMBOLS_ANYWHERE = new RegExp(`(?<![A-Za-z])(${SYMBOL})(?:\\s*[-/]\\s*(${SYMBOL}))?(?![A-Za-z])`, 'g');
 const LEADING_LABEL = new RegExp(`^\\s*(${SYMBOL})(?:\\s*[-/]\\s*(${SYMBOL}))?\\s*:`);
 // "Gravel: SW, subangular" / "Gravel/cobbles: SW": NZ logs use SW here for
@@ -238,10 +238,105 @@ export function inferUscs(description) {
 
 // Resolves the hatch to draw for a layer: explicit hatch, then a material or rock
 // named in the description (fill, topsoil, no recovery... win over a USCS symbol;
-// see materials.js), then USCS (recorded, then strictly inferred), then the
-// looser keyword inference. Returns an array of 0, 1 or 2 codes.
+// see materials.js), then USCS (recorded, or inferred from the description as
+// shown in the USCS column). A layer with none of these is left blank: there is
+// no looser guess from keywords. Returns an array of 0, 1 or 2 codes.
 export function layerHatch(layer) {
-    const code = layer.hatch ?? layer.material_inferred ?? layer.uscs ?? layer.uscs_inferred ?? inferHatch(layer.description);
+    // A recorded USCS value that isn't a possible symbol is drawn from its real
+    // group symbols ("SM-G" as SM), else from the description.
+    const uscs = layer.uscs === undefined || isValidUscs(layer.uscs) ? layer.uscs : usableUscs(layer.uscs) ?? undefined;
+    const code = layer.hatch ?? layer.material_inferred ?? uscs ?? layer.uscs_inferred ?? layer.uscs_check;
     if (!code || code === 'none') return [];
     return code.split(/[-/]/);
+}
+
+// ---------------------------------------------------------------- checking a recorded symbol
+
+// A recorded USCS value: one group symbol, an ASTM D2487 dual symbol with "-"
+// (in either order, e.g. SP-SM or SM-SP), or a borderline symbol with "/" (CL/CH).
+// "GW-GP" is not one: no soil is both well and poorly graded.
+export function isValidUscs(code) {
+    if (typeof code !== 'string') return false;
+    const m = code.match(/^([A-Z]{2})(?:([-/])([A-Z]{2}))?$/);
+    if (!m || !USCS_SYMBOLS.includes(m[1])) return false;
+    if (!m[2]) return true;
+    if (!USCS_SYMBOLS.includes(m[3]) || m[1] === m[3]) return false;
+    if (m[2] === '/') return true;
+    return DUALS.has(`${m[1]}-${m[3]}`) || DUALS.has(`${m[3]}-${m[1]}`);
+}
+
+// Whether a recorded symbol agrees with the one read from the description:
+// the same symbol, a dual written in the other order (ML-CL and CL-ML), or a
+// borderline symbol (CL/CH) that includes it.
+// A recorded symbol agrees with the one read from the description when they
+// are the same, or when the recorded one includes it: SP-SM (or SP/SM)
+// includes SM and SP, so a description read as SM is not a mismatch.
+function agrees(given, inferred) {
+    const symbols = code => code.split(/[-/]/);
+    if (symbols(inferred).every(c => symbols(given).includes(c))) return true;
+    const parts = code => code.split(/[-/]/).sort().join();
+    if (given === inferred || (!given.includes('/') && parts(given) === parts(inferred))) return true;
+    return given.includes('/') && !inferred.includes('/') && (given.split('/').includes(inferred) || parts(given) === parts(inferred));
+}
+
+// The symbol a description determines: from the whole text, or, when that reads
+// as a mixed layer only because of a heading ("GRAVEL AND SAND: dense silty sand
+// with gravels"), from the text after the heading.
+export function describedUscs(description) {
+    const whole = inferUscs(description)?.uscs;
+    if (whole) return whole;
+    const body = String(description ?? '').match(/^\s*[^a-z:]{1,40}:\s*(\S[\s\S]*)$/);
+    return (body && inferUscs(body[1])?.uscs) || null;
+}
+
+// Compares a recorded USCS symbol with the one its description determines.
+// Returns null when there is nothing to report, or
+//   { invalid, inferred }  invalid: the recorded value isn't a possible USCS
+//                          symbol (e.g. GW-GP); inferred: the symbol read from
+//                          the description when it differs from the recorded
+//                          one (SP-SM recorded, "well graded SAND", SW), or a
+//                          correction for an invalid one; else null.
+export function checkUscs(uscs, description) {
+    if (typeof uscs !== 'string' || !uscs) return null;
+    const invalid = !isValidUscs(uscs);
+    let inferred = describedUscs(description);
+    // An impossible symbol gets a correction even without one from the
+    // description: its real group symbol ("SM-G" gives SM).
+    if (invalid && !inferred) {
+        const usable = usableUscs(uscs);
+        if (usable && isValidUscs(usable)) inferred = usable;
+    }
+    const differs = !invalid && inferred !== null && !agrees(uscs, inferred);
+    if (!invalid && !differs) return null;
+    return { invalid, inferred: inferred && inferred !== uscs ? inferred : null };
+}
+
+// The part of a recorded value the graphic log can draw: the whole value when
+// it is valid, its real group symbols when it isn't ("GW-GP" both halves, "SM-G"
+// just SM), or null.
+export function usableUscs(uscs) {
+    if (isValidUscs(uscs)) return uscs;
+    const parts = String(uscs).split(/[-/]/).filter(p => USCS_SYMBOLS.includes(p));
+    return parts.length ? [...new Set(parts)].join('-') : null;
+}
+
+// Warnings for the validator: impossible USCS symbols, and recorded symbols the
+// description contradicts.
+export function uscsWarnings(doc) {
+    const warnings = [];
+    (Array.isArray(doc?.layers) ? doc.layers : []).forEach((layer, i) => {
+        if (!layer || typeof layer.uscs !== 'string' || !usableUscs(layer.uscs)) return;
+        const check = checkUscs(layer.uscs, layer.description);
+        if (!check) return;
+        const shown = check.inferred ? ` The log shows "${layer.uscs} (${check.inferred})", with the symbol read from the description in parentheses.` : '';
+        const drawn = check.invalid ? usableUscs(layer.uscs) : null;
+        const hatch = check.invalid ? ` The graphic log uses ${drawn ? drawn : check.inferred ? check.inferred : 'a pattern guessed from the description'}.` : '';
+        warnings.push({
+            path: `/layers/${i}/uscs`,
+            message: check.invalid
+                ? `"${layer.uscs}" is not a possible USCS symbol: dual symbols are ${[...DUALS].join(', ')}; use "/" for a borderline soil (e.g. CL/CH).${shown}${hatch}`
+                : `"${layer.uscs}" doesn't match the description, which reads as ${check.inferred}.${shown}`,
+        });
+    });
+    return warnings;
 }
