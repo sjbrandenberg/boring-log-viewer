@@ -1,10 +1,18 @@
-<!-- title: Samples and test results -->
-<!-- description: Sampler types and symbols, blow counts and SPT refusal, and the laboratory results drawn on the log. -->
-<h1>Samples and test results</h1>
-<p class="lead">How samples, blow counts and laboratory results are entered and drawn.</p>
+<!-- title: Samples, specimens and tests -->
+<!-- description: Sampler types and symbols, blow counts, recovery, and laboratory results on specimens. -->
+<h1>Samples, specimens and tests</h1>
+<p class="lead">How samples, blow counts, recovery and laboratory results are entered and drawn.</p>
+
+<p>The data follows the way a laboratory works, and the way the Next Generation Liquefaction (NGL) database stores it:</p>
+<ul>
+    <li>A <b>sample</b> is what came out of the ground: an SPT, a Shelby tube, a core run. It has a depth interval, a sampler type, blow counts, recovery and remarks.</li>
+    <li>A <b>specimen</b> is a piece cut from a sample for laboratory tests. Its results (water content, unit weight, Atterberg limits, fines and so on) belong to it, at its own depth. One Shelby tube can give several specimens.</li>
+</ul>
+<!-- log: step2-samples.json -->
+<p>Above, sample T-3 (a Shelby tube) has two specimens, T-3a and T-3b, each drawn as a grey box at its depth in the <b>Specimen</b> column with its results on its own row. The tube's recovery is noted in the remarks.</p>
 
 <h2 id="interval">Sample depth interval</h2>
-<p>Each sample has a <code>top</code> and <code>bottom</code> depth: the interval the sampler was driven or pushed over. The sampler symbol is drawn over that interval, and the sample's values are written level with the middle of it.</p>
+<p>Each sample has a <code>top</code> and <code>bottom</code> depth: the interval the sampler was driven or pushed over. The sampler symbol is drawn over that interval, and the sample's values (number, blow count) are written level with the middle of it.</p>
 <ul>
     <li>For an <b>SPT</b>, use the full 18 in (0.45 m) drive, e.g. 10.0 to 11.5 ft.</li>
     <li>For a <b>Shelby tube</b> or <b>core run</b>, use the length pushed or cored, and give the recovered length in <code>recovery</code>.</li>
@@ -16,6 +24,12 @@
 <!-- gallery: samplers -->
 <p>You can replace any of these symbols with your own, or add new sampler types; see <a href="custom-hatches.html#samplers">Your own hatches</a>.</p>
 
+<h2 id="recovery">Recovery and no recovery</h2>
+<p><code>recovery</code> is the recovered length, in the log's length unit. It's shown as a note at the start of the sample's remarks, with the percentage of the sample interval: "Recovery 1.8 ft (90%)". A recovery of <code>0</code> is shown as "No recovery".</p>
+<p>No recovery is an outcome, not a kind of sampler. Give the sampler that was tried as the <code>type</code>, and <code>"recovery": 0</code>:</p>
+<pre><code>{ "top": 25, "bottom": 26.5, "name": "S-6", "type": "SPT", "blow_count": 12, "recovery": 0 }</code></pre>
+<p>Older data often marks it differently. A sample whose <code>type</code> is <code>"NoRecovery"</code>, or whose <code>type</code> or <code>name</code> is "No recovery" or "NR", is read as <code>"recovery": 0</code>, with a warning, and drawn as <code>Other</code> (or its given type).</p>
+
 <h2 id="blow-counts">Blow counts</h2>
 <p>There are two fields, and you can give either or both:</p>
 <ul>
@@ -25,24 +39,49 @@
 <p>If you give <code>blow_count</code>, that's what is shown. If you give only <code>blows</code>, the increments are shown joined with dashes: <code>6-8-10</code>.</p>
 <div class="callout warn">
     <strong>Blow counts are shown as given</strong>
-    <p>The viewer doesn't correct blow counts for energy, overburden or sampler type. A Modified California blow count is shown as recorded, not converted to an SPT N-value. Put corrected values in <code>remarks</code> if you need them on the log.</p>
+    <p>The viewer doesn't correct blow counts for energy, overburden or sampler type. A Modified California blow count is shown as recorded, not converted to an SPT N-value. Put corrected values in <code>remarks</code>, or in a <a href="layout.html#custom">custom column</a>, if you need them on the log.</p>
 </div>
-<p><b>Energy ratio.</b> Give the hammer's energy ratio in <code>metadata.energy_ratio</code>; it's shown in the header as "ER = 82%". If it varies between samples, give <code>energy_ratio</code> on each sample and add the <code>energy_ratio</code> column (it isn't in the default column list; see <a href="options.html#columns">Display options</a>).</p>
+<p><b>Energy ratio.</b> Give the hammer's energy ratio in <code>metadata.energy_ratio</code>; it's shown in the header as "ER = 82%". If it varies between samples, give <code>energy_ratio</code> on each sample and add the <code>energy_ratio</code> column, which isn't shown by default (see <a href="layout.html">Columns and layout</a>).</p>
 
-<h2 id="lab">Laboratory results</h2>
+<h2 id="specimens">Specimens and laboratory results</h2>
+<p>Put laboratory results in the sample's <code>specimens</code> list:</p>
+<pre><code>{
+  "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby", "recovery": 1.8,
+  "specimens": [
+    { "name": "T-3a", "top": 12.6, "bottom": 13.1,
+      "water_content": 36.5, "liquid_limit": 44, "plastic_limit": 21 },
+    { "name": "T-3b", "top": 13.6, "bottom": 14.1,
+      "water_content": 35.2, "total_unit_weight": 114.9, "dry_unit_weight": 84.2 }
+  ]
+}</code></pre>
 <div class="table-wrap"><table class="wrap">
-    <thead><tr><th>Field</th><th>Column</th><th>Shown as</th></tr></thead>
+    <thead><tr><th>Specimen field</th><th>Column</th><th>Units</th></tr></thead>
     <tbody>
-        <tr><td><code>water_content</code></td><td>Water content (%)</td><td>1 decimal</td></tr>
-        <tr><td><code>dry_unit_weight</code></td><td>Dry unit wt. (kN/m³ or pcf)</td><td>1 decimal, converted to the display units</td></tr>
-        <tr><td><code>specific_gravity</code></td><td>Specific gravity</td><td>2 decimals</td></tr>
-        <tr><td><code>fines_content</code></td><td>Fines (%)</td><td>Percent passing No. 200 sieve</td></tr>
-        <tr><td><code>liquid_limit</code>, <code>plastic_limit</code></td><td>Liquid limit, Plastic limit</td><td>As given</td></tr>
-        <tr><td><code>nonplastic</code></td><td>Liquid limit, Plastic limit</td><td>"NP" in both columns (and any limits given are ignored)</td></tr>
+        <tr><td><code>name</code></td><td>Specimen no.</td><td>text</td></tr>
+        <tr><td><code>top</code>, <code>bottom</code></td><td>Specimen (the grey box)</td><td>length</td></tr>
+        <tr><td><code>water_content</code></td><td>Water content (%)</td><td>%</td></tr>
+        <tr><td><code>total_unit_weight</code></td><td>Total unit wt.</td><td>unit weight</td></tr>
+        <tr><td><code>dry_unit_weight</code></td><td>Dry unit wt.</td><td>unit weight</td></tr>
+        <tr><td><code>specific_gravity</code></td><td>Specific gravity</td><td>–</td></tr>
+        <tr><td><code>fines_content</code></td><td>Fines (%)</td><td>% passing No. 200 sieve</td></tr>
+        <tr><td><code>liquid_limit</code>, <code>plastic_limit</code></td><td>Liquid limit, Plastic limit</td><td>%</td></tr>
+        <tr><td><code>nonplastic</code></td><td>"NP" in both limit columns (any limits given are ignored)</td><td><code>true</code>/<code>false</code></td></tr>
+        <tr><td><code>remarks</code></td><td>Remarks, level with the specimen</td><td>text</td></tr>
+        <tr><td><code>custom</code></td><td>Your own columns, e.g. <code>{ "cu": 45 }</code>; see <a href="layout.html#custom">custom columns</a></td><td>as you choose</td></tr>
     </tbody>
 </table></div>
-<p>Results from a test on a sub-sample go on the sample they came from. If you have results that don't belong to a sample (for example, from a separate lab sample at a different depth), add a sample for them with <code>"type": "Other"</code>, or leave <code>type</code> out.</p>
-<p>Dry density isn't a field; convert it to dry unit weight first (multiply Mg/m³ by 9.81 to get kN/m³). The AGS4 and DIGGS imports do this for you.</p>
+<ul>
+    <li><b>Depths.</b> A specimen with a <code>top</code> and <code>bottom</code> is drawn as a box over that range, and its results row is level with it. With only a <code>top</code>, it's drawn at that depth. Without a <code>top</code>, no box is drawn (none is made up from the sample) and its results are shown level with the sample.</li>
+    <li><b>Several specimens</b> each get their own row, so one sample can show several sets of results. Overlapping specimens are drawn side by side.</li>
+    <li>A specimen outside its sample's interval gets a warning. A <code>bottom</code> above the <code>top</code> is an error.</li>
+    <li>Dry density isn't a field: convert it to unit weight first (multiply Mg/m³ by 9.81 to get kN/m³). The AGS4 and DIGGS imports do this for you.</li>
+</ul>
 
-<h2 id="text">Sample description and remarks</h2>
-<p><code>description</code> and <code>remarks</code> each get their own column, which wraps long text. Use <code>description</code> for what the sample is ("Undisturbed, sent for CU triaxial") and <code>remarks</code> for notes such as "Refusal on cobble", "RQD 45%" or "Poor recovery".</p>
+<h3 id="old-format">Results on the sample (older data)</h3>
+<p>Earlier versions put laboratory results directly on the sample (<code>"water_content": 22.8</code> next to <code>"blow_count"</code>). That's still accepted, with a warning, and the values are shown level with the sample, without a specimen box. To update such data, move the values into a specimen with the sample's depths:</p>
+<pre><code>{ "top": 7.5, "bottom": 9, "name": "S-2", "type": "SPT", "blow_count": 20,
+  "specimens": [ { "top": 7.5, "bottom": 9, "water_content": 22.8, "fines_content": 8 } ] }</code></pre>
+
+<h2 id="remarks">Remarks</h2>
+<p>A sample's text goes in <code>remarks</code>: "Refusal on cobble", "RQD 45%", "Poor recovery". They're shown in the <b>Remarks</b> column, level with the sample, after the recovery note. Each specimen's <code>remarks</code> are in the same column, level with the specimen.</p>
+<p>Samples used to have a <code>description</code> as well. It's still accepted, with a warning, and shown at the start of the remarks.</p>

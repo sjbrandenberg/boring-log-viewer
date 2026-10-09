@@ -1,0 +1,35 @@
+<!-- title: Several logs and the map -->
+<!-- description: Keep several boring logs open in tabs on the web page, see them on a map, and download them all at once. -->
+<h1>Several logs and the map</h1>
+<p class="lead">The web page can hold all the borings of a site at once: each in its own tab, all of them on a map, and all downloadable in one ZIP file.</p>
+
+<h2 id="tabs">Tabs</h2>
+<p>Each open log has a tab above the text box. Click a tab to edit and preview that log; ‹ and › step through them, and the × on a tab closes it.</p>
+<p>A new tab opens for:</p>
+<ul>
+    <li>each <b>JSON file</b> you open or drag onto the text box. You can open several files at once;</li>
+    <li>each <b>borehole</b> in an AGS4 or DIGGS file (those with strata). A file with twelve boreholes opens as twelve tabs (see <a href="importing.html">Importing AGS4 and DIGGS</a>);</li>
+    <li>an <b>example</b> from <b>Load example…</b>. One example opens all four borings from a site in Nantou, Taiwan, at once;</li>
+    <li><b>+ New</b>, which starts an empty log.</li>
+</ul>
+<p>The open logs, and your option settings, are kept in your browser between visits, so they're there when you come back. They stay on your computer.</p>
+
+<h2 id="zip">Downloading every log</h2>
+<p>With more than one log open, <b>All logs (ZIP)</b> downloads every open log as both SVG and PNG in one ZIP file, named after each boring. <b>SVG</b>, <b>PNG</b> and <b>Print / PDF</b> still work on the log you're looking at.</p>
+
+<h2 id="map">The map</h2>
+<p>Below the text box, <b>Location</b> opens a map of every open log that has a <code>latitude</code> and <code>longitude</code> in its <code>metadata</code>.</p>
+<ul>
+    <li>Click a marker to open that log.</li>
+    <li>The map zooms to the logs within 50 km of the one you're editing, so borings from another site don't shrink the view.</li>
+    <li>The button at the top right switches between a <b>Street</b> map (OpenStreetMap) and <b>Satellite</b> imagery (Esri).</li>
+</ul>
+<pre><code>"metadata": { "boring_name": "NAS-3", "latitude": 23.908442, "longitude": 120.687592 }</code></pre>
+<p>Coordinates are decimal degrees, with west longitudes and south latitudes negative.</p>
+<div class="callout">
+    <strong>Privacy</strong>
+    <p>The map pictures (tiles) are the only thing the page loads from elsewhere: from OpenStreetMap or Esri, for the area you're looking at. Your log data isn't sent with them.</p>
+</div>
+
+<h2 id="sections">Cross-sections and a 3D model</h2>
+<p>To see the borings of a site connected in cross-sections and a 3D model, send them together to the site API, which returns a page with all three views. See <a href="site-view.html">Site view: cross-sections and 3D</a>.</p>

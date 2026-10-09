@@ -9,12 +9,12 @@
     <li><b>The layer's <code>hatch</code></b>, if you give one. <code>"hatch": "none"</code> leaves the layer blank.</li>
     <li><b>A material named in the description</b>, such as fill, asphalt, concrete, topsoil, no recovery, or a rock name ("SHALE, black, hard"). Fill describes where the soil came from, so it wins over the soil type: a layer described as "silty SAND (FILL)" with <code>"uscs": "SM"</code> is drawn with the fill symbol, and SM still appears in the USCS column.</li>
     <li><b>The layer's <code>uscs</code></b> symbol.</li>
-    <li><b>A USCS symbol worked out from the description</b>, such as SM from "silty SAND". When the description settles it, the symbol is also shown in the USCS column, in parentheses.</li>
-    <li><b>A best guess from keywords</b> in the description, for the graphic log only. For example, "SAND, fine to medium" is drawn as SP, but nothing is shown in the USCS column, because the description doesn't say enough to classify it.</li>
+    <li><b>A USCS symbol worked out from the description</b>, such as SM from "silty SAND". It's also shown in the USCS column, in parentheses.</li>
 </ol>
+<p>If none of these applies, the layer has no symbol and its graphic log is left blank. The viewer doesn't guess: "SAND, fine to medium" or "clayey SILT" doesn't say enough to classify the soil, so it isn't drawn as SP, ML or MH.</p>
 <div class="callout">
     <strong>Want full control?</strong>
-    <p>Give every layer a <code>uscs</code> or <code>hatch</code>. To stop materials being picked out of descriptions, turn off <code>infer_materials</code>; to stop inferred symbols appearing in the USCS column, turn off <code>infer_uscs</code>. Both are <a href="options.html#inference">display options</a>.</p>
+    <p>Give every layer a <code>uscs</code> or <code>hatch</code>. To stop materials being picked out of descriptions, turn off <code>infer_materials</code>; to stop symbols being read from descriptions (both inferred and checked), turn off <code>infer_uscs</code>. Both are <a href="options.html#inference">display options</a>.</p>
 </div>
 
 <h2 id="examples">Examples</h2>
@@ -22,14 +22,14 @@
 <!-- inference: Brown silty SAND | Gray, stiff, moist, lean CLAY, low plasticity | fat CLAY with sand | poorly graded SAND with silt | Brown sandy lean CLAY (CL) | silty clay | organic SILT, high plasticity | SAND, fine to medium | clayey SILT | lean to fat CLAY | FILL: silty sand, loose | Dark gray silty SAND (HYDRAULIC FILL) | ASPHALT concrete, 100 mm | Topsoil, dark brown, organic silt with roots | silty SAND with trace shells | coarse pumice SAND | SHALE, black, hard | rock, clay | No recovery -->
 
 <h3 id="uscs-rules">When a USCS symbol is inferred</h3>
-<p>A symbol is shown in the USCS column (in parentheses) only when the description determines it:</p>
+<p>A symbol is read from a description only when the description determines it:</p>
 <ul>
     <li>a symbol written in the text, such as "(SP-SM)";</li>
     <li>an ASTM D2487 group name, such as "fat CLAY", "silty SAND" or "poorly graded SAND with silt";</li>
     <li>CLAY or SILT with a plasticity descriptor ("CLAY, high plasticity");</li>
     <li>"silty clay" (CL-ML), SILT group names (ML), and organic SILT or CLAY with low (OL) or high (OH) plasticity.</li>
 </ul>
-<p>Mixed layers, ranges ("lean to fat"), bare SAND or GRAVEL, and "clayey SILT" get no symbol. These rules were checked against 655 layer descriptions from the Next Generation Liquefaction (NGL) database.</p>
+<p>Mixed layers, ranges ("lean to fat"), bare SAND or GRAVEL, and "clayey SILT" get no symbol. A heading such as "GRAVEL AND SAND:" that reads as a mixed layer is looked past, and the soil described after it is used. These rules were checked against 655 layer descriptions from the Next Generation Liquefaction (NGL) database.</p>
 
 <h3 id="material-rules">When a material is picked out</h3>
 <p>A material counts only when it is the <em>principal</em> material of the description:</p>
@@ -41,6 +41,16 @@
     <li><b>Rock names</b>: "SHALE, black, hard", "Weathered GRANITE". "rock, clay" is claystone.</li>
 </ul>
 <p>A minor constituent never counts: "silty SAND with trace shells" is sand. A soil named in capitals wins over a material that isn't: "coarse pumice SAND" is sand. Bentonite is drawn as CH. These rules were checked against 802 NGL layer descriptions.</p>
+
+<h2 id="checking">Checking recorded symbols</h2>
+<p>A <code>uscs</code> you give is checked too, because logs (especially older ones) sometimes have symbols that can't be right, or that disagree with their own description. When that happens, the log shows both, so a reader can see the discrepancy: the recorded symbol, with the one read from the description below it in parentheses. The validator also gives a warning for each.</p>
+<ul>
+    <li><b>Not a possible symbol.</b> ASTM D2487 dual symbols are the eleven shown <a href="#duals">below</a> plus CL-ML (in either order, e.g. SM-SP), and borderline soils are written with "/" (CL/CH). Something like <code>GW-GP</code> or <code>SM-G</code> is accepted, but flagged.</li>
+    <li><b>The description reads differently.</b> <code>SP-SM</code> on a "well graded SAND" is flagged, because the description says SW.</li>
+    <li><b>Agreement is read generously.</b> A recorded symbol that includes the one read from the description counts as agreeing: a dual (SP-SM for "silty SAND"), a dual in the other order (ML-CL), or a borderline symbol (CL/CH for "lean CLAY").</li>
+</ul>
+<!-- uscscheck: SM = silty SAND ; SP-SM = silty SAND ; CL/CH = lean CLAY ; SP-SM = well graded SAND ; SP = sandy SILT ; GW-GP = poorly graded GRAVEL ; SM-G = silty SAND with gravel -->
+<p>The graphic log uses the recorded symbol when it's a real one. For an impossible value, it uses the real group symbols it contains, such as SM for <code>SM-G</code>. Turning off <code>infer_uscs</code> stops the comparison with descriptions; an impossible symbol is still noted.</p>
 
 <h2 id="uscs">USCS symbols</h2>
 <p>The soil symbols follow the legend of the Caltrans <i>Soil and Rock Logging, Classification, and Presentation Manual</i> (2010).</p>

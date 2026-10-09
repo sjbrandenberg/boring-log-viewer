@@ -20,7 +20,8 @@
 <div class="cards">
     <a class="card" href="getting-started.html"><b>1. On the web page</b><span>Paste or type your data, see the log update as you type, and download it. Nothing to install. Your data stays in your browser.</span></a>
     <a class="card" href="importing.html"><b>2. Open an AGS4 or DIGGS file</b><span>Open a standard data-transfer file and the borings in it are drawn directly.</span></a>
-    <a class="card" href="api.html"><b>3. From a script</b><span>Send the data from Python, MATLAB, Excel or any program to the render API and get an image back. Good for drawing many logs at once.</span></a>
+    <a class="card" href="api.html"><b>3. From a script</b><span>Send the data from Python or any other program to the render API and get an image back. Good for drawing many logs at once.</span></a>
+    <a class="card" href="site-view.html"><b>4. A whole site</b><span>Send all the borings of a site together and get a page with suggested cross-sections, a 3D model, every log and a map.</span></a>
 </div>
 
 <h2 id="what-it-draws">What it draws</h2>
@@ -30,11 +31,13 @@
     <li><b>Groundwater</b> levels, with the date and a note for each reading.</li>
     <li><b>Graphic log</b> using the USCS soil symbols of the Caltrans <i>Soil and Rock Logging, Classification, and Presentation Manual</i> (2010), plus 67 symbols for fill, pavement, organic and other materials, and rock types after the FGDC geologic map standard. If you don't give a symbol, it is worked out from the material description.</li>
     <li><b>Material descriptions</b> beside their layers, with leader lines when a long description has to be moved down, and notes at a single depth (such as "thin sand lens") in italics.</li>
-    <li><b>Samples</b>: 23 sampler symbols (SPT, Modified California, Shelby tube, rock core, bulk and so on), sample numbers, blow counts, recovery.</li>
-    <li><b>Test results</b>: water content, dry unit weight, specific gravity, fines content, liquid and plastic limits, remarks.</li>
+    <li><b>Samples</b>: 22 sampler symbols (SPT, Modified California, Shelby tube, rock core, bulk and so on), sample numbers, blow counts, recovery.</li>
+    <li><b>Laboratory specimens</b>, each at its own depth within its sample, with water content, total and dry unit weight, specific gravity, fines content, and liquid and plastic limits.</li>
+    <li><b>Your own columns</b>, such as pocket penetrometer readings or undrained strength, with your own headings and widths.</li>
     <li><b>Legend</b> listing only the symbols that appear in this log.</li>
 </ul>
 <p>Columns with no data are left out, so a log with only layers is a narrow, simple drawing, and one with full laboratory data gets every column.</p>
+<p>For a site with several borings, the web page keeps them in tabs and shows them on a map, and the <a href="site-view.html">site view</a> connects them in cross-sections and a 3D model.</p>
 
 <h2 id="data">Where the data comes from</h2>
 <p>The viewer reads a boring log written in <b>JSON</b>, a plain-text format for structured data. JSON looks like this:</p>

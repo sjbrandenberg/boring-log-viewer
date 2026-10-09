@@ -78,12 +78,12 @@ document.getElementById('log').innerHTML = await r.text();</code></pre>
         <tr><td><code>units</code>, <code>unit_weight</code>, <code>diameter_units</code></td><td rowspan="1">see <a href="options.html">Display options</a></td><td>Display units</td></tr>
         <tr><td><code>width</code>, <code>height</code>, <code>scale</code>, <code>font_size</code></td><td>numbers</td><td>Size</td></tr>
         <tr><td><code>header</code>, <code>legend</code>, <code>references</code>, <code>fit_text</code>, <code>hide_empty_columns</code>, <code>infer_uscs</code>, <code>infer_materials</code></td><td><code>true</code>/<code>false</code></td><td>Turn parts of the drawing on or off</td></tr>
-        <tr><td><code>columns</code></td><td>comma-separated list</td><td>e.g. <code>depth,graphic,description,blow_count</code></td></tr>
+        <tr><td><code>columns</code></td><td>comma-separated list</td><td>e.g. <code>depth,graphic,description,blow_count</code>. Can include the custom columns of the log's <a href="layout.html">layout</a>.</td></tr>
         <tr><td><code>title</code></td><td>text</td><td>Title</td></tr>
         <tr><td><code>loca_id</code></td><td>borehole name</td><td>For AGS4 and DIGGS files with several boreholes: which one to draw</td></tr>
     </tbody>
 </table></div>
-<p>An unknown or misspelled parameter is an error, so a typo doesn't silently go unused.</p>
+<p>An unknown or misspelled parameter is an error, so a typo doesn't silently go unused. Parameters take precedence over the log's own <a href="layout.html">layout</a>.</p>
 
 <h2 id="files">Sending AGS4 and DIGGS files</h2>
 <p>An AGS4 file can be sent as it is with <code>Content-Type: text/plain</code>, and a DIGGS file with <code>Content-Type: application/xml</code>. Add <code>loca_id</code> to pick the borehole when the file has more than one.</p>
@@ -113,6 +113,51 @@ r = requests.post("https://uclageo.com/boring-log-viewer/api/render",
 r.raise_for_status()</code></pre>
 <p>A hatch that replaces a built-in code, such as <code>SM</code> or <code>SPT</code>, needs no <code>hatch</code> or <code>type</code>: it's used automatically.</p>
 
+<h2 id="site">Sites: cross-sections and 3D</h2>
+<p>Send all the borings of a site at once to draw cross-sections and a 3D model. What the page shows, and how the layers are connected, is described in <a href="site-view.html">Site view</a>.</p>
+<p><b>Body</b> (for both endpoints): <code>{ "name": "Nantou", "borings": [ ...boring logs... ] }</code>, a plain list of boring logs, or an AGS4 or DIGGS file (every borehole with strata). At most 200 borings and 10 MB. Borings without <code>metadata.latitude</code> and <code>longitude</code> are shown as logs but left out of the map, sections and model, with a warning.</p>
+
+<h3 id="site-page"><code>POST api/site</code></h3>
+<pre><code>curl -X POST -H "Content-Type: application/json" --data-binary @site.json \
+     "https://uclageo.com/boring-log-viewer/api/site" -o site.html</code></pre>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Parameter</th><th>Values</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td><code>format</code></td><td><code>html</code>, <code>json</code></td><td>The <a href="site-view.html">site page</a> (default), or the results as data</td></tr>
+        <tr><td><code>name</code></td><td>text</td><td>Site name, if not in the body</td></tr>
+        <tr><td><code>units</code></td><td><code>m</code>, <code>ft</code></td><td>Display units of the sections</td></tr>
+        <tr><td><code>style</code></td><td><code>colour</code>, <code>hatch</code></td><td>Layers between borings: colours with labels (default), or USCS hatches</td></tr>
+        <tr><td><code>width</code></td><td>400 to 6000</td><td>Width of the section drawings, px</td></tr>
+        <tr><td><code>svg</code></td><td><code>false</code></td><td>JSON only: leave out the sections' SVG drawings</td></tr>
+        <tr><td><code>grid</code></td><td>2 to 100</td><td>JSON only: add the 3D model's surfaces on an (n + 1) × (n + 1) grid</td></tr>
+        <tr><td><code>download</code></td><td><code>true</code></td><td>Ask a browser to save the file</td></tr>
+    </tbody>
+</table></div>
+<p>The JSON reply is <code>{ name, borings, sections, model, warnings }</code>:</p>
+<ul>
+    <li><code>borings</code>: each boring's <code>index</code>, <code>name</code>, <code>latitude</code>, <code>longitude</code>, <code>depth</code> and <code>units</code>.</li>
+    <li><code>sections</code>: each suggested section's <code>id</code> (A, B, ...), <code>name</code>, <code>description</code>, <code>line</code> (a list of <code>{ lat, lon }</code>), <code>corridor</code> and <code>length</code> in metres, the <code>borings</code> on it (with <code>chainage</code>, <code>offset</code> and <code>side</code>), its <code>svg</code>, and its own <code>warnings</code>. Check these as well as the top-level <code>warnings</code>.</li>
+    <li><code>model</code>: the 3D model (null with fewer than two located borings): its layers from the top (<code>label</code>, <code>uscs</code>, <code>colour</code>, ...), and each boring's position (metres east and north of the site's centre) and units. With <code>grid</code>, <code>model.grid</code> has the ground, each layer's top, the base and the water table at the grid points, in metres, row by row from the south.</li>
+</ul>
+
+<h3 id="site-section"><code>POST api/site/section</code></h3>
+<p>One cross-section, as SVG (default), PNG, HTML or JSON: a suggested one with <code>id=A</code>, or one along your own line with <code>line=lat,lon;lat,lon[;...]</code>.</p>
+<pre><code>curl -X POST -H "Content-Type: application/json" --data-binary @site.json \
+     "https://uclageo.com/boring-log-viewer/api/site/section?id=A&amp;format=png" -o A.png
+curl -X POST -H "Content-Type: application/json" --data-binary @site.json \
+     "https://uclageo.com/boring-log-viewer/api/site/section?line=23.9084,120.6853;23.9108,120.6940&amp;corridor=150" -o mine.svg</code></pre>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Parameter</th><th>Values</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td><code>id</code></td><td>A, B, ...</td><td>A suggested section</td></tr>
+        <tr><td><code>line</code></td><td><code>lat,lon;lat,lon;...</code></td><td>Your own line, two or more points, at most 10 km long</td></tr>
+        <tr><td><code>corridor</code></td><td>1 to 5000</td><td>With <code>line</code>: include borings within this many metres of it (default 100)</td></tr>
+        <tr><td><code>format</code></td><td><code>svg</code>, <code>png</code>, <code>html</code>, <code>json</code></td><td>What to send back</td></tr>
+        <tr><td><code>style</code>, <code>units</code>, <code>width</code>, <code>title</code>, <code>png_scale</code>, <code>download</code></td><td></td><td>As above</td></tr>
+    </tbody>
+</table></div>
+<p>An unknown <code>id</code> gets 404, with the suggested ids in the message; a line with no boring near it gets 422.</p>
+
 <h2 id="errors">Errors and warnings</h2>
 <p>When something is wrong, the reply has an error status and a JSON body that says what and where:</p>
 <pre><code>{ "error": "Invalid boring log",
@@ -123,7 +168,7 @@ r.raise_for_status()</code></pre>
     <tbody>
         <tr><td>400</td><td>The JSON can't be read (with the position of the problem), or a parameter is wrong</td></tr>
         <tr><td>406</td><td>Unknown <code>format</code></td></tr>
-        <tr><td>413</td><td>Too large: over 1 MB of JSON, or 10 MB for an AGS4 or DIGGS file</td></tr>
+        <tr><td>413</td><td>Too large: over 1 MB of JSON (10 MB for a site), or 10 MB for an AGS4 or DIGGS file</td></tr>
         <tr><td>415</td><td>Wrong <code>Content-Type</code></td></tr>
         <tr><td>422</td><td>The data is readable but not a valid boring log; more than 2,000 layers or 5,000 samples; a PNG over 40 megapixels; or an AGS4/DIGGS file that can't be used (AGS3, no boreholes, no borehole chosen from several)</td></tr>
         <tr><td>429</td><td>Too many requests: the limit is 60 per minute. Wait a minute, or add a short pause between requests in a loop.</td></tr>
@@ -137,6 +182,7 @@ r.raise_for_status()</code></pre>
     <tbody>
         <tr><td><code>POST api/validate</code></td><td>Checks a log without drawing it: <code>{ "valid": ..., "errors": [...], "warnings": [...] }</code></td></tr>
         <tr><td><code>POST api/ags</code>, <code>POST api/diggs</code></td><td>A file converted to boring log JSON, one per borehole</td></tr>
+        <tr><td><code>POST api/site</code>, <code>POST api/site/section</code></td><td>A whole site: see <a href="#site">above</a></td></tr>
         <tr><td><code>GET api/schema</code></td><td>The <a href="boring-log.schema.json">JSON Schema</a></td></tr>
         <tr><td><code>GET api/health</code></td><td>Whether the service is up, and its version</td></tr>
     </tbody>

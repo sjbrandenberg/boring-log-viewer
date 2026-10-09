@@ -1,0 +1,77 @@
+<!-- title: Columns and layout -->
+<!-- description: Choose a log's columns, their order, widths and headings, and add your own columns, with the Layout window or the layout field. -->
+<h1>Columns and layout</h1>
+<p class="lead">Choose which columns a log has, in what order, how wide and with what headings, and add columns of your own, such as pocket penetrometer readings or undrained strength.</p>
+
+<p>The layout is saved in the log's JSON, in a <code>layout</code> section, so it travels with the data: the log looks the same on the web page, through the API and on another computer. A log without a <code>layout</code> uses the built-in one.</p>
+
+<h2 id="window">With the Layout… window</h2>
+<p>On the <a href="https://uclageo.com/boring-log-viewer/">viewer page</a>, click <b>Layout…</b> above the text box. The window lists every column, in order. Every change shows in the preview straight away.</p>
+<ul>
+    <li><b>Show</b>: tick or untick a column. Depth, graphic log and material description are always drawn. A column marked "No data in this log" isn't drawn until it has some.</li>
+    <li><b>Heading</b>: type a new heading, e.g. "Soil description" or "w (%)".</li>
+    <li><b>Width</b>: a relative width. The columns share the log's width in proportion to these numbers, so a column with width 6 is twice as wide as one with 3. The bar above the table shows the shares.</li>
+    <li><b>Order</b>: the ↑ and ↓ buttons move a column left or right in the log.</li>
+    <li><b>Log width</b> and <b>Font size</b> at the top set the size of the whole drawing.</li>
+</ul>
+<p>When you're done, click <b>Done</b>. <b>Undo changes</b> goes back to how the log was when the window opened, and <b>Use built-in layout</b> removes this log's layout altogether.</p>
+
+<h2 id="custom">Adding your own columns</h2>
+<p>Under <b>Add a column</b>, choose a type and a heading, and click <b>Add column</b>:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Type</th><th>For</th><th>Examples</th></tr></thead>
+    <tbody>
+        <tr><td>Value for each sample</td><td>A field measurement on the sample, level with the sampler symbol</td><td>Pocket penetrometer, torvane, PID reading, corrected N<sub>60</sub></td></tr>
+        <tr><td>Value for each specimen</td><td>A laboratory result, on the specimen rows beside the water content and limits</td><td>Undrained shear strength, organic content, % clay</td></tr>
+        <tr><td>Blank column</td><td>An empty column to write in by hand on a printed log</td><td>Field notes, checked by</td></tr>
+    </tbody>
+</table></div>
+<p>Then click <b>Values…</b> beside the new column to type its value for each sample or specimen. The column appears in the log once it has a value (a blank column is always drawn). Numbers are shown as you type them. <b>Remove</b> deletes the column and its values.</p>
+
+<h2 id="json">Writing the layout by hand</h2>
+<p>The window writes a <code>layout</code> section like this, and puts the values of custom columns in each sample's or specimen's <code>custom</code>:</p>
+<pre><code>"layout": {
+  "width": 1000,
+  "font_size": 10,
+  "columns": [
+    "depth",
+    { "id": "graphic", "width": 5 },
+    { "id": "description", "width": 25, "label": "Soil description" },
+    "sample_type", "sample_name", "blow_count",
+    { "id": "pp", "source": "sample", "field": "pocket_pen", "label": "PP (tsf)", "width": 3 },
+    "specimen", "specimen_name", "water_content",
+    { "id": "cu", "source": "specimen", "label": "cu (kPa)", "decimals": 0 },
+    { "id": "remarks", "width": 12 },
+    { "id": "notes", "source": "blank", "label": "Field notes", "width": 10 }
+  ]
+},
+"samples": [
+  { "top": 5, "bottom": 6.5, "name": "S-2", "type": "SPT", "blow_count": 9,
+    "custom": { "pocket_pen": 1.5 },
+    "specimens": [ { "top": 5.5, "bottom": 6, "water_content": 31, "custom": { "cu": 42 } } ] }
+]</code></pre>
+<p>Each entry of <code>columns</code> is either a column id, or an object:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td><code>id</code></td><td><b>Required.</b> A built-in column id (below), or a new id for your own column</td></tr>
+        <tr><td><code>width</code></td><td>Relative width. A built-in column without one gets its usual share (about 4 for the depth and graphic log, 3 for a value column, 30 for the description, 15 for remarks).</td></tr>
+        <tr><td><code>label</code></td><td>The heading. Defaults to the built-in heading, or the id.</td></tr>
+        <tr><td><code>source</code></td><td>For your own column: <code>"sample"</code> (from each sample's <code>custom</code>), <code>"specimen"</code> (from each specimen's <code>custom</code>) or <code>"blank"</code> (empty)</td></tr>
+        <tr><td><code>field</code></td><td>The key in <code>custom</code>. Defaults to the id.</td></tr>
+        <tr><td><code>decimals</code></td><td>Round numbers to this many decimals. Without it, numbers are shown as given.</td></tr>
+    </tbody>
+</table></div>
+<p>Rules: depth, graphic log and description are always drawn, even if left out; columns with no data are hidden as usual (blank columns aren't); and an unknown id without a <code>source</code>, an id listed twice, or your own column using a built-in id is an error.</p>
+
+<h3 id="ids">Built-in column ids</h3>
+<p>In the default order:</p>
+<pre><code>depth, elevation, groundwater, graphic, uscs, description,
+sample_type, sample_name, sampler_diameter, blow_count,
+specimen, specimen_name,
+water_content, total_unit_weight, dry_unit_weight, specific_gravity, fines_content, liquid_limit, plastic_limit,
+remarks</code></pre>
+<p>One more, <code>energy_ratio</code> (the hammer energy ratio of each sample), is only drawn when you add it.</p>
+
+<h2 id="precedence">Layout and display options</h2>
+<p>Display options given when the log is drawn, such as the API's <code>width</code>, <code>font_size</code> or <code>columns</code> parameters, or the web page's settings, take precedence over the log's layout. One exception: on the web page, a log's own width is kept. The <code>columns</code> option can list a layout's custom columns by their ids. See <a href="options.html">Display options</a>.</p>

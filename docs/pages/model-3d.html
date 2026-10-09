@@ -1,0 +1,45 @@
+<!-- title: The 3D model -->
+<!-- description: How the site view builds a 3D block model of the layers between borings, and how to use it. -->
+<h1>The 3D model</h1>
+<p class="lead">The site view's 3D tab draws the borings and the layers between them as a block, in the style of a soil-profile model in settlement software.</p>
+
+<figure class="log">
+    <a href="assets/site-page-3d.jpg"><img src="assets/site-page-3d.jpg" alt="3D block model of four borings with coloured layers" loading="lazy"></a>
+    <figcaption>The 3D model of four borings in Nantou, Taiwan. The legend lists the layers from the top.</figcaption>
+</figure>
+
+<h2 id="reading">What it shows</h2>
+<ul>
+    <li>A <b>box</b> around the borings (with a 12% margin), with the layers as coloured solids.</li>
+    <li>The <b>borings</b> as columns coloured by their layers, always drawn on top so they're never hidden.</li>
+    <li>The <b>water table</b> as a dashed blue line around the sides, and as a surface inside the block when the layers are made see-through.</li>
+    <li><b>Axes</b>, distance east and north in metres, and depth (or elevation), on the edges of the box that face you. They move to other edges as you turn the model, so they're never behind it.</li>
+    <li>A <b>legend</b> listing the layers from the top, by name, e.g. "Silty and lean CLAY (ML-CL, CL-ML, CL)". There's no text on the model itself.</li>
+</ul>
+<p>Layers with the same name share a colour and one legend entry, marked "more than one layer" when the name occurs at several depths. Different layers of the same main soil (several sands, say) get different shades of that soil's colour. Below the deepest layers, down to the deepest boring, is "Not explored".</p>
+
+<h2 id="using">Using it</h2>
+<ul>
+    <li><b>Drag</b> to turn the model, <b>right-drag</b> or <b>Shift-drag</b> to move it, and <b>scroll</b> to zoom.</li>
+    <li><b>Vertical exaggeration</b> stretches the model vertically. It starts so that the deepest boring is about 0.3 of the box's width.</li>
+    <li><b>Opacity</b> makes the layers see-through, to show the borings and the water table inside.</li>
+    <li><b>PNG</b> saves the current view at 1× to 4× the size on screen (up to 8,192 px a side), with the labels, axes and legend as sharp text.</li>
+    <li><b>SVG</b> saves the current view as vector graphics: the faces of the block that face you, shaded as on screen, with the layer boundaries, water table, borings, labels and legend. With opacity below 1 the faces are see-through, but the layer surfaces inside the block aren't drawn.</li>
+</ul>
+
+<h2 id="how">How it's built</h2>
+<ol class="steps">
+    <li><b>Neighbours.</b> Neighbouring borings are found by a Delaunay triangulation of their positions, leaving out links more than 2.5 times longer than the distance to the nearest boring at either end. Borings in a line are joined in order.</li>
+    <li><b>Matching.</b> Between each pair of neighbours, the units are matched by the same rules as the <a href="cross-sections.html#matching">cross-sections</a>: same main soil, silt joined to clay only through a silty clay, no crossing, similar depths. Units joined directly, or through other borings, form one layer of the model.</li>
+    <li><b>Order.</b> The layers are put in order from the top: each boring's order where they agree, and by mean depth where they don't.</li>
+    <li><b>Thickness.</b> Each layer's thickness at each boring is its thickness there, or zero where the boring doesn't have it. Over a 48 × 48 grid, every thickness is interpolated by inverse distance weighting (power 2, exact at the borings), and the layers are stacked down from the ground. Layers missing in a boring thin out towards it.</li>
+    <li><b>Ground.</b> The ground is level, unless every boring has a ground elevation; then it's interpolated the same way.</li>
+    <li><b>Water.</b> The water table is the first reading in each boring, interpolated the same way.</li>
+</ol>
+<div class="callout warn">
+    <strong>Read it as a sketch</strong>
+    <p>Away from the borings, every surface is an interpolation, and the layer matching is automatic. The legend says the model is an automatic interpretation. When the borings have no ground elevations, they're aligned at the ground surface, and a note says the true layer boundaries between borings aren't known with certainty.</p>
+</div>
+
+<h2 id="data">The model as data</h2>
+<p>The site API's JSON reply (<code>?format=json</code>) includes the model's layers and, with <code>grid=n</code>, the interpolated surfaces on an (n + 1) × (n + 1) grid, for use in other software. See <a href="api.html#site">Render API: sites</a>.</p>

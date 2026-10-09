@@ -1,0 +1,71 @@
+<!-- title: Site view: cross-sections and 3D -->
+<!-- description: Send all the borings of a site to the site API and get a page with a 3D model, suggested cross-sections, every log and a map. -->
+<h1>Site view: cross-sections and 3D</h1>
+<p class="lead">Send all the borings of a site at once and get back one web page with a 3D model of the layers, suggested cross-sections, every boring log, and a map.</p>
+
+<figure class="log">
+    <a href="assets/site-page-3d.jpg"><img src="assets/site-page-3d.jpg" alt="The site page: a 3D block model of four borings with a legend of layers and a map" loading="lazy"></a>
+    <figcaption>The site page for four borings in Nantou, Taiwan, showing the 3D model. The map is on the right.</figcaption>
+</figure>
+
+<div class="callout warn">
+    <strong>An automatic interpretation</strong>
+    <p>The layers between borings, in both the cross-sections and the 3D model, are connected by a set of rules, not by a geologist. The figures say so. Use them to get a first picture of a site and to spot inconsistencies, and check them against your own judgement before relying on them. <a href="cross-sections.html">How cross-sections are drawn</a> explains the rules.</p>
+</div>
+
+<h2 id="make">Making a site page</h2>
+<p>The site page is made by the API, from the borings you send it. Every boring needs a <code>latitude</code> and <code>longitude</code> in its <code>metadata</code> to appear in the sections, 3D model and map; borings without them are still shown as logs.</p>
+<p>With Python, put the borings in a list and send them to <code>api/site</code>:</p>
+<pre><code>import json, pathlib, requests
+
+borings = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(pathlib.Path("nantou").glob("*.json"))]
+
+r = requests.post("https://uclageo.com/boring-log-viewer/api/site",
+                  json={"name": "Nantou", "borings": borings})
+r.raise_for_status()
+pathlib.Path("nantou.html").write_text(r.text, encoding="utf-8")</code></pre>
+<p>Open <code>nantou.html</code> in a browser. It's a single self-contained file: you can keep it, email it or put it on a website. Only the map pictures are loaded from the internet.</p>
+<p>From the command line, with the same JSON in <code>site.json</code>:</p>
+<pre><code>curl -X POST -H "Content-Type: application/json" --data-binary @site.json \
+     "https://uclageo.com/boring-log-viewer/api/site" -o site.html</code></pre>
+<p>The body can be:</p>
+<ul>
+    <li><code>{ "name": "Nantou", "borings": [ ...boring logs... ] }</code>;</li>
+    <li>just a list of boring logs, <code>[ ... ]</code>; or</li>
+    <li>an <b>AGS4</b> file (<code>Content-Type: text/plain</code>) or <b>DIGGS</b> file (<code>Content-Type: application/xml</code>): every borehole with strata becomes a boring of the site.</li>
+</ul>
+<p>Up to 200 borings and 10 MB. Each boring is checked as for a single log; an error names the boring, e.g. <code>/borings/2/layers/0/bottom</code> for the first layer of the third boring.</p>
+<div class="callout">
+    <strong>From NGL</strong>
+    <p>The Next Generation Liquefaction database uses this to show its sites: its <b>Plot</b> button draws one boring, and the site view draws them all.</p>
+</div>
+
+<h2 id="page">What's on the page</h2>
+<p>Three tabs, each with its own options in the bar above the drawing, and a map beside them.</p>
+<dl class="fields">
+    <dt>3D model</dt>
+    <dd>The borings and the layers between them as a block. Drag to turn it, right-drag (or Shift-drag) to move it, scroll to zoom. <b>Vertical exaggeration</b> stretches it vertically; <b>Opacity</b> makes the layers see-through so you can see the borings and the water table inside. See <a href="model-3d.html">The 3D model</a>.</dd>
+    <dt>Cross-sections</dt>
+    <dd>The suggested sections (pick one under <b>Section</b>), with the borings at their distances along the line and the layers connected between them. <b>Layers between borings</b> switches between colours with labels and USCS hatches. See <a href="cross-sections.html">How cross-sections are drawn</a>.</dd>
+    <dt>Boring logs</dt>
+    <dd>Each boring's log (pick one under <b>Boring</b>), the same as on the viewer page.</dd>
+    <dt>Map</dt>
+    <dd>The borings and the section lines. Click a boring to see its log, or a line to see that cross-section.</dd>
+</dl>
+<p><b>SVG</b> and <b>PNG</b> download what's shown. For the 3D model, both save the current view (angle, exaggeration and opacity), with the legend; the SVG is vector throughout and opens in Illustrator or Inkscape. <b>Units</b> switches the sections and logs between metric and US units.</p>
+
+<h2 id="suggested">Suggested cross-sections</h2>
+<p>The sections are chosen from how the borings are laid out:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Section</th><th>Line</th><th>Drawn when</th></tr></thead>
+    <tbody>
+        <tr><td>A</td><td>Along the site: the direction the borings spread most, through their centre. It includes borings within 15% of its length of the line (at least 25 m), projected onto it.</td><td>Always (with two or more located borings)</td></tr>
+        <tr><td>B</td><td>Across the site, at right angles to A, through the boring nearest the centre</td><td>The site is at least 20% as wide as it is long</td></tr>
+        <tr><td>Next letter</td><td>Through every boring: a bent line from boring to boring, in order along the site, so nothing is projected</td><td>A and B leave borings out, or project one from more than 10 m away</td></tr>
+        <tr><td>Next letters</td><td>Across the site at 25% and 75% of the way along</td><td>More than six borings, on a site at least twice as long as it is wide</td></tr>
+    </tbody>
+</table></div>
+<p>A section that would show the same borings as an earlier one is left out. To draw a section along a line of your own, use <code>api/site/section</code> with <code>line=</code> (see <a href="api.html#site">the site API</a>).</p>
+
+<h2 id="data">Getting the results as data</h2>
+<p>Add <code>?format=json</code> to get the site's borings, suggested sections (with their SVG drawings) and the 3D model's layers as data instead of a page, for use in your own program. The parameters and the shape of the reply are in <a href="api.html#site">Render API: sites</a>.</p>

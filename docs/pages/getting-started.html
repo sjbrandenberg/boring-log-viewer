@@ -54,14 +54,15 @@
     <li><b><code>metadata</code></b> fills the header: project, ground elevation (which adds an elevation scale), date, drilling method, borehole diameter, hammer and who logged it.</li>
     <li><b><code>groundwater</code></b> is a list of water level readings, drawn as ▽ in the water level column.</li>
     <li><b><code>uscs</code></b> on each layer gives the recorded symbol.</li>
-    <li><b><code>samples</code></b> is the list of samples. Each has a <code>top</code> and <code>bottom</code> depth, a <code>name</code>, a sampler <code>type</code> (which picks the symbol), and any test results: blow counts, <code>water_content</code> (%), <code>fines_content</code> (%), <code>dry_unit_weight</code>, <code>liquid_limit</code> and <code>plastic_limit</code>.</li>
+    <li><b><code>samples</code></b> is the list of samples. Each has a <code>top</code> and <code>bottom</code> depth, a <code>name</code>, a sampler <code>type</code> (which picks the symbol), and its blow counts. The Shelby tube also has a <code>recovery</code>.</li>
+    <li><b><code>specimens</code></b>, inside each sample, are the pieces tested in the laboratory, each with its own depths and results: <code>water_content</code> (%), <code>fines_content</code> (%), unit weights, <code>liquid_limit</code> and <code>plastic_limit</code>. The Shelby tube T-3 has two.</li>
 </ul>
 <!-- log: step2-samples.json -->
-<p>Each sample's values are lined up with its sampler symbol, and the depth scale stretches if needed to keep them from overlapping. Every field is described in the <a href="data-format.html">data format reference</a>; the sampler symbols are listed in <a href="samples.html">Samples and test results</a>.</p>
+<p>Each sample's values are lined up with its sampler symbol, and each specimen's results with its grey box in the Specimen column; the depth scale stretches if needed to keep them from overlapping. The recovery is noted in the remarks. Every field is described in the <a href="data-format.html">data format reference</a>; samples and specimens are explained in <a href="samples.html">Samples, specimens and tests</a>.</p>
 
 <div class="callout tip">
     <strong>Leave out what you don't have</strong>
-    <p>Every field except <code>top</code> and <code>bottom</code> is optional. A column with no data in the whole log isn't drawn. You can also write <code>null</code> for a missing value (<code>"water_content": null</code>), which is handy when exporting from a spreadsheet or database.</p>
+    <p>Every field except a layer's or sample's <code>top</code> and <code>bottom</code> is optional. A column with no data in the whole log isn't drawn. You can also write <code>null</code> for a missing value (<code>"water_content": null</code>), which is handy when exporting from a spreadsheet or database.</p>
 </div>
 
 <h2 id="download">Step 3: Download or print</h2>
@@ -70,6 +71,7 @@
     <li><b>Units</b> converts the whole log to metric or US units for display, whatever units the data is in.</li>
     <li><b>Width</b> sets the width of the drawing in pixels. Wider gives more room for descriptions.</li>
     <li><b>Header</b>, <b>Legend</b>, <b>References</b>, <b>Fit text</b> and <b>Hide empty columns</b> turn parts of the drawing on and off. See <a href="options.html">Display options</a>.</li>
+    <li><b>Layout…</b> (above the text box) chooses the columns, their order, widths and headings, and adds your own. See <a href="layout.html">Columns and layout</a>.</li>
     <li><b>SVG</b> downloads a vector image: sharp at any size, editable in Inkscape or Illustrator, and best for reports.</li>
     <li><b>PNG</b> downloads a picture at 1×, 2× or 3× resolution, for slides or documents that don't take SVG.</li>
     <li><b>Print / PDF</b> opens the print dialog with only the log on the page. Choose "Save as PDF" as the printer to get a PDF.</li>
@@ -81,4 +83,5 @@
     <li><a href="data-format.html">Data format reference</a> lists every field you can use.</li>
     <li>Have data in Excel? See <a href="troubleshooting.html#excel">Making JSON from a spreadsheet</a>.</li>
     <li>Have an AGS4 or DIGGS file? <a href="importing.html">Open it directly</a>.</li>
+    <li>Have several borings from one site? Open them all in tabs (<a href="several-logs.html">Several logs and the map</a>), or draw cross-sections and a 3D model (<a href="site-view.html">Site view</a>).</li>
 </ul>

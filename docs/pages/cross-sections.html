@@ -1,0 +1,65 @@
+<!-- title: How cross-sections are drawn -->
+<!-- description: How the viewer connects layers between borings in a cross-section, and how to read the figure. -->
+<h1>How cross-sections are drawn</h1>
+<p class="lead">How the layers of neighbouring borings are matched and connected, and what the marks on a cross-section mean.</p>
+
+<!-- section: NAS-1.json NAS-2.json NAS-3.json NAS-4.json -> nantou-section-a.svg {"id":"A"} -->
+
+<p>A cross-section is drawn for a line across a site. Every boring within a set distance of the line (the <b>corridor</b>) is projected onto it at its distance along the line. Labels above each boring give its distance off the line and which side it's on (e.g. "58 m R"). The ends are labelled A and A′, with the compass direction each one points to ("← WSW" and "ENE →"), and the note under the figure gives the line's bearing.</p>
+
+<h2 id="units">1. Each boring's layers are grouped into units</h2>
+<p>Consecutive layers of the same main soil are grouped into one unit. The main soils are gravel, sand, silt, clay, and organic soils and peat. Fill, pavement, rock and other built-in materials (such as topsoil) are each their own kind. The kind comes from the symbol the log draws, so a dual symbol such as SP-SM counts as sand, and a symbol read from the description counts too.</p>
+<p>No recovery, water and voids are never connected to anything.</p>
+<p>A recorded value that isn't a real USCS symbol (such as GP-GW or SM-ML) is replaced by a guess: the symbol read from the description, or else its first group symbol. Guessed symbols are marked with <b>*</b> in the labels and listed under the figure.</p>
+
+<h2 id="matching">2. Units are matched between neighbouring borings</h2>
+<p>For each pair of neighbouring borings, the units are matched from the top down by sequence alignment, the same idea used to line up DNA sequences:</p>
+<ul>
+    <li>Connections never cross.</li>
+    <li>Only units of the same main soil connect. SP, SP-SM and SW connect to each other; CL connects to CH; ML connects to MH.</li>
+    <li><b>Silty clay</b> (CL-ML, or ML-CL) is a clay that connects both to clays and to silts. So ML can join CL-ML, which can join CL, but ML never connects directly to a plain CL. Sand never connects to either.</li>
+    <li>Units at similar depths (or elevations) are preferred.</li>
+</ul>
+
+<h2 id="drawing">3. How the connections are drawn</h2>
+<ul>
+    <li><b>Matched units</b> are drawn as bands between the borings. Each half of a band shows its own boring's layers: a unit of SC over SM keeps both, at their share of the unit's thickness, with dotted lines between them. Where a silt joins a silty clay, the colour blends from one to the other.</li>
+    <li><b>Boundaries</b> are smooth curves. Where a boundary runs across several borings, its slope at each boring blends the slopes on either side, so the curve never overshoots.</li>
+    <li><b>Units with no match</b> fill the space between the connections above and below them, with dashed outlines. One boring's units thin out towards the other boring while the other's thicken; a unit with no counterpart tapers out.</li>
+    <li><b>Below a shorter boring</b>, the deeper boring's units carry on level towards it.</li>
+    <li><b>Beyond the outer borings</b>, their layers are carried on level to the ends of the section, with dashed ends.</li>
+    <li><b>Groundwater:</b> the first reading in each boring is joined to its neighbours' by a dashed blue curve.</li>
+</ul>
+
+<h2 id="uncertain">4. Red question marks</h2>
+<p>A red <b>?</b> marks a place where the interpretation is uncertain:</p>
+<ul>
+    <li>where a layer that pinches out comes to an end;</li>
+    <li>at the end of a layer carried past a boring, or to the end of the section;</li>
+    <li>on the upper boundary of a connection between units that share no depth (or elevation) range.</li>
+</ul>
+
+<h2 id="vertical">Elevation or depth</h2>
+<p>When every boring has a ground <code>elevation</code>, the vertical axis is elevation and the borings are placed at their true levels. Otherwise the axis is depth, the borings are aligned at the ground surface, and a note under the figure says that the layer boundaries between borings are therefore not known with certainty: where the ground isn't level, the true boundaries lie higher or lower than drawn.</p>
+<p>Borings closer together than a column's width are spread apart, and labelled with their real distances.</p>
+
+<h2 id="styles">Colours or hatches</h2>
+<p>By default the layers between borings are coloured by main soil, and each connected layer is labelled once, where it has most room, e.g. "Clayey and silty SAND (SC, SM)". The boring columns keep their hatches.</p>
+<div class="table-wrap"><table>
+    <thead><tr><th>Main soil</th><th>Colour</th></tr></thead>
+    <tbody>
+        <tr><td>Gravel</td><td>orange</td></tr>
+        <tr><td>Sand</td><td>yellow</td></tr>
+        <tr><td>Silt</td><td>light green</td></tr>
+        <tr><td>Clay</td><td>green</td></tr>
+        <tr><td>Organic soils and peat</td><td>brown</td></tr>
+        <tr><td>Fill</td><td>grey</td></tr>
+        <tr><td>Pavement</td><td>dark grey</td></tr>
+        <tr><td>Rock</td><td>purple-grey</td></tr>
+    </tbody>
+</table></div>
+<p>Choose <b>USCS hatches</b> under <b>Layers between borings</b> (or <code>style=hatch</code> in the API) to draw the soil hatches between borings instead.</p>
+<!-- section: NAS-1.json NAS-2.json NAS-3.json NAS-4.json -> nantou-section-a-hatch.svg {"id":"A","style":"hatch"} -->
+
+<h2 id="limits">Limits</h2>
+<p>A section line can be at most 10 km long. The suggested sections of a site aren't limited.</p>

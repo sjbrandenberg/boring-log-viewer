@@ -9,11 +9,12 @@
   "units":       { ... },     how the numbers are measured
   "metadata":    { ... },     the header: project, boring name, location, drilling...
   "layers":      [ ... ],     strata, top to bottom (required)
-  "samples":     [ ... ],     samples, blow counts and test results
+  "samples":     [ ... ],     samples and blow counts, each with its lab specimens
   "groundwater": [ ... ],     water level readings
   "depth_notes": [ ... ],     observations at a single depth
   "references":  [ ... ],     where the data came from
-  "patterns":    { ... }      your own hatches and sampler symbols
+  "patterns":    { ... },     your own hatches and sampler symbols
+  "layout":      { ... }      the log's columns, widths and headings
 }</code></pre>
 <p>(The notes on the right aren't part of the JSON.) A complete example: <a href="examples/full-example.json" download><code>full-example.json</code></a>. The formal definition is the <a href="boring-log.schema.json">JSON Schema</a>, which many editors can use to check your file as you type.</p>
 
@@ -68,7 +69,7 @@
     <tbody>
         <tr><td><code>top</code>, <code>bottom</code></td><td><b>Required.</b> Depths of the layer's top and bottom</td><td><code>4.5</code>, <code>6.0</code></td></tr>
         <tr><td><code>description</code></td><td>Material description, as it should appear on the log</td><td><code>"Gray, soft, wet, lean CLAY with sand"</code></td></tr>
-        <tr><td><code>uscs</code></td><td>USCS group symbol, or a dual symbol (with <code>-</code> or <code>/</code>)</td><td><code>"CL"</code>, <code>"SP-SM"</code>, <code>"CL/ML"</code></td></tr>
+        <tr><td><code>uscs</code></td><td>USCS group symbol, an ASTM D2487 dual symbol (with <code>-</code>), or a borderline symbol (with <code>/</code>). It's checked against the description; see <a href="graphic-log.html#checking">checking recorded symbols</a></td><td><code>"CL"</code>, <code>"SP-SM"</code>, <code>"CL/CH"</code></td></tr>
         <tr><td><code>hatch</code></td><td>The graphic log symbol, if you want to choose it: a USCS symbol, a material or rock code, a pair of them, a code from <code>patterns</code>, or <code>"none"</code> for blank</td><td><code>"FILL"</code>, <code>"SANDSTONE"</code>, <code>"SP-FILL"</code></td></tr>
     </tbody>
 </table></div>
@@ -77,10 +78,10 @@
   { "top": 1.2, "bottom": 4.5, "description": "Gray, soft, wet, lean CLAY", "uscs": "CL" },
   { "top": 4.5, "bottom": 9.0, "description": "SANDSTONE, weathered", "hatch": "SANDSTONE" }
 ]</code></pre>
-<p>The USCS symbols are GW, GP, GM, GC, SW, SP, SM, SC, ML, CL, OL, MH, CH, OH and PT. The material and rock codes, and how the symbol is chosen when you don't give one, are in <a href="graphic-log.html">Graphic log and soil symbols</a>.</p>
+<p>The USCS symbols are GW, GP, GM, GC, SW, SP, SM, SC, ML, CL, OL, MH, CH, OH and PT. A value that isn't a possible symbol but contains one, such as <code>GP-GW</code> or <code>SM-G</code> (common in older logs), is accepted with a warning; one with no real symbol in it, such as <code>XX</code>, is an error. The material and rock codes, and how the symbol is chosen when you don't give one, are in <a href="graphic-log.html">Graphic log and soil symbols</a>.</p>
 
 <h2 id="samples">samples</h2>
-<p>Samples and the results measured on them. Each value goes in its own column, level with the sampler symbol.</p>
+<p>Samples, with their blow counts and the laboratory specimens cut from them. Details and examples: <a href="samples.html">Samples, specimens and tests</a>.</p>
 <div class="table-wrap"><table class="wrap">
     <thead><tr><th>Field</th><th>Meaning</th><th>Units</th></tr></thead>
     <tbody>
@@ -91,25 +92,45 @@
         <tr><td><code>blows</code></td><td>Blows for each increment</td><td><code>[6, 8, 10]</code></td></tr>
         <tr><td><code>energy_ratio</code></td><td>Hammer energy ratio for this sample, if different from the header</td><td>%</td></tr>
         <tr><td><code>sampler_diameter</code></td><td>Sampler outside diameter</td><td>diameter</td></tr>
-        <tr><td><code>recovery</code></td><td>Recovered length</td><td>length</td></tr>
+        <tr><td><code>recovery</code></td><td>Recovered length; <code>0</code> means no recovery. Shown as a note in the remarks</td><td>length</td></tr>
+        <tr><td><code>remarks</code></td><td>Notes about the sample</td><td>text</td></tr>
+        <tr><td><code>specimens</code></td><td>The specimens cut from the sample for laboratory tests, with their results (below)</td><td>list</td></tr>
+        <tr><td><code>uscs</code></td><td>USCS symbol of the sample (kept with the data; not drawn)</td><td><code>"SM"</code></td></tr>
+        <tr><td><code>custom</code></td><td>Values for your own columns, e.g. <code>{ "pocket_pen": 1.5 }</code>; see <a href="layout.html#custom">custom columns</a></td><td>as you choose</td></tr>
+    </tbody>
+</table></div>
+
+<h3 id="specimens">specimens (in a sample)</h3>
+<p>Each specimen has its own depth range and results. All fields are optional.</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Field</th><th>Meaning</th><th>Units</th></tr></thead>
+    <tbody>
+        <tr><td><code>name</code></td><td>Specimen reference</td><td>text</td></tr>
+        <tr><td><code>top</code>, <code>bottom</code></td><td>Depth range of the specimen. Without <code>top</code>, its results are shown level with the sample, with no box</td><td>length</td></tr>
         <tr><td><code>water_content</code></td><td>Water (moisture) content</td><td>%</td></tr>
+        <tr><td><code>total_unit_weight</code></td><td>Total (bulk) unit weight</td><td>unit_weight</td></tr>
         <tr><td><code>dry_unit_weight</code></td><td>Dry unit weight</td><td>unit_weight</td></tr>
         <tr><td><code>specific_gravity</code></td><td>Specific gravity of solids, G<sub>s</sub></td><td>–</td></tr>
         <tr><td><code>fines_content</code></td><td>Percent passing the No. 200 (75 µm) sieve</td><td>%</td></tr>
         <tr><td><code>liquid_limit</code>, <code>plastic_limit</code></td><td>Atterberg limits</td><td>%</td></tr>
-        <tr><td><code>nonplastic</code></td><td><code>true</code> for a non-plastic sample: shows "NP" in both limit columns</td><td><code>true</code>/<code>false</code></td></tr>
-        <tr><td><code>uscs</code></td><td>USCS symbol of the sample (kept with the data; not drawn)</td><td><code>"SM"</code></td></tr>
-        <tr><td><code>description</code></td><td>Sample description (its own column)</td><td>text</td></tr>
-        <tr><td><code>remarks</code></td><td>Other notes (its own column)</td><td>text</td></tr>
+        <tr><td><code>nonplastic</code></td><td><code>true</code> for a non-plastic specimen: "NP" in both limit columns</td><td><code>true</code>/<code>false</code></td></tr>
+        <tr><td><code>remarks</code></td><td>Notes about the specimen</td><td>text</td></tr>
+        <tr><td><code>custom</code></td><td>Values for your own specimen columns, e.g. <code>{ "cu": 45 }</code></td><td>as you choose</td></tr>
     </tbody>
 </table></div>
 <pre><code>"samples": [
   { "top": 2.5, "bottom": 4, "name": "S-1", "type": "SPT", "blows": [3, 4, 4], "blow_count": 8,
-    "water_content": 14.2, "fines_content": 31 },
-  { "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby",
-    "water_content": 36.5, "dry_unit_weight": 84.2, "liquid_limit": 44, "plastic_limit": 21 }
+    "specimens": [ { "name": "S-1a", "top": 2.5, "bottom": 4, "water_content": 14.2, "fines_content": 31 } ] },
+  { "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby", "recovery": 1.8,
+    "specimens": [
+      { "name": "T-3a", "top": 12.6, "bottom": 13.1, "water_content": 36.5, "liquid_limit": 44, "plastic_limit": 21 },
+      { "name": "T-3b", "top": 13.6, "bottom": 14.1, "water_content": 35.2, "dry_unit_weight": 84.2 }
+    ] }
 ]</code></pre>
-<p>More about blow counts and the sampler symbols: <a href="samples.html">Samples and test results</a>.</p>
+<div class="callout">
+    <strong>Older data</strong>
+    <p>Laboratory results written on the sample itself (<code>water_content</code>, <code>liquid_limit</code> and so on), and a sample <code>description</code>, are still accepted with a warning. See <a href="samples.html#old-format">results on the sample</a>.</p>
+</div>
 
 <h2 id="groundwater">groundwater</h2>
 <p>Water level readings. Only <code>depth</code> is required.</p>
@@ -147,4 +168,16 @@
     "name": "Sloping lines",
     "svg": "&lt;svg viewBox='0 0 40 20'&gt;&lt;line x1='0' y1='20' x2='40' y2='0' stroke='black'/&gt;&lt;/svg&gt;"
   }
+}</code></pre>
+
+<h2 id="layout">layout</h2>
+<p>The log's columns, their order, relative widths and headings, and its width and font size, saved with the data. Without it, the built-in layout is used. It's usually written for you by the viewer's <b>Layout…</b> window; see <a href="layout.html">Columns and layout</a>.</p>
+<pre><code>"layout": {
+  "width": 1000,
+  "columns": [
+    "depth", "graphic", { "id": "description", "width": 25, "label": "Soil description" },
+    "sample_type", "sample_name", "blow_count",
+    { "id": "pp", "source": "sample", "field": "pocket_pen", "label": "PP (tsf)" },
+    "remarks"
+  ]
 }</code></pre>
