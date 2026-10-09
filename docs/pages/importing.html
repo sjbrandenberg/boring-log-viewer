@@ -1,0 +1,47 @@
+<!-- title: Importing AGS4 and DIGGS -->
+<!-- description: Draw boring logs directly from AGS4 and DIGGS files, and what is read from each. -->
+<h1>Importing AGS4 and DIGGS</h1>
+<p class="lead">Open a standard geotechnical data file and the borings in it are drawn, with no conversion on your part.</p>
+
+<h2 id="how">How to open a file</h2>
+<ol class="steps">
+    <li>On the <a href="https://uclageo.com/boring-log-viewer/">viewer page</a>, click <b>Open file…</b>, or drag the file onto the text box.</li>
+    <li>If the file has more than one borehole, choose one from the list that appears beside the buttons.</li>
+    <li>The file is converted to the viewer's JSON, which appears in the text box, and the log is drawn. A note above the text box reports anything that couldn't be read.</li>
+</ol>
+<p>The conversion runs in your browser; the file isn't uploaded. You can edit the converted JSON like any other log, for example to fix a description or add a reference, and save it for later.</p>
+<p>From a script, send the file to the <a href="api.html#files">render API</a> instead.</p>
+
+<h2 id="ags">AGS4</h2>
+<p>AGS4 is the data transfer format of the Association of Geotechnical and Geoenvironmental Specialists, used in the UK and many other countries. Each borehole (<code>LOCA_ID</code>) becomes one log. AGS depths are in metres, so the logs are in SI units (use the Units option to display them in feet).</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>AGS4 group</th><th>Becomes</th></tr></thead>
+    <tbody>
+        <tr><td><code>PROJ</code>, <code>LOCA</code>, <code>HDIA</code></td><td>Header: project, site, ground level, dates, hole type (spelled out with the <code>ABBR</code> group, e.g. CP = Cable percussion), driller, latitude and longitude when given, remarks, hole diameter</td></tr>
+        <tr><td><code>GEOL</code></td><td>Layers (<code>GEOL_DESC</code>). Rows without a base depth are left out, with a warning.</td></tr>
+        <tr><td><code>DETL</code></td><td>Depth notes</td></tr>
+        <tr><td><code>SAMP</code></td><td>Samples. B/LB = Bulk, BLK = Block, D = Disturbed, U/UT/TW = Shelby, P = Piston, SPT, C = Core, WS = Direct push. Other types (ES, W...) are drawn as Other, with the type in the sample number ("3 ES"). A sample with only a top depth is drawn 0.15 m long (0.45 m for an SPT).</td></tr>
+        <tr><td><code>ISPT</code></td><td>SPT N-values (<code>ISPT_NVAL</code>, or the main drive of a refusal such as "50/150mm"), blows per 150 mm increment (from the six 75 mm increments), energy ratio</td></tr>
+        <tr><td><code>LNMC</code>, <code>LLPL</code>, <code>GRAG</code>, <code>LDEN</code>, <code>LPDN</code></td><td>Water content, liquid and plastic limits (NP = non-plastic), fines content, dry unit weight (from dry density), specific gravity, each matched to its sample</td></tr>
+        <tr><td><code>WSTG</code> (and AGS3-style <code>WSTK</code>)</td><td>Groundwater: water strikes</td></tr>
+    </tbody>
+</table></div>
+<p>"MADE GROUND", the British term for fill, is drawn with the fill symbol. AGS3 files aren't supported and are rejected with a message. The import was tested on 48 boreholes from the British Geological Survey's National Geoscience Data Centre.</p>
+
+<h2 id="diggs">DIGGS</h2>
+<p>DIGGS (Data Interchange for Geotechnical and Geoenvironmental Specialists, <a href="https://diggsml.org">diggsml.org</a>) is an XML format used by several US state DOTs. Versions 2.5, 2.6 and 3.x are read. Each <code>Borehole</code> (also <code>TestPit</code> and <code>Trench</code>) becomes one log; CPT soundings are skipped.</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>DIGGS</th><th>Becomes</th></tr></thead>
+    <tbody>
+        <tr><td><code>Project</code>, <code>Borehole</code></td><td>Header: project, boring name, latitude, longitude and elevation, dates, drilling method and rig, logger and drilling contractor, remarks</td></tr>
+        <tr><td>Linear referencing</td><td>The log's length unit (ft or m), per borehole</td></tr>
+        <tr><td><code>LithologyObservation</code></td><td>Layers, from the description, or one built from consistency, color, constituents and moisture. USCS from the classification code. An observation at a single depth inside a layer becomes a depth note.</td></tr>
+        <tr><td><code>SamplingActivity</code></td><td>Samples: SPT, Shelby, core sizes, bulk and so on, with recovery</td></tr>
+        <tr><td><code>Test</code> results</td><td>SPT N-value and blows per increment; water content, liquid and plastic limits, non-plastic, fines, dry density (as unit weight), specific gravity, USCS. Matched to samples by reference, or else by depth.</td></tr>
+        <tr><td><code>WaterStrike</code></td><td>Groundwater</td></tr>
+    </tbody>
+</table></div>
+<p>Tested on the official DIGGS examples, including the Ohio DOT projects (13 borings).</p>
+
+<h2 id="limits">If something is missing</h2>
+<p>Different programs fill these formats in different ways. If a value you expect isn't on the log, check the converted JSON in the text box: if it's there, see the <a href="data-format.html">data format reference</a> for where it's drawn; if it isn't, the file may store it in a group or property the import doesn't read. Please <a href="https://github.com/sjbrandenberg/boring-log-viewer/issues">open an issue</a> with an example file (with any confidential data removed) and we'll look at adding it.</p>

@@ -1,0 +1,92 @@
+<!-- title: Troubleshooting and FAQ -->
+<!-- description: Fixes for common error messages, making JSON from a spreadsheet, and answers to common questions. -->
+<h1>Troubleshooting and FAQ</h1>
+<p class="lead">Common error messages and what to do about them, getting data out of Excel, and other questions.</p>
+
+<h2 id="errors">Error messages</h2>
+<p>Errors are listed under the text box on the web page (click one to jump to it), or returned by the API. Each one has a <b>path</b> saying where the problem is: <code>/layers/2/uscs</code> means the <code>uscs</code> field of the <em>third</em> layer, because counting starts at 0.</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Message</th><th>What it means and how to fix it</th></tr></thead>
+    <tbody>
+        <tr><td>Invalid JSON: Expected double-quoted property name… (line 1 column 55)</td><td>A punctuation problem at that position. Most often a comma after the last item in a list, a missing comma between items, single quotes instead of double quotes, or a missing <code>}</code> or <code>]</code>. See <a href="getting-started.html#json-rules">JSON rules</a>.</td></tr>
+        <tr><td>unknown property "descripton"</td><td>A field name the viewer doesn't know, usually a typo. Check the spelling in the <a href="data-format.html">data format reference</a>. Names are lower case, with underscores (<code>water_content</code>, not <code>Water Content</code>).</td></tr>
+        <tr><td>bottom (0) must be greater than top (5)</td><td>The top and bottom depths are the wrong way round, or equal.</td></tr>
+        <tr><td>is not a recognized USCS symbol (e.g. SM, CL, SP-SM)</td><td>The <code>uscs</code> field only takes the 15 group symbols and pairs of them. Put anything else (such as "FILL" or "SM?") in the description, or use <code>hatch</code> for a material such as <code>FILL</code>.</td></tr>
+        <tr><td>unknown sampler type "SHELBY": use a built-in type or define it in patterns</td><td>The sample <code>type</code> isn't one of the <a href="samples.html#types">sampler codes</a>. Codes are case-sensitive: <code>Shelby</code>, not <code>SHELBY</code>.</td></tr>
+        <tr><td>must be number</td><td>A number was written in quotes (<code>"top": "4"</code>), or contains units or text (<code>"water_content": "12%"</code>). Write just the number: <code>"top": 4</code>.</td></tr>
+        <tr><td>must be "1.0"</td><td><code>schema_version</code> must be exactly <code>"1.0"</code>, in quotes.</td></tr>
+        <tr><td>must have required property 'bottom'</td><td>Every layer and sample needs both <code>top</code> and <code>bottom</code>.</td></tr>
+    </tbody>
+</table></div>
+
+<h3 id="warnings">Warnings</h3>
+<p>Warnings don't stop the log being drawn; they point out things that might be mistakes.</p>
+<ul>
+    <li><b>gap between 5 and 6 (no layer described)</b>: there's no layer from 5 to 6. It's left blank on the log. If the gap is real (e.g. no recovery), add a layer for it, perhaps with <code>"hatch": "NO_RECOVERY"</code>.</li>
+    <li><b>overlaps layer 1 (4–12)</b>: two layers cover the same depths. Check the depths.</li>
+</ul>
+
+<h2 id="excel">Making JSON from a spreadsheet</h2>
+<p>If your layers are in Excel with columns for top, bottom and description, you can have Excel write the JSON for you.</p>
+<ol class="steps">
+    <li>Suppose the top depth is in column A, bottom in B and description in C, starting in row 2. In D2 enter:
+<pre><code>="{ ""top"": "&amp;A2&amp;", ""bottom"": "&amp;B2&amp;", ""description"": """&amp;SUBSTITUTE(C2,"""","\""")&amp;""" },"</code></pre>
+    and fill it down. Each cell now holds one layer, such as <code>{ "top": 0, "bottom": 4, "description": "Brown silty SAND" },</code>. (The <code>SUBSTITUTE</code> handles a description that contains a double quote, such as 3" gravel.)</li>
+    <li>Copy column D and paste it into the viewer between the brackets of <code>"layers": [</code> and <code>]</code>.</li>
+    <li><b>Delete the comma after the last layer.</b></li>
+</ol>
+<p>Samples work the same way, with one cell per field. To leave a value out when its cell is empty, wrap it in an <code>IF</code>, for example for water content in column E: <code>IF(E2="","",", ""water_content"": "&amp;E2)</code>.</p>
+<p>For many borings, a short script is easier. This Python example reads <code>layers.csv</code> (columns <code>boring, top, bottom, description, uscs</code>) and writes one JSON file per boring:</p>
+<pre><code>import csv, json
+from collections import defaultdict
+
+borings = defaultdict(list)
+with open("layers.csv", newline="", encoding="utf-8-sig") as f:
+    for row in csv.DictReader(f):
+        layer = {"top": float(row["top"]), "bottom": float(row["bottom"]),
+                 "description": row["description"]}
+        if row.get("uscs"):
+            layer["uscs"] = row["uscs"]
+        borings[row["boring"]].append(layer)
+
+for name, layers in borings.items():
+    log = {"schema_version": "1.0", "units": {"length": "ft"},
+           "metadata": {"boring_name": name}, "layers": layers}
+    with open(f"{name}.json", "w", encoding="utf-8") as f:
+        json.dump(log, f, indent=2)</code></pre>
+<p>The files can then be opened on the web page, or drawn all at once with the <a href="api.html#batch">API</a>.</p>
+
+<h2 id="faq">Questions</h2>
+
+<h3 id="privacy">Is my data sent anywhere?</h3>
+<p>Not by the web page: it draws the log in your browser, and keeps your last log in your browser's storage so it's still there next time. Opening an AGS4 or DIGGS file on the page doesn't upload it either. The API does receive the data you send it, but doesn't store or log it.</p>
+
+<h3 id="edit">Can I edit the drawing afterwards?</h3>
+<p>Yes. Download it as SVG and open it in Inkscape (free), Adobe Illustrator or another vector editor. Text stays as text, and each part is a separate object.</p>
+
+<h3 id="word">How do I put a log in a Word report?</h3>
+<p>Recent versions of Word and PowerPoint accept SVG directly (Insert → Pictures), and it stays sharp when printed. Otherwise use a PNG at 2× or 3×. For a full-page log, <b>Print / PDF</b> and insert the PDF, or add it as an appendix.</p>
+
+<h3 id="long">My log is very tall. Can I split it over pages?</h3>
+<p>The web page draws one continuous log. To split it, draw it in parts with the <code>depth_range</code> option (in the JavaScript module), or print to PDF and let the browser break it over pages. Making the drawing wider, or turning off <b>Fit text</b>, also makes it shorter.</p>
+
+<h3 id="spacing">Why are my layers stretched unevenly?</h3>
+<p>They aren't: the depth scale is always uniform. With <b>Fit text</b> on, the whole scale is stretched until sample rows and descriptions fit, so a log with many closely spaced samples gets taller. See <a href="reading-the-log.html#depth-scale">why the depth scale stretches</a>.</p>
+
+<h3 id="wrong-symbol">The graphic log shows the wrong symbol</h3>
+<p>Give the layer a <code>uscs</code> (or a <code>hatch</code>, which always wins). If a material such as fill or a rock is being picked out of the description when you don't want it, set <code>uscs</code> and turn off <code>infer_materials</code>, or set <code>hatch</code> directly. <a href="graphic-log.html#order">How the symbol is chosen</a> explains the order.</p>
+
+<h3 id="parentheses">Why is the USCS symbol in parentheses?</h3>
+<p>It was inferred from the description, not recorded in the data. The legend says so too. Add <code>uscs</code> to the layer to show it without parentheses, or turn off <code>infer_uscs</code> to hide inferred symbols.</p>
+
+<h3 id="rock">Can I log rock cores?</h3>
+<p>Yes: there are hatches for over 40 rock types, plus weathered rock and intermediate geomaterial, and sampler types for rock core and triple-tube core with <code>recovery</code>. There aren't dedicated RQD or fracture-frequency columns yet; put RQD in <code>remarks</code>.</p>
+
+<h3 id="cpt">Can it draw CPT soundings?</h3>
+<p>No, it draws boring logs only. CPT soundings in a DIGGS file are skipped.</p>
+
+<h3 id="cite">How should I cite it?</h3>
+<p>Please cite the <a href="https://github.com/sjbrandenberg/boring-log-viewer">source repository</a>, and list the source of your boring data in the log's <code>references</code> so it appears on the drawing.</p>
+
+<h3 id="bug">I found a bug, or need a feature</h3>
+<p>Please <a href="https://github.com/sjbrandenberg/boring-log-viewer/issues">open an issue on GitHub</a>. Include the JSON (or file) that shows the problem, with any confidential information removed.</p>

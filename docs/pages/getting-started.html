@@ -1,0 +1,84 @@
+<!-- title: Your first boring log -->
+<!-- description: A step-by-step tutorial: write the data for a boring, draw it, and download the log. -->
+<h1>Your first boring log</h1>
+<p class="lead">In this tutorial you'll draw a log for a 20 ft boring, starting with three layers and then adding samples, blow counts, lab results, groundwater and a header.</p>
+
+<h2 id="open">Step 0: Open the viewer</h2>
+<p>Go to <a href="https://uclageo.com/boring-log-viewer/">uclageo.com/boring-log-viewer</a>. The page has two halves:</p>
+<ul>
+    <li><b>Left:</b> a text box where the boring log data goes.</li>
+    <li><b>Right:</b> the drawn log, which updates as you type, with buttons to download it.</li>
+</ul>
+<p>Click <b>Clear</b> to empty the text box. (To see a finished example first, choose one from <b>Load example…</b>.)</p>
+<div class="callout">
+    <strong>Your data stays on your computer</strong>
+    <p>The web page draws the log inside your browser. The data you type is not sent anywhere, and it is kept in your browser so it's still there if you reload the page.</p>
+</div>
+
+<h2 id="layers">Step 1: The layers</h2>
+<p>Copy this into the text box:</p>
+<!-- json: step1-layers.json -->
+<p>Here's what each part means:</p>
+<ul>
+    <li><code>"schema_version": "1.0"</code> is always the same. It tells the viewer which version of the format you are using.</li>
+    <li><code>"units": { "length": "ft" }</code> says the depths are in feet. Leave <code>units</code> out to use metres.</li>
+    <li><code>"metadata": { "boring_name": "B-1" }</code> gives the log its title.</li>
+    <li><code>"layers"</code> is the list of strata, from the top down. Each layer has a <code>top</code> and <code>bottom</code> depth (measured down from the ground surface) and a <code>description</code>.</li>
+</ul>
+<p>The viewer draws:</p>
+<!-- log: step1-layers.json -->
+<p>Notice what it worked out on its own:</p>
+<ul>
+    <li><b>The graphic log symbols</b> come from the descriptions. "poorly graded SAND with silt" is drawn as SP-SM and "lean CLAY" as CL, using the ASTM D2487 group names.</li>
+    <li><b>The first layer is drawn as fill</b>, because its description ends with "(fill)".</li>
+    <li><b>The USCS column</b> shows the symbols it inferred, in parentheses, so a reader can tell they weren't recorded by the logger. The legend explains the parentheses.</li>
+</ul>
+<p>If you'd rather choose the symbols yourself, add <code>"uscs": "SM"</code> to a layer. A symbol you give is always used, and shown without parentheses. See <a href="graphic-log.html">Graphic log and soil symbols</a> for how the symbols are chosen.</p>
+
+<h3 id="json-rules">A few JSON rules</h3>
+<p>JSON is strict about punctuation. If the log disappears and an error appears under the text box, it's usually one of these:</p>
+<ul>
+    <li>Names and text go in <b>double quotes</b>: <code>"description": "Gray, soft, wet, lean CLAY"</code>. Numbers don't: <code>"top": 4</code>.</li>
+    <li>Items in a list, and fields in an object, are separated by <b>commas</b>, but there is <b>no comma after the last one</b>.</li>
+    <li>Every <code>{</code> needs a matching <code>}</code>, and every <code>[</code> a matching <code>]</code>.</li>
+    <li>Decimal numbers use a point: <code>12.5</code>, not <code>12,5</code>.</li>
+</ul>
+<p>Click an error message to jump to the problem in the text box. The <b>Format</b> button re-indents the text neatly once it's valid.</p>
+
+<h2 id="samples">Step 2: Samples, test results, groundwater and the header</h2>
+<p>Now replace the text with the complete boring:</p>
+<!-- json: step2-samples.json -->
+<p>What's new:</p>
+<ul>
+    <li><b><code>units</code></b> now also sets unit weights in pcf and diameters in inches.</li>
+    <li><b><code>metadata</code></b> fills the header: project, ground elevation (which adds an elevation scale), date, drilling method, borehole diameter, hammer and who logged it.</li>
+    <li><b><code>groundwater</code></b> is a list of water level readings, drawn as ▽ in the water level column.</li>
+    <li><b><code>uscs</code></b> on each layer gives the recorded symbol.</li>
+    <li><b><code>samples</code></b> is the list of samples. Each has a <code>top</code> and <code>bottom</code> depth, a <code>name</code>, a sampler <code>type</code> (which picks the symbol), and any test results: blow counts, <code>water_content</code> (%), <code>fines_content</code> (%), <code>dry_unit_weight</code>, <code>liquid_limit</code> and <code>plastic_limit</code>.</li>
+</ul>
+<!-- log: step2-samples.json -->
+<p>Each sample's values are lined up with its sampler symbol, and the depth scale stretches if needed to keep them from overlapping. Every field is described in the <a href="data-format.html">data format reference</a>; the sampler symbols are listed in <a href="samples.html">Samples and test results</a>.</p>
+
+<div class="callout tip">
+    <strong>Leave out what you don't have</strong>
+    <p>Every field except <code>top</code> and <code>bottom</code> is optional. A column with no data in the whole log isn't drawn. You can also write <code>null</code> for a missing value (<code>"water_content": null</code>), which is handy when exporting from a spreadsheet or database.</p>
+</div>
+
+<h2 id="download">Step 3: Download or print</h2>
+<p>Above the drawing are the controls:</p>
+<ul>
+    <li><b>Units</b> converts the whole log to metric or US units for display, whatever units the data is in.</li>
+    <li><b>Width</b> sets the width of the drawing in pixels. Wider gives more room for descriptions.</li>
+    <li><b>Header</b>, <b>Legend</b>, <b>References</b>, <b>Fit text</b> and <b>Hide empty columns</b> turn parts of the drawing on and off. See <a href="options.html">Display options</a>.</li>
+    <li><b>SVG</b> downloads a vector image: sharp at any size, editable in Inkscape or Illustrator, and best for reports.</li>
+    <li><b>PNG</b> downloads a picture at 1×, 2× or 3× resolution, for slides or documents that don't take SVG.</li>
+    <li><b>Print / PDF</b> opens the print dialog with only the log on the page. Choose "Save as PDF" as the printer to get a PDF.</li>
+</ul>
+
+<h2 id="next">Next steps</h2>
+<ul>
+    <li><a href="reading-the-log.html">Reading the log</a> explains every part of the drawing.</li>
+    <li><a href="data-format.html">Data format reference</a> lists every field you can use.</li>
+    <li>Have data in Excel? See <a href="troubleshooting.html#excel">Making JSON from a spreadsheet</a>.</li>
+    <li>Have an AGS4 or DIGGS file? <a href="importing.html">Open it directly</a>.</li>
+</ul>

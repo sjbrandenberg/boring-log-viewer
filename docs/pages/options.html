@@ -1,0 +1,52 @@
+<!-- title: Display options -->
+<!-- description: Options that change how the log is drawn: units, size, columns, header, legend and symbol inference. -->
+<h1>Display options</h1>
+<p class="lead">Options change how a log is drawn without changing its data. Most are buttons and checkboxes on the web page; all of them can be given to the <a href="api.html">API</a> or the JavaScript module.</p>
+
+<h2 id="table">All options</h2>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Option</th><th>On the web page</th><th>Default</th><th>What it does</th></tr></thead>
+    <tbody>
+        <tr><td><code>units</code></td><td>Units</td><td>as in the data</td><td>Display lengths in <code>m</code> or <code>ft</code>. Unit weights and diameters follow (kN/m³ and mm, or pcf and in) unless set below.</td></tr>
+        <tr><td><code>unit_weight</code></td><td>–</td><td>follows <code>units</code></td><td>Display unit weight in <code>kN/m3</code> or <code>pcf</code></td></tr>
+        <tr><td><code>diameter_units</code></td><td>–</td><td>follows <code>units</code></td><td>Display diameters in <code>mm</code>, <code>cm</code>, <code>m</code>, <code>in</code> or <code>ft</code></td></tr>
+        <tr><td><code>width</code></td><td>Width</td><td>800</td><td>Width of the drawing in px. It's widened automatically if the text columns would be too narrow.</td></tr>
+        <tr><td><code>height</code></td><td>–</td><td>500</td><td>Starting height of the log body in px (before Fit text stretches it)</td></tr>
+        <tr><td><code>scale</code></td><td>–</td><td>–</td><td>Fixed depth scale, in px per metre or foot. Overrides <code>height</code>.</td></tr>
+        <tr><td><code>fit_text</code></td><td>Fit text</td><td>on</td><td>Stretch the depth scale so sample rows line up with their symbols and descriptions fit (see <a href="reading-the-log.html#depth-scale">why the depth scale stretches</a>)</td></tr>
+        <tr><td><code>header</code></td><td>Header</td><td>on</td><td>The header box above the log</td></tr>
+        <tr><td><code>legend</code></td><td>Legend</td><td>on</td><td>The legend below the log</td></tr>
+        <tr><td><code>references</code></td><td>References</td><td>on</td><td>The references, in the header (or below the legend if the header is off)</td></tr>
+        <tr><td><code>hide_empty_columns</code></td><td>Hide empty columns</td><td>on</td><td>Leave out columns with no data</td></tr>
+        <tr><td><code>columns</code></td><td>–</td><td>see below</td><td>Which columns to draw, in order</td></tr>
+        <tr><td><code>title</code></td><td>–</td><td>boring name</td><td>Title text</td></tr>
+        <tr><td><code>font_size</code></td><td>–</td><td>10</td><td>Text size in px</td></tr>
+        <tr><td><code>infer_uscs</code></td><td>–</td><td>on</td><td>Show USCS symbols inferred from descriptions, in parentheses</td></tr>
+        <tr><td><code>infer_materials</code></td><td>–</td><td>on</td><td>Draw fill, pavement, rock and other materials named in descriptions</td></tr>
+        <tr><td><code>depth_range</code></td><td>–</td><td>whole boring</td><td>Draw only part of the boring, <code>[top, bottom]</code> in display units (JavaScript only)</td></tr>
+        <tr><td><code>id_prefix</code></td><td>–</td><td>automatic</td><td>Prefix for ids inside the SVG; only needed in unusual cases where several logs share a web page</td></tr>
+    </tbody>
+</table></div>
+
+<h2 id="units">Units</h2>
+<p>The data can be in one system and the drawing in another. A boring entered in feet can be drawn in metres by choosing <b>Metric</b> on the web page, or <code>units=m</code> in the API. Every depth, elevation, recovery, unit weight and diameter is converted; percentages and blow counts aren't affected.</p>
+
+<h2 id="size">Size and depth scale</h2>
+<ul>
+    <li>For a page in a report, a <code>width</code> of 800 to 1000 px works well. Give more width when descriptions are long or there are many lab columns.</li>
+    <li>To draw several borings at the <b>same depth scale</b> (e.g. for a fence diagram or a side-by-side comparison), turn off <code>fit_text</code> and give the same <code>scale</code> to each, e.g. <code>scale=40</code> for 40 px per foot.</li>
+    <li>With <code>fit_text</code> off and no <code>scale</code>, the log body is <code>height</code> px tall whatever the boring depth.</li>
+</ul>
+
+<h2 id="columns">Choosing columns</h2>
+<p>The default columns, in order:</p>
+<pre><code>depth, elevation, groundwater, graphic, uscs, description,
+sample_type, sample_name, sampler_diameter, recovery, blow_count, sample_description,
+water_content, dry_unit_weight, specific_gravity, fines_content, liquid_limit, plastic_limit,
+remarks</code></pre>
+<p>There is one more column, <code>energy_ratio</code>, for a per-sample hammer energy ratio. It isn't in the default list, so add it where you want it. For example, a log with only the field data:</p>
+<pre><code>columns=depth,graphic,uscs,description,sample_type,sample_name,blow_count,energy_ratio</code></pre>
+<p>With <code>hide_empty_columns</code> on (the default), listed columns that have no data are still left out.</p>
+
+<h2 id="inference">Symbol inference</h2>
+<p><code>infer_uscs</code> and <code>infer_materials</code> control the two kinds of guessing described in <a href="graphic-log.html#order">how the symbol is chosen</a>. Turn them off when your data already gives a <code>uscs</code> or <code>hatch</code> for every layer and you don't want the descriptions second-guessed.</p>

@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "units": { "length": "ft" },
+  "metadata": { "boring_name": "B-1" },
+  "layers": [
+    { "top": 0, "bottom": 4, "description": "Brown, loose, moist, silty SAND (fill)" },
+    { "top": 4, "bottom": 12, "description": "Gray, medium dense, wet, poorly graded SAND with silt" },
+    { "top": 12, "bottom": 20, "description": "Gray, soft, wet, lean CLAY" }
+  ]
+}

@@ -17,6 +17,8 @@
     "render": "node scripts/render.js",
     "build": "node scripts/build-site.js",
     "dev": "node scripts/build-site.js --serve",
+    "docs": "node scripts/build-docs.js",
+    "docs:serve": "node scripts/build-docs.js --serve",
     "start": "node server/index.js"
   },
   "dependencies": {

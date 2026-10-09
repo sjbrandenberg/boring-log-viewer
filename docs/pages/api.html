@@ -1,0 +1,143 @@
+<!-- title: Render API (scripts) -->
+<!-- description: Draw boring logs from Python, the command line or a website with the render API. -->
+<h1>Render API</h1>
+<p class="lead">Send boring log data from a script and get the drawn log back as SVG, PNG or a web page. Useful for drawing many logs at once, or showing logs on your own website.</p>
+
+<h2 id="basics">The basics</h2>
+<p>Send the boring log JSON in a <code>POST</code> request to:</p>
+<pre><code>https://uclageo.com/boring-log-viewer/api/render</code></pre>
+<p>with the header <code>Content-Type: application/json</code>. The reply is the drawn log. Add <a href="#parameters">options</a> to the address after a <code>?</code>, for example <code>?format=png&amp;units=ft</code>.</p>
+<p>The data you send isn't stored or logged. The API needs no account or key.</p>
+
+<h2 id="python">From Python</h2>
+<p>Using the <a href="https://pypi.org/project/requests/">requests</a> package (<code>pip install requests</code>):</p>
+<pre><code>import requests
+
+API = "https://uclageo.com/boring-log-viewer/api/render"
+
+with open("B-1.json", encoding="utf-8") as f:
+    log = f.read()
+
+r = requests.post(API, params={"format": "png", "units": "ft"}, data=log.encode("utf-8"),
+                  headers={"Content-Type": "application/json"})
+r.raise_for_status()
+with open("B-1.png", "wb") as f:
+    f.write(r.content)</code></pre>
+
+<h3 id="batch">Drawing a whole folder of borings</h3>
+<pre><code>import pathlib, requests
+
+API = "https://uclageo.com/boring-log-viewer/api/render"
+
+for path in sorted(pathlib.Path("borings").glob("*.json")):
+    r = requests.post(API, params={"format": "svg", "width": 900},
+                      data=path.read_bytes(), headers={"Content-Type": "application/json"})
+    if r.ok:
+        path.with_suffix(".svg").write_text(r.text, encoding="utf-8")
+        print("drew", path.name)
+    else:
+        # The reply says what's wrong, e.g. {"error": ..., "errors": [{"path": "/layers/2/uscs", ...}]}
+        print(path.name, "failed:", r.json())</code></pre>
+
+<h3 id="from-python-data">Building the log in Python</h3>
+<p>If your data is already in Python (from a database or a spreadsheet), build the log as a dictionary and send it with <code>json=</code>:</p>
+<pre><code>log = {
+    "schema_version": "1.0",
+    "units": {"length": "ft"},
+    "metadata": {"boring_name": "B-1"},
+    "layers": [
+        {"top": 0, "bottom": 4, "description": "Brown silty SAND", "uscs": "SM"},
+        {"top": 4, "bottom": 20, "description": "Gray lean CLAY", "uscs": "CL"},
+    ],
+}
+r = requests.post(API, params={"format": "svg"}, json=log)</code></pre>
+<p>Python's <code>None</code> becomes JSON <code>null</code>, which the viewer treats as "not given", so missing values from a database can be passed straight through.</p>
+
+<h2 id="curl">From the command line</h2>
+<pre><code>curl -X POST -H "Content-Type: application/json" --data-binary @B-1.json \
+     "https://uclageo.com/boring-log-viewer/api/render?format=png&amp;units=ft" -o B-1.png</code></pre>
+<p>On Windows PowerShell, use <code>curl.exe</code> rather than <code>curl</code>, and put the command on one line.</p>
+
+<h2 id="web">On a web page</h2>
+<p>The API can be called from any website. To show a log on a page:</p>
+<pre><code>const r = await fetch('https://uclageo.com/boring-log-viewer/api/render?format=svg', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(log),
+});
+document.getElementById('log').innerHTML = await r.text();</code></pre>
+<p>A JavaScript application can also draw logs itself, with no server, using the module in the <a href="https://github.com/sjbrandenberg/boring-log-viewer">source repository</a>: <code>renderBoringLog(log, options)</code> returns the SVG as text.</p>
+
+<h2 id="parameters">Parameters</h2>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Parameter</th><th>Values</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td><code>format</code></td><td><code>svg</code>, <code>png</code>, <code>html</code></td><td>What to send back. Default SVG (or whatever the request's <code>Accept</code> header asks for).</td></tr>
+        <tr><td><code>png_scale</code></td><td>0.5 to 4</td><td>Resolution of a PNG, as a multiple of the SVG size. Default 2.</td></tr>
+        <tr><td><code>download</code></td><td><code>true</code></td><td>Ask a browser to save the file rather than show it</td></tr>
+        <tr><td><code>units</code>, <code>unit_weight</code>, <code>diameter_units</code></td><td rowspan="1">see <a href="options.html">Display options</a></td><td>Display units</td></tr>
+        <tr><td><code>width</code>, <code>height</code>, <code>scale</code>, <code>font_size</code></td><td>numbers</td><td>Size</td></tr>
+        <tr><td><code>header</code>, <code>legend</code>, <code>references</code>, <code>fit_text</code>, <code>hide_empty_columns</code>, <code>infer_uscs</code>, <code>infer_materials</code></td><td><code>true</code>/<code>false</code></td><td>Turn parts of the drawing on or off</td></tr>
+        <tr><td><code>columns</code></td><td>comma-separated list</td><td>e.g. <code>depth,graphic,description,blow_count</code></td></tr>
+        <tr><td><code>title</code></td><td>text</td><td>Title</td></tr>
+        <tr><td><code>loca_id</code></td><td>borehole name</td><td>For AGS4 and DIGGS files with several boreholes: which one to draw</td></tr>
+    </tbody>
+</table></div>
+<p>An unknown or misspelled parameter is an error, so a typo doesn't silently go unused.</p>
+
+<h2 id="files">Sending AGS4 and DIGGS files</h2>
+<p>An AGS4 file can be sent as it is with <code>Content-Type: text/plain</code>, and a DIGGS file with <code>Content-Type: application/xml</code>. Add <code>loca_id</code> to pick the borehole when the file has more than one.</p>
+<pre><code>curl -X POST -H "Content-Type: text/plain" --data-binary @site.ags \
+     "https://uclageo.com/boring-log-viewer/api/render?loca_id=BH01&amp;format=png" -o BH01.png</code></pre>
+<p>To get the converted JSON instead of a drawing (to check or edit it, or to see the borehole names), send the file to <code>api/ags</code> or <code>api/diggs</code>. The reply lists every borehole:</p>
+<pre><code>{ "documents": [ { "loca_id": "BH01", "document": { ...boring log JSON... } }, ... ],
+  "warnings": [ ... ] }</code></pre>
+
+<h2 id="hatches">Using your own hatches with the API</h2>
+<p>Hatches made on the web page are saved in the log's JSON, in the <code>"patterns"</code> section, not on the server. To use them from a script, include that section in the JSON you send:</p>
+<ol class="steps">
+    <li>On the web page, add your hatch with <b>Hatches…</b> (see <a href="custom-hatches.html">Your own hatches</a>).</li>
+    <li>Click <b>Format</b>, select all the JSON (<kbd>Ctrl</kbd>+<kbd>A</kbd>) and copy it into a text file, e.g. <code>hatches.json</code>.</li>
+    <li>In your script, copy its <code>patterns</code> into each log, and set <code>hatch</code> on the layers that use it:</li>
+</ol>
+<pre><code>import json, requests
+
+hatches = json.load(open("hatches.json", encoding="utf-8"))["patterns"]
+
+log = json.load(open("B-1.json", encoding="utf-8"))
+log["patterns"] = hatches
+log["layers"][0]["hatch"] = "FILL_CALTRANS"     # the layers that use the hatch
+
+r = requests.post("https://uclageo.com/boring-log-viewer/api/render",
+                  params={"format": "svg"}, json=log)
+r.raise_for_status()</code></pre>
+<p>A hatch that replaces a built-in code, such as <code>SM</code> or <code>SPT</code>, needs no <code>hatch</code> or <code>type</code>: it's used automatically.</p>
+
+<h2 id="errors">Errors and warnings</h2>
+<p>When something is wrong, the reply has an error status and a JSON body that says what and where:</p>
+<pre><code>{ "error": "Invalid boring log",
+  "errors": [ { "path": "/layers/2/uscs", "message": "is not a recognized USCS symbol (e.g. SM, CL, SP-SM)" } ] }</code></pre>
+<p>The <code>path</code> points into your data: <code>/layers/2/uscs</code> is the <code>uscs</code> of the third layer (counting starts at 0).</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Status</th><th>Means</th></tr></thead>
+    <tbody>
+        <tr><td>400</td><td>The JSON can't be read (with the position of the problem), or a parameter is wrong</td></tr>
+        <tr><td>406</td><td>Unknown <code>format</code></td></tr>
+        <tr><td>413</td><td>Too large: over 1 MB of JSON, or 10 MB for an AGS4 or DIGGS file</td></tr>
+        <tr><td>415</td><td>Wrong <code>Content-Type</code></td></tr>
+        <tr><td>422</td><td>The data is readable but not a valid boring log; more than 2,000 layers or 5,000 samples; a PNG over 40 megapixels; or an AGS4/DIGGS file that can't be used (AGS3, no boreholes, no borehole chosen from several)</td></tr>
+        <tr><td>429</td><td>Too many requests: the limit is 60 per minute. Wait a minute, or add a short pause between requests in a loop.</td></tr>
+    </tbody>
+</table></div>
+<p><b>Warnings</b>, such as a gap between two layers, don't stop the drawing. They're sent in the <code>X-Boring-Log-Warnings</code> response header.</p>
+
+<h2 id="other">Other endpoints</h2>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
+    <tbody>
+        <tr><td><code>POST api/validate</code></td><td>Checks a log without drawing it: <code>{ "valid": ..., "errors": [...], "warnings": [...] }</code></td></tr>
+        <tr><td><code>POST api/ags</code>, <code>POST api/diggs</code></td><td>A file converted to boring log JSON, one per borehole</td></tr>
+        <tr><td><code>GET api/schema</code></td><td>The <a href="boring-log.schema.json">JSON Schema</a></td></tr>
+        <tr><td><code>GET api/health</code></td><td>Whether the service is up, and its version</td></tr>
+    </tbody>
+</table></div>

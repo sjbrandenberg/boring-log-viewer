@@ -3,8 +3,11 @@
 Renders a geotechnical boring log from JSON as a standalone SVG. The same
 module is used by the paste-and-preview page at
 `uclageo.com/boring-log-viewer` (see [Website](#website)) and by the
-[render API](#render-api). The viewers in coastal_database and vspdb will use
-it too.
+[render API](#render-api). The viewers in nextgenerationliquefaction.org and vspdb.org use
+the API version to draw their boring logs.
+
+User documentation, written for engineers rather than developers, is at
+**https://sjbrandenberg.github.io/boring-log-viewer/** (source in [`docs/`](docs/)).
 
 ```js
 import { renderBoringLog, validateBoringLog } from 'boring-log-viewer';
@@ -624,7 +627,14 @@ npm run test:update          # re-render tests/snapshots/*.svg after an intended
 npm run render -- tests/fixtures/coastal-style.json out.png [--units=ft] [--width=900]
 npm run build:hatches        # regenerate src/hatches.js from scripts/uscs-art.js and lithology-art.js
 npm run build:metrics        # regenerate src/font-metrics.js (only if changing the font)
+npm run docs:serve           # build the documentation site into _site/ and serve it at http://localhost:8081/
 ```
+
+The documentation pages are HTML fragments in `docs/pages/`, wrapped in
+`docs/_layout.html` by `scripts/build-docs.js`, which also renders the example
+logs and the symbol galleries with the current code (see the comment at the top
+of that script). Pushing to `main` publishes them to GitHub Pages through
+`.github/workflows/docs.yml`.
 
 After changing the layout, render the fixtures to PNG and look at them before
 running `test:update`. The snapshot test only shows that the output changed, not
@@ -633,21 +643,3 @@ that the new output is right.
 The fixtures are **synthetic**. They follow the shape of coastal_database and
 vspdb records, but they aren't real borings. Before switching either app to this
 renderer, replace them with exports of real borings.
-
-## Notes for the coastal_database / vspdb adapters
-
-These were found while porting the old viewer (`coastal_database/templates/Boreholes/view.php`):
-
-- In coastal_database, blow counts are stored in `samples.N`, but the old viewer
-  read `blow_count`, so blow counts never displayed. The adapter should map `N`
-  to `blow_count`.
-- In coastal_database, the sampler type comes from `sampler_id`, which the old
-  viewer mapped by list position to
-  `['Other','SPT','Shelby','ModCal','Piston','Piston','Bulk','Shelby','Other','ModCal']`.
-  Check that mapping against the `samplers` table.
-- The old `get_hatch_code.js` returned early whenever the description didn't
-  contain a USCS symbol, so its keyword matching never ran. `src/classify.js`
-  ports it with that fixed and a few keywords added (elastic, organic, peat).
-- In vspdb, lab values live in `index_properties` (under samples) and blow counts
-  in `spt_data` (under `spt_metadata`, matched by depth). The adapter needs to
-  join them onto samples.

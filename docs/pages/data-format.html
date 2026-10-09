@@ -1,0 +1,150 @@
+<!-- title: Data format reference -->
+<!-- description: Every field of the boring log JSON format: units, metadata, layers, samples, groundwater, depth notes, references and custom patterns. -->
+<h1>Data format reference</h1>
+<p class="lead">Every field the viewer reads, what it means, and what units it's in.</p>
+
+<p>A boring log is one JSON object. Only <code>schema_version</code> and <code>layers</code> are required. The outline:</p>
+<pre><code>{
+  "schema_version": "1.0",
+  "units":       { ... },     how the numbers are measured
+  "metadata":    { ... },     the header: project, boring name, location, drilling...
+  "layers":      [ ... ],     strata, top to bottom (required)
+  "samples":     [ ... ],     samples, blow counts and test results
+  "groundwater": [ ... ],     water level readings
+  "depth_notes": [ ... ],     observations at a single depth
+  "references":  [ ... ],     where the data came from
+  "patterns":    { ... }      your own hatches and sampler symbols
+}</code></pre>
+<p>(The notes on the right aren't part of the JSON.) A complete example: <a href="examples/full-example.json" download><code>full-example.json</code></a>. The formal definition is the <a href="boring-log.schema.json">JSON Schema</a>, which many editors can use to check your file as you type.</p>
+
+<h2 id="general">General rules</h2>
+<ul>
+    <li><b>Depths</b> are measured down from the ground surface, in the length unit from <code>units</code>. They can't be negative. For each layer and sample, <code>bottom</code> must be greater than <code>top</code>.</li>
+    <li><b>Order doesn't matter.</b> Layers and samples are sorted by depth before drawing.</li>
+    <li><b><code>null</code> means "not given".</b> <code>"water_content": null</code> is the same as leaving the field out, so database exports with empty cells work as they are.</li>
+    <li><b>Field names are checked.</b> A misspelled name such as <code>"descripton"</code> is an error ("unknown property"), so typos don't silently lose data. Names are lower case, with underscores.</li>
+    <li><b>Gaps and overlaps</b> between layers are allowed but reported as warnings, in case they're mistakes. A gap is left blank in the graphic log.</li>
+</ul>
+
+<h2 id="units">units</h2>
+<p>The units the numbers in your data are in. Each is optional; metric is the default. To <em>display</em> the log in other units, use the Units option rather than changing these (see <a href="options.html#units">Display options</a>).</p>
+<div class="table-wrap"><table>
+    <thead><tr><th>Field</th><th>Values</th><th>Default</th><th>Applies to</th></tr></thead>
+    <tbody>
+        <tr><td><code>length</code></td><td><code>"m"</code>, <code>"ft"</code></td><td><code>"m"</code></td><td>All depths, elevation, recovery</td></tr>
+        <tr><td><code>unit_weight</code></td><td><code>"kN/m3"</code>, <code>"pcf"</code></td><td><code>"kN/m3"</code></td><td>Dry unit weight</td></tr>
+        <tr><td><code>diameter</code></td><td><code>"mm"</code>, <code>"cm"</code>, <code>"m"</code>, <code>"in"</code>, <code>"ft"</code></td><td><code>"mm"</code></td><td>Borehole and sampler diameters</td></tr>
+    </tbody>
+</table></div>
+<pre><code>"units": { "length": "ft", "unit_weight": "pcf", "diameter": "in" }</code></pre>
+
+<h2 id="metadata">metadata</h2>
+<p>Information shown in the header. All fields are optional; dates and names are free text.</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Field</th><th>Meaning</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td><code>boring_name</code></td><td>Boring ID, used as the title</td><td><code>"B-3"</code></td></tr>
+        <tr><td><code>project</code></td><td>Project name</td><td><code>"Harbor Terminal Wharf"</code></td></tr>
+        <tr><td><code>site_name</code></td><td>Site</td><td><code>"Berth 12"</code></td></tr>
+        <tr><td><code>latitude</code>, <code>longitude</code></td><td>Decimal degrees (west longitudes are negative)</td><td><code>33.74215</code>, <code>-118.26541</code></td></tr>
+        <tr><td><code>elevation</code></td><td>Ground surface elevation, in the length unit. Adds an elevation column.</td><td><code>3.2</code></td></tr>
+        <tr><td><code>datum</code></td><td>Elevation datum</td><td><code>"NAVD88"</code></td></tr>
+        <tr><td><code>start_date</code>, <code>end_date</code></td><td>Drilling dates</td><td><code>"2019-06-11"</code></td></tr>
+        <tr><td><code>boring_type</code></td><td>Drilling method</td><td><code>"Hollow-stem auger"</code></td></tr>
+        <tr><td><code>rig</code></td><td>Drill rig</td><td><code>"CME-75"</code></td></tr>
+        <tr><td><code>diameter</code></td><td>Borehole diameter, in the diameter unit</td><td><code>102</code></td></tr>
+        <tr><td><code>hammer</code></td><td>Hammer type and weight</td><td><code>"Automatic trip, 63.5 kg"</code></td></tr>
+        <tr><td><code>energy_ratio</code></td><td>Hammer energy ratio, percent</td><td><code>82</code></td></tr>
+        <tr><td><code>logged_by</code></td><td>Logger</td><td><code>"J. Doe"</code></td></tr>
+        <tr><td><code>driller</code></td><td>Drilling contractor</td><td><code>"ABC Drilling"</code></td></tr>
+        <tr><td><code>notes</code></td><td>Any other notes</td><td><code>"Hole backfilled with grout"</code></td></tr>
+    </tbody>
+</table></div>
+
+<h2 id="layers">layers</h2>
+<p>The strata, one object per layer. At least one layer is required.</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Field</th><th>Meaning</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td><code>top</code>, <code>bottom</code></td><td><b>Required.</b> Depths of the layer's top and bottom</td><td><code>4.5</code>, <code>6.0</code></td></tr>
+        <tr><td><code>description</code></td><td>Material description, as it should appear on the log</td><td><code>"Gray, soft, wet, lean CLAY with sand"</code></td></tr>
+        <tr><td><code>uscs</code></td><td>USCS group symbol, or a dual symbol (with <code>-</code> or <code>/</code>)</td><td><code>"CL"</code>, <code>"SP-SM"</code>, <code>"CL/ML"</code></td></tr>
+        <tr><td><code>hatch</code></td><td>The graphic log symbol, if you want to choose it: a USCS symbol, a material or rock code, a pair of them, a code from <code>patterns</code>, or <code>"none"</code> for blank</td><td><code>"FILL"</code>, <code>"SANDSTONE"</code>, <code>"SP-FILL"</code></td></tr>
+    </tbody>
+</table></div>
+<pre><code>"layers": [
+  { "top": 0,   "bottom": 1.2, "description": "Brown silty SAND (FILL)" },
+  { "top": 1.2, "bottom": 4.5, "description": "Gray, soft, wet, lean CLAY", "uscs": "CL" },
+  { "top": 4.5, "bottom": 9.0, "description": "SANDSTONE, weathered", "hatch": "SANDSTONE" }
+]</code></pre>
+<p>The USCS symbols are GW, GP, GM, GC, SW, SP, SM, SC, ML, CL, OL, MH, CH, OH and PT. The material and rock codes, and how the symbol is chosen when you don't give one, are in <a href="graphic-log.html">Graphic log and soil symbols</a>.</p>
+
+<h2 id="samples">samples</h2>
+<p>Samples and the results measured on them. Each value goes in its own column, level with the sampler symbol.</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Field</th><th>Meaning</th><th>Units</th></tr></thead>
+    <tbody>
+        <tr><td><code>top</code>, <code>bottom</code></td><td><b>Required.</b> Depth interval sampled (for an SPT, the 18 in / 0.45 m drive)</td><td>length</td></tr>
+        <tr><td><code>name</code></td><td>Sample number</td><td>text, e.g. <code>"S-1"</code></td></tr>
+        <tr><td><code>type</code></td><td>Sampler type; picks the symbol. See <a href="samples.html#types">sampler types</a>. Default <code>"Other"</code></td><td><code>"SPT"</code>, <code>"Shelby"</code>, ...</td></tr>
+        <tr><td><code>blow_count</code></td><td>Blow count as reported: a number, or text for refusal</td><td><code>14</code>, <code>"50/5in"</code></td></tr>
+        <tr><td><code>blows</code></td><td>Blows for each increment</td><td><code>[6, 8, 10]</code></td></tr>
+        <tr><td><code>energy_ratio</code></td><td>Hammer energy ratio for this sample, if different from the header</td><td>%</td></tr>
+        <tr><td><code>sampler_diameter</code></td><td>Sampler outside diameter</td><td>diameter</td></tr>
+        <tr><td><code>recovery</code></td><td>Recovered length</td><td>length</td></tr>
+        <tr><td><code>water_content</code></td><td>Water (moisture) content</td><td>%</td></tr>
+        <tr><td><code>dry_unit_weight</code></td><td>Dry unit weight</td><td>unit_weight</td></tr>
+        <tr><td><code>specific_gravity</code></td><td>Specific gravity of solids, G<sub>s</sub></td><td>–</td></tr>
+        <tr><td><code>fines_content</code></td><td>Percent passing the No. 200 (75 µm) sieve</td><td>%</td></tr>
+        <tr><td><code>liquid_limit</code>, <code>plastic_limit</code></td><td>Atterberg limits</td><td>%</td></tr>
+        <tr><td><code>nonplastic</code></td><td><code>true</code> for a non-plastic sample: shows "NP" in both limit columns</td><td><code>true</code>/<code>false</code></td></tr>
+        <tr><td><code>uscs</code></td><td>USCS symbol of the sample (kept with the data; not drawn)</td><td><code>"SM"</code></td></tr>
+        <tr><td><code>description</code></td><td>Sample description (its own column)</td><td>text</td></tr>
+        <tr><td><code>remarks</code></td><td>Other notes (its own column)</td><td>text</td></tr>
+    </tbody>
+</table></div>
+<pre><code>"samples": [
+  { "top": 2.5, "bottom": 4, "name": "S-1", "type": "SPT", "blows": [3, 4, 4], "blow_count": 8,
+    "water_content": 14.2, "fines_content": 31 },
+  { "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby",
+    "water_content": 36.5, "dry_unit_weight": 84.2, "liquid_limit": 44, "plastic_limit": 21 }
+]</code></pre>
+<p>More about blow counts and the sampler symbols: <a href="samples.html">Samples and test results</a>.</p>
+
+<h2 id="groundwater">groundwater</h2>
+<p>Water level readings. Only <code>depth</code> is required.</p>
+<div class="table-wrap"><table>
+    <thead><tr><th>Field</th><th>Meaning</th><th>Example</th></tr></thead>
+    <tbody>
+        <tr><td><code>depth</code></td><td>Depth to water</td><td><code>6.5</code></td></tr>
+        <tr><td><code>date</code></td><td>When it was measured</td><td><code>"2021-03-02"</code></td></tr>
+        <tr><td><code>note</code></td><td>Circumstances</td><td><code>"encountered during drilling"</code>, <code>"stabilized"</code></td></tr>
+    </tbody>
+</table></div>
+<pre><code>"groundwater": [
+  { "depth": 6.5, "date": "2021-03-02", "note": "encountered" },
+  { "depth": 5.0, "date": "2021-03-05", "note": "stabilized" }
+]</code></pre>
+
+<h2 id="depth-notes">depth_notes</h2>
+<p>Observations at a single depth within a layer, such as a thin lens, a change in color, or "trace gravel". They're drawn in italics under the layer's description, with a tick at their depth. Both fields are required.</p>
+<pre><code>"depth_notes": [
+  { "depth": 7.6, "description": "thin clayey sand lens" }
+]</code></pre>
+
+<h2 id="references">references</h2>
+<p>Where the data came from: the report, paper or database. Listed in the header. <code>text</code> is required; a web address in <code>url</code> is shown after the text and is a clickable link in an SVG.</p>
+<pre><code>"references": [
+  { "text": "Example Geotechnical Consultants (2019). Geotechnical investigation report.",
+    "url": "https://example.com/report.pdf" },
+  { "text": "Personal communication, J. Doe, 2020" }
+]</code></pre>
+
+<h2 id="patterns">patterns</h2>
+<p>Your own graphic log symbols and sampler symbols. This section is usually written for you by the viewer's <b>Hatches…</b> window; see <a href="custom-hatches.html">Your own hatches</a> for how it works and how to write one by hand.</p>
+<pre><code>"patterns": {
+  "SLOPE": {
+    "name": "Sloping lines",
+    "svg": "&lt;svg viewBox='0 0 40 20'&gt;&lt;line x1='0' y1='20' x2='40' y2='0' stroke='black'/&gt;&lt;/svg&gt;"
+  }
+}</code></pre>

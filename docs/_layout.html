@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{title}}</title>
+    <meta name="description" content="{{description}}">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="assets/docs.css">
+    <script src="assets/docs.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="topbar">
+    <button class="menu-button" type="button" aria-controls="sidebar" aria-expanded="false">Menu</button>
+    <a class="brand" href="index.html"><img src="favicon.svg" alt="" width="22" height="22"> Boring Log Viewer <span>docs</span></a>
+    <a class="open-app" href="https://uclageo.com/boring-log-viewer/">Open the viewer</a>
+</header>
+<div class="shell">
+    <nav id="sidebar" class="sidebar" aria-label="Documentation">
+        {{nav}}
+        <p class="nav-section">Links</p>
+        <ul>
+            <li><a href="https://uclageo.com/boring-log-viewer/">The viewer (web page)</a></li>
+            <li><a href="boring-log.schema.json">JSON Schema</a></li>
+            <li><a href="https://github.com/sjbrandenberg/boring-log-viewer">Source code on GitHub</a></li>
+        </ul>
+    </nav>
+    <main id="content" class="content">
+        {{content}}
+        {{pager}}
+    </main>
+</div>
+</body>
+</html>

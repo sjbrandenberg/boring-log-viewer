@@ -1,0 +1,48 @@
+<!-- title: Samples and test results -->
+<!-- description: Sampler types and symbols, blow counts and SPT refusal, and the laboratory results drawn on the log. -->
+<h1>Samples and test results</h1>
+<p class="lead">How samples, blow counts and laboratory results are entered and drawn.</p>
+
+<h2 id="interval">Sample depth interval</h2>
+<p>Each sample has a <code>top</code> and <code>bottom</code> depth: the interval the sampler was driven or pushed over. The sampler symbol is drawn over that interval, and the sample's values are written level with the middle of it.</p>
+<ul>
+    <li>For an <b>SPT</b>, use the full 18 in (0.45 m) drive, e.g. 10.0 to 11.5 ft.</li>
+    <li>For a <b>Shelby tube</b> or <b>core run</b>, use the length pushed or cored, and give the recovered length in <code>recovery</code>.</li>
+    <li>For a refusal, use the depth actually reached, e.g. 13.0 to 13.3 m for 50 blows in 5 in.</li>
+</ul>
+
+<h2 id="types">Sampler types</h2>
+<p>Set a sample's <code>type</code> to one of these codes (spelled exactly as shown) to choose its symbol. Without a <code>type</code>, the sample is drawn as <code>Other</code>.</p>
+<!-- gallery: samplers -->
+<p>You can replace any of these symbols with your own, or add new sampler types; see <a href="custom-hatches.html#samplers">Your own hatches</a>.</p>
+
+<h2 id="blow-counts">Blow counts</h2>
+<p>There are two fields, and you can give either or both:</p>
+<ul>
+    <li><b><code>blow_count</code></b> is the value you want shown in the blow count column: a number such as <code>14</code> (an SPT N-value, or blows per foot for another sampler), or text for refusal, such as <code>"50/5in"</code> or <code>"50/150mm"</code>.</li>
+    <li><b><code>blows</code></b> is the list of blows per increment, such as <code>[6, 8, 10]</code> for an SPT's three 6 in increments.</li>
+</ul>
+<p>If you give <code>blow_count</code>, that's what is shown. If you give only <code>blows</code>, the increments are shown joined with dashes: <code>6-8-10</code>.</p>
+<div class="callout warn">
+    <strong>Blow counts are shown as given</strong>
+    <p>The viewer doesn't correct blow counts for energy, overburden or sampler type. A Modified California blow count is shown as recorded, not converted to an SPT N-value. Put corrected values in <code>remarks</code> if you need them on the log.</p>
+</div>
+<p><b>Energy ratio.</b> Give the hammer's energy ratio in <code>metadata.energy_ratio</code>; it's shown in the header as "ER = 82%". If it varies between samples, give <code>energy_ratio</code> on each sample and add the <code>energy_ratio</code> column (it isn't in the default column list; see <a href="options.html#columns">Display options</a>).</p>
+
+<h2 id="lab">Laboratory results</h2>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Field</th><th>Column</th><th>Shown as</th></tr></thead>
+    <tbody>
+        <tr><td><code>water_content</code></td><td>Water content (%)</td><td>1 decimal</td></tr>
+        <tr><td><code>dry_unit_weight</code></td><td>Dry unit wt. (kN/m³ or pcf)</td><td>1 decimal, converted to the display units</td></tr>
+        <tr><td><code>specific_gravity</code></td><td>Specific gravity</td><td>2 decimals</td></tr>
+        <tr><td><code>fines_content</code></td><td>Fines (%)</td><td>Percent passing No. 200 sieve</td></tr>
+        <tr><td><code>liquid_limit</code>, <code>plastic_limit</code></td><td>Liquid limit, Plastic limit</td><td>As given</td></tr>
+        <tr><td><code>nonplastic</code></td><td>Liquid limit, Plastic limit</td><td>"NP" in both columns (and any limits given are ignored)</td></tr>
+    </tbody>
+</table></div>
+<p>Results from a test on a sub-sample go on the sample they came from. If you have results that don't belong to a sample (for example, from a separate lab sample at a different depth), add a sample for them with <code>"type": "Other"</code>, or leave <code>type</code> out.</p>
+<p>Dry density isn't a field; convert it to dry unit weight first (multiply Mg/m³ by 9.81 to get kN/m³). The AGS4 and DIGGS imports do this for you.</p>
+
+<h2 id="text">Sample description and remarks</h2>
+<p><code>description</code> and <code>remarks</code> each get their own column, which wraps long text. Use <code>description</code> for what the sample is ("Undisturbed, sent for CU triaxial") and <code>remarks</code> for notes such as "Refusal on cobble", "RQD 45%" or "Poor recovery".</p>

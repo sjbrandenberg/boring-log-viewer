@@ -1,0 +1,72 @@
+<!-- title: Your own hatches -->
+<!-- description: Use your own graphic log patterns and sampler symbols, from an image file or written by hand. -->
+<h1>Your own hatches</h1>
+<p class="lead">Use your office's symbols, add a material the viewer doesn't have, or replace a sampler symbol, from an image file or by hand.</p>
+
+<p>Your own symbols are kept inside the boring log's JSON, in a section called <code>patterns</code>. Because they travel with the data, a log that uses them looks the same wherever it's drawn: on the web page, through the API, or on another computer. Nothing is stored on the server.</p>
+
+<h2 id="dialog">With the Hatches… window (no JSON editing)</h2>
+<p>On the <a href="https://uclageo.com/boring-log-viewer/">viewer page</a>, click <b>Hatches…</b> above the text box.</p>
+<ol class="steps">
+    <li><b>What is it?</b> Choose whether it's for a layer (a hatch) or a sample (a sampler symbol). Give it a short <b>code</b> (letters, digits and <code>_</code>, starting with a letter, up to 16 characters, e.g. <code>FILL_CALTRANS</code>) and the <b>legend label</b> to show beside it.</li>
+    <li><b>Choose the image.</b> A PNG, JPG or SVG file of <em>one repeat</em> of the pattern. A raster image (PNG or JPG) is converted to vector shapes by default, which works best for black-and-white line patterns: check the preview, because fine dots or shading can be lost. Untick <b>Convert to vector</b> to keep a photo, scan or shaded image as a picture instead (it's scaled down to 512 px). Set the <b>tile width</b> to change how large one repeat is drawn; by default it spans the graphic log column.</li>
+    <li><b>Choose the layers (or samples) that use it.</b> Tick them in the list. The window sets their <code>hatch</code> (or <code>type</code>) for you.</li>
+</ol>
+<p>Click <b>Add to log</b>. The log redraws with your symbol, and it appears in the legend.</p>
+
+<h3 id="replace">Replacing a built-in symbol</h3>
+<p>The bottom of the window lists the built-in soil hatches, materials and sampler symbols. Click <b>Replace</b> beside one to put your own image in its place everywhere in this log. For example, replacing <code>SM</code> changes every silty sand layer, and replacing <code>SPT</code> changes every SPT symbol, without touching the layers or samples. <b>Use</b> beside a built-in material applies it to the layers you tick, with no image needed.</p>
+
+<h3 id="reuse">Using the same hatches in another log</h3>
+<p>Click <b>Format</b>, then copy the <code>"patterns": { ... }</code> section from the end of the JSON into the other log. To keep a set of office hatches, save that section in a text file. For use with scripts, see <a href="api.html#hatches">Using your own hatches with the API</a>.</p>
+
+<h2 id="by-hand">Writing a hatch by hand</h2>
+<p>A simple hatch can be written directly as SVG markup. This one draws a sloping line in a tile 40 px wide and 20 px high (the size comes from the <code>viewBox</code>):</p>
+<pre><code>"patterns": {
+  "SLOPE": {
+    "name": "Sloping lines",
+    "svg": "&lt;svg viewBox='0 0 40 20'&gt;&lt;line x1='0' y1='20' x2='40' y2='0' stroke='black' stroke-width='1.5'/&gt;&lt;/svg&gt;"
+  }
+},
+"layers": [
+  { "top": 0, "bottom": 3, "description": "Sloping lines layer", "hatch": "SLOPE" }
+]</code></pre>
+<p>Use single quotes inside the SVG so you don't have to escape them in JSON. The tile is repeated across and down the layer, so make sure its edges join up.</p>
+
+<h3 id="fields">Pattern fields</h3>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td><code>svg</code></td><td>SVG markup for one tile. Its size comes from its <code>viewBox</code> (or <code>width</code>/<code>height</code> in px).</td></tr>
+        <tr><td><code>image</code></td><td>Instead of <code>svg</code>: a picture as a base64 data URI (<code>data:image/png;base64,...</code>, also JPEG or SVG), with <code>width</code> and <code>height</code> in px.</td></tr>
+        <tr><td><code>width</code>, <code>height</code></td><td>The image's size in px (required with <code>image</code>; sets the tile's proportions).</td></tr>
+        <tr><td><code>name</code></td><td>Legend label. Defaults to the built-in name, or the code.</td></tr>
+        <tr><td><code>kind</code></td><td><code>"soil"</code> (default) for a hatch, tiled over the layer; <code>"sampler"</code> for a sampler symbol, stretched over the sample's interval.</td></tr>
+        <tr><td><code>tile_width</code></td><td>Width of one tile on the log, in px (4 to 400). Defaults to the graphic log column's width.</td></tr>
+    </tbody>
+</table></div>
+<p>Up to 30 patterns per log, each up to 350,000 characters.</p>
+
+<h3 id="codes">How codes work</h3>
+<ul>
+    <li>A code that's the same as a <b>USCS symbol</b> (<code>SM</code>) or a <b>built-in sampler</b> (<code>SPT</code>) replaces the built-in one everywhere in the log.</li>
+    <li>Any <b>other code</b> adds a new symbol. Use it by setting a layer's <code>hatch</code> (or a sample's <code>type</code>) to the code.</li>
+    <li>Your codes can be paired like built-in ones: <code>"hatch": "SP-SLOPE"</code>.</li>
+    <li>Using a code that isn't defined anywhere is an error naming the layer and the code.</li>
+</ul>
+
+<h3 id="samplers">Sampler symbols</h3>
+<p>Add <code>"kind": "sampler"</code>. The symbol is stretched to fill the sample's box, so draw it at the proportions of a typical sample.</p>
+<pre><code>"patterns": {
+  "HandAuger": {
+    "name": "Hand auger",
+    "kind": "sampler",
+    "svg": "&lt;svg viewBox='0 0 16 24'&gt;&lt;rect x='1' y='1' width='14' height='22' fill='none' stroke='black'/&gt;&lt;circle cx='8' cy='12' r='4'/&gt;&lt;/svg&gt;"
+  }
+},
+"samples": [
+  { "top": 1, "bottom": 1.5, "name": "HA-1", "type": "HandAuger" }
+]</code></pre>
+
+<h3 id="allowed">What SVG is allowed</h3>
+<p>For safety, the SVG is taken apart and rebuilt from a short list of drawing elements: <code>path</code>, <code>rect</code>, <code>circle</code>, <code>ellipse</code>, <code>line</code>, <code>polyline</code>, <code>polygon</code> and <code>g</code>, with their shape, fill and stroke attributes (a <code>style="..."</code> attribute is read too). Titles, metadata and the extra information Inkscape and Illustrator add are dropped quietly. Text, embedded images, <code>&lt;use&gt;</code>, <code>&lt;style&gt;</code>, scripts and links are rejected with a message saying what to change. In Inkscape, <b>Path → Object to Path</b> and saving as <b>Plain SVG</b> usually gives a file that works.</p>

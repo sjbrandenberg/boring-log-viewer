@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "units": { "length": "ft", "unit_weight": "pcf", "diameter": "in" },
+  "metadata": {
+    "project": "Example Street Bridge",
+    "boring_name": "B-1",
+    "elevation": 112.5,
+    "datum": "NAVD88",
+    "start_date": "2026-05-04",
+    "boring_type": "Hollow-stem auger",
+    "diameter": 8,
+    "hammer": "Automatic trip, 140 lb",
+    "energy_ratio": 84,
+    "logged_by": "J. Engineer"
+  },
+  "groundwater": [
+    { "depth": 7.5, "date": "2026-05-04", "note": "encountered during drilling" }
+  ],
+  "layers": [
+    { "top": 0, "bottom": 4, "description": "Brown, loose, moist, silty SAND (fill)", "uscs": "SM" },
+    { "top": 4, "bottom": 12, "description": "Gray, medium dense, wet, poorly graded SAND with silt", "uscs": "SP-SM" },
+    { "top": 12, "bottom": 20, "description": "Gray, soft, wet, lean CLAY", "uscs": "CL" }
+  ],
+  "samples": [
+    { "top": 2.5, "bottom": 4, "name": "S-1", "type": "SPT", "blows": [3, 4, 4], "blow_count": 8, "water_content": 14.2, "fines_content": 31 },
+    { "top": 7.5, "bottom": 9, "name": "S-2", "type": "SPT", "blows": [6, 9, 11], "blow_count": 20, "water_content": 22.8, "fines_content": 8 },
+    { "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby", "water_content": 36.5, "dry_unit_weight": 84.2, "liquid_limit": 44, "plastic_limit": 21 },
+    { "top": 17.5, "bottom": 19, "name": "S-4", "type": "SPT", "blows": [2, 2, 3], "blow_count": 5, "water_content": 38.1 }
+  ]
+}

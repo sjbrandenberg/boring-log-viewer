@@ -1,0 +1,63 @@
+<!-- title: Reading the log -->
+<!-- description: What each part of a drawn boring log shows: header, columns, graphic log, descriptions, samples and legend. -->
+<h1>Reading the log</h1>
+<p class="lead">A tour of the drawing: what each part shows and where its information comes from in the data.</p>
+
+<!-- log: full-example.json -->
+
+<h2 id="header">Header</h2>
+<p>The box at the top lists the boring's <code>metadata</code>: project, site, latitude and longitude, ground elevation and datum, dates, drilling method, rig, borehole diameter, hammer (with its energy ratio as "ER = 82%"), who logged it, and notes. Only the items you give appear. The title is the <code>boring_name</code>.</p>
+<p>Below the metadata, the <b>references</b> list where the data came from, such as the report a boring was taken from. They're in the header so a reader sees them before scrolling down a tall log. In an SVG, a reference's web address is a clickable link.</p>
+
+<h2 id="columns">Columns, left to right</h2>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Column</th><th>Shows</th><th>Drawn when</th></tr></thead>
+    <tbody>
+        <tr><td>Depth</td><td>Depth below the ground surface, with tick marks</td><td>Always</td></tr>
+        <tr><td>Elevation</td><td>Elevation (ground elevation minus depth)</td><td><code>metadata.elevation</code> is given</td></tr>
+        <tr><td>Water level</td><td>▽ at each groundwater reading</td><td>There is <code>groundwater</code></td></tr>
+        <tr><td>Graphic log</td><td>The soil or rock symbol of each layer</td><td>Always</td></tr>
+        <tr><td>USCS</td><td>The layer's USCS group symbol; in parentheses if it was inferred from the description</td><td>Any layer has a symbol</td></tr>
+        <tr><td>Material description</td><td>Each layer's description, and depth notes in italics</td><td>Always</td></tr>
+        <tr><td>Sample type</td><td>The sampler symbol, drawn over the sample's depth interval</td><td>There are <code>samples</code></td></tr>
+        <tr><td>Sample no.</td><td>The sample <code>name</code></td><td rowspan="1">Any sample has one</td></tr>
+        <tr><td>Sampler dia.</td><td>Sampler outside diameter</td><td>Any sample has one</td></tr>
+        <tr><td>Recovery</td><td>Recovered length</td><td>Any sample has one</td></tr>
+        <tr><td>Blow count</td><td>The blow count as reported (e.g. 14, or 50/5in), or the blows per increment joined with dashes (3-4-4)</td><td>Any sample has one</td></tr>
+        <tr><td>Sample description</td><td>A note about the sample</td><td>Any sample has one</td></tr>
+        <tr><td>Water content, Dry unit wt., Specific gravity, Fines, Liquid limit, Plastic limit</td><td>Laboratory results. "NP" in the limit columns for a non-plastic sample</td><td>Any sample has one</td></tr>
+        <tr><td>Remarks</td><td>Other notes, such as "Refusal on cobble" or "RQD 45%"</td><td>Any sample has one</td></tr>
+    </tbody>
+</table></div>
+<p>You can change which columns appear and in what order, and add an energy ratio column. See <a href="options.html#columns">Display options</a>.</p>
+
+<h2 id="graphic">Graphic log and USCS column</h2>
+<p>Each layer is filled with a symbol for its soil or rock type. The viewer picks it in this order:</p>
+<ol>
+    <li>the <code>hatch</code> you give for the layer, if any;</li>
+    <li>a material named in the description, such as fill, asphalt, topsoil or a rock name;</li>
+    <li>the <code>uscs</code> symbol you give;</li>
+    <li>a USCS symbol worked out from the description.</li>
+</ol>
+<p>A dual symbol such as SP-SM is drawn as one combined symbol. The full rules, and pictures of all the symbols, are in <a href="graphic-log.html">Graphic log and soil symbols</a>.</p>
+
+<h2 id="descriptions">Material descriptions</h2>
+<p>Each description starts at the top of its layer. When a layer is too thin for its description, the text runs on below it, and the next description starts lower down, with a <b>leader line</b> from the layer boundary to the text. In the example, the thin asphalt and base course layers both need leaders.</p>
+<p><b>Depth notes</b> (observations at a single depth, such as "thin clayey sand lens" at 7.6 m) follow the layer's description in italics, with a short tick at their depth.</p>
+
+<h2 id="depth-scale">Why the depth scale stretches</h2>
+<p>With <b>Fit text</b> on (the default), the viewer makes the log taller when it needs to, so that:</p>
+<ul>
+    <li>each sample's row of values lines up with its sampler symbol without running into the next sample's row, and</li>
+    <li>all the descriptions finish within the depth of the boring.</li>
+</ul>
+<p>The scale is always uniform: one foot is the same height everywhere on the log. Stretching stops when the log body reaches 8,000 px; beyond that, rows that would collide are moved down a little instead. Turn off Fit text, or set a fixed <code>scale</code>, to keep the depth scale where you put it. See <a href="options.html#size">Display options</a>.</p>
+
+<h2 id="samples">Sample rows</h2>
+<p>The first line of each sample's values is level with the middle of its sampler symbol. A long remark or sample description wraps onto more lines below that.</p>
+
+<h2 id="legend">Legend</h2>
+<p>The legend lists only what appears in this log: each graphic log symbol with its code and name, each sampler symbol, each groundwater reading with its date and note, and, if any USCS symbol was inferred, a line explaining the parentheses.</p>
+
+<h2 id="fonts">Text and fonts</h2>
+<p>The log uses Arial (or the identical-width Liberation Sans or Arimo). Line breaks are worked out from a built-in table of character widths, so a log looks the same in every browser, in a PNG made by the server, and on another computer.</p>
