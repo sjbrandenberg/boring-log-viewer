@@ -108,6 +108,39 @@
         }
       }
     },
+    "layout": {
+      "description": "How the log is laid out: its width, font size and columns. Without it the log uses the built-in layout. Render options given by the caller (API query, page settings) take precedence.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "width": { "description": "Width of the log, px.", "type": "number", "minimum": 300, "maximum": 4000 },
+        "font_size": { "description": "Font size, px.", "type": "number", "minimum": 6, "maximum": 24 },
+        "columns": {
+          "description": "The columns, in order. Each is a column id (with its default width), or an object. Widths are relative: the columns share the log's width in proportion to them. depth, graphic and description are always drawn.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 40,
+          "items": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,31}$" },
+              {
+                "type": "object",
+                "required": ["id"],
+                "additionalProperties": false,
+                "properties": {
+                  "id": { "description": "A built-in column id (depth, graphic, description, water_content, remarks, ...), or a new id for a custom column.", "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,31}$" },
+                  "width": { "description": "Relative width, e.g. 1 for a narrow column and 8 for the description.", "type": "number", "exclusiveMinimum": 0, "maximum": 100 },
+                  "label": { "description": "Column heading; defaults to the built-in one, or the id.", "type": "string", "maxLength": 80 },
+                  "source": { "description": "For a custom column: \"sample\" (a value from each sample's custom), \"specimen\" (from each specimen's custom) or \"blank\" (an empty column).", "enum": ["sample", "specimen", "blank"] },
+                  "field": { "description": "For a sample or specimen column: the key in custom. Defaults to the id.", "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,31}$" },
+                  "decimals": { "description": "For a sample or specimen column: decimals for numbers. Without it, numbers are shown as given.", "type": "integer", "minimum": 0, "maximum": 6 }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
     "depth_notes": {
       "description": "Observations at a single depth within a layer, e.g. 'trace gravel' or 'thin sand lens'. Drawn in italics in the material description column, marked at their depth.",
       "type": "array",
@@ -134,9 +167,9 @@
           "bottom": { "type": "number", "minimum": 0 },
           "description": { "type": "string" },
           "uscs": {
-            "description": "USCS group symbol, or a dual symbol such as SP-SM or CL-ML.",
+            "description": "USCS group symbol, a dual symbol such as SP-SM or CL-ML, or a borderline one such as CL/CH. A value that is not a possible symbol (e.g. GW-GP or SM-G) is accepted with a warning and shown with the symbol read from the description.",
             "type": "string",
-            "pattern": "^(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?$"
+            "pattern": "^((GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/][A-Z]{1,2})?|[A-Z]{1,2}[-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))$"
           },
           "hatch": {
             "description": "Graphic log pattern: a USCS symbol, a dual symbol such as SP-SM, a built-in material (FILL, ASPHALT, SANDSTONE, GRANITE, ...; see src/lithology.js), or a code defined in `patterns`. Defaults to the pattern for `uscs`, then to one inferred from `description`. Use \"none\" for no pattern.",
@@ -157,20 +190,20 @@
           "bottom": { "type": "number", "minimum": 0 },
           "name": { "type": "string" },
           "type": {
-            "description": "Sampler type; controls the symbol drawn in the sample column. One of the built-in types, or a sampler code defined in `patterns`.",
+            "description": "Sampler type; controls the symbol drawn in the sample column. One of the built-in types, or a sampler code defined in `patterns`. \"NoRecovery\" is accepted with a warning: the sample is read as recovery 0 and drawn as Other.",
             "anyOf": [
-              { "enum": ["SPT", "ModCal", "DamesMoore", "Shelby", "Piston", "Osterberg", "Pitcher", "Denison", "LargeDiameter", "Block", "DirectPush", "GelPush", "Sonic", "Core", "TripleTube", "Bulk", "Grab", "Composite", "Auger", "Trench", "Disturbed", "NoRecovery", "Other"] },
+              { "enum": ["SPT", "ModCal", "DamesMoore", "Shelby", "Piston", "Osterberg", "Pitcher", "Denison", "LargeDiameter", "Block", "DirectPush", "GelPush", "Sonic", "Core", "TripleTube", "Bulk", "Grab", "Composite", "Auger", "Trench", "Disturbed", "Other", "NoRecovery"] },
               { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,15}$" }
             ],
             "default": "Other"
           },
-          "description": { "type": "string" },
+          "description": { "description": "Deprecated: samples have remarks only. Shown at the start of the remarks.", "type": "string" },
           "uscs": {
             "type": "string",
             "pattern": "^(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?$"
           },
           "sampler_diameter": { "description": "Sampler outer diameter, in units.diameter.", "type": "number", "exclusiveMinimum": 0 },
-          "recovery": { "description": "Recovered length, in units.length.", "type": "number", "minimum": 0 },
+          "recovery": { "description": "Recovered length, in units.length; 0 means no recovery. Shown as a note in the remarks.", "type": "number", "minimum": 0 },
           "blow_count": {
             "description": "Blow count as reported (N or blows/ft). A string allows refusal notation such as \"50/3in\".",
             "type": ["number", "string"]
@@ -181,14 +214,50 @@
             "items": { "type": "number", "minimum": 0 }
           },
           "energy_ratio": { "description": "Percent; overrides metadata.energy_ratio for this sample.", "type": "number", "exclusiveMinimum": 0 },
-          "water_content": { "description": "Percent.", "type": "number", "minimum": 0 },
-          "dry_unit_weight": { "description": "In units.unit_weight.", "type": "number", "exclusiveMinimum": 0 },
-          "specific_gravity": { "type": "number", "exclusiveMinimum": 0 },
-          "fines_content": { "description": "Percent passing No. 200 sieve.", "type": "number", "minimum": 0, "maximum": 100 },
-          "liquid_limit": { "type": "number", "minimum": 0 },
-          "plastic_limit": { "type": "number", "minimum": 0 },
-          "nonplastic": { "description": "True if the sample is non-plastic (NP); LL/PL are then ignored.", "type": "boolean" },
-          "remarks": { "type": "string" }
+          "water_content": { "description": "Deprecated: give lab results on a specimen. Shown level with the sample, without a specimen box.", "type": "number", "minimum": 0 },
+          "dry_unit_weight": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "exclusiveMinimum": 0 },
+          "specific_gravity": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "exclusiveMinimum": 0 },
+          "fines_content": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "minimum": 0, "maximum": 100 },
+          "liquid_limit": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "minimum": 0 },
+          "plastic_limit": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "minimum": 0 },
+          "nonplastic": { "description": "Deprecated: give lab results on a specimen.", "type": "boolean" },
+          "specimens": {
+            "description": "Specimens cut from this sample for laboratory tests (NGL SPEC, with the INDX and PLAS results). Each is drawn as a box over its depth range in the specimen column, with its results on a row level with it.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": { "description": "Specimen reference within the sample (NGL SPEC_REF).", "type": "string" },
+                "top": { "description": "Depth to the top of the specimen, in units.length (NGL SPEC_TOP). Without it no specimen box is drawn, and the results are shown level with the sample.", "type": "number", "minimum": 0 },
+                "bottom": { "description": "Depth to the bottom of the specimen (NGL SPEC_BASE). Without it the specimen is drawn at its top.", "type": "number", "minimum": 0 },
+                "water_content": { "description": "Natural water content, percent (NGL INDX_WC).", "type": "number", "minimum": 0 },
+                "total_unit_weight": { "description": "Total (bulk) unit weight, in units.unit_weight (NGL INDX_BDEN as density).", "type": "number", "exclusiveMinimum": 0 },
+                "dry_unit_weight": { "description": "Dry unit weight, in units.unit_weight (NGL INDX_DDEN as density).", "type": "number", "exclusiveMinimum": 0 },
+                "specific_gravity": { "description": "Specific gravity of solids (NGL INDX_GS).", "type": "number", "exclusiveMinimum": 0 },
+                "fines_content": { "description": "Percent passing the No. 200 sieve (NGL INDX_FINE).", "type": "number", "minimum": 0, "maximum": 100 },
+                "liquid_limit": { "description": "Percent (NGL PLAS_LL).", "type": "number", "minimum": 0 },
+                "plastic_limit": { "description": "Percent (NGL PLAS_PL).", "type": "number", "minimum": 0 },
+                "nonplastic": { "description": "True if the specimen is non-plastic (NP); LL/PL are then ignored.", "type": "boolean" },
+                "custom": {
+                  "description": "Values for custom columns, by field name (see layout.columns), e.g. { \"cu\": 45 }.",
+                  "type": "object",
+                  "maxProperties": 40,
+                  "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_]{0,31}$" },
+                  "additionalProperties": { "type": ["number", "string"] }
+                },
+                "remarks": { "description": "NGL SPEC_REM.", "type": "string" }
+              }
+            }
+          },
+          "custom": {
+            "description": "Values for custom columns, by field name (see layout.columns), e.g. { \"cu\": 45 }.",
+            "type": "object",
+            "maxProperties": 40,
+            "propertyNames": { "pattern": "^[A-Za-z][A-Za-z0-9_]{0,31}$" },
+            "additionalProperties": { "type": ["number", "string"] }
+          },
+          "remarks": { "description": "Sample remarks (NGL SAMP_REM).", "type": "string" }
         }
       }
     }

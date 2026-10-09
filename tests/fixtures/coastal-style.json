@@ -29,13 +29,13 @@
     { "top": 12.0, "bottom": 15.0, "description": "Brown, dense, wet, clayey gravel with sand", "uscs": "GC" }
   ],
   "samples": [
-    { "top": 1.5, "bottom": 1.95, "name": "S-1", "type": "SPT", "blow_count": 4, "water_content": 28.4, "fines_content": 22 },
-    { "top": 3.0, "bottom": 3.45, "name": "S-2", "type": "SPT", "blow_count": 6, "water_content": 31.0, "fines_content": 18, "nonplastic": true },
-    { "top": 4.6, "bottom": 5.2, "name": "T-3", "type": "Shelby", "water_content": 38.2, "dry_unit_weight": 13.1, "specific_gravity": 2.71, "liquid_limit": 41, "plastic_limit": 19, "description": "Undisturbed, sent for CU triaxial" },
-    { "top": 6.5, "bottom": 6.95, "name": "S-4", "type": "SPT", "blow_count": 14, "fines_content": 9, "water_content": 24.1 },
-    { "top": 8.0, "bottom": 8.45, "name": "D-5", "type": "ModCal", "blow_count": 32, "dry_unit_weight": 16.4, "water_content": 21.7, "sampler_diameter": 76 },
-    { "top": 10.0, "bottom": 10.45, "name": "S-6", "type": "SPT", "blow_count": 11, "water_content": 42.3, "liquid_limit": 67, "plastic_limit": 26 },
+    { "top": 1.5, "bottom": 1.95, "name": "S-1", "type": "SPT", "blow_count": 4, "specimens": [{ "water_content": 28.4, "fines_content": 22 }] },
+    { "top": 3.0, "bottom": 3.45, "name": "S-2", "type": "SPT", "blow_count": 6, "specimens": [{ "water_content": 31.0, "fines_content": 18, "nonplastic": true }] },
+    { "top": 4.6, "bottom": 5.2, "name": "T-3", "type": "Shelby", "specimens": [{ "name": "T-3A", "top": 4.7, "bottom": 4.85, "water_content": 38.2, "dry_unit_weight": 13.1, "specific_gravity": 2.71, "liquid_limit": 41, "plastic_limit": 19}, { "name": "T-3B", "top": 4.95, "bottom": 5.1, "water_content": 36.5, "total_unit_weight": 17.9, "remarks": "CU triaxial" }], "remarks": "Undisturbed, sent for CU triaxial" },
+    { "top": 6.5, "bottom": 6.95, "name": "S-4", "type": "SPT", "blow_count": 14, "specimens": [{ "water_content": 24.1, "fines_content": 9 }] },
+    { "top": 8.0, "bottom": 8.45, "name": "D-5", "type": "ModCal", "blow_count": 32, "sampler_diameter": 76, "specimens": [{ "water_content": 21.7, "dry_unit_weight": 16.4 }] },
+    { "top": 10.0, "bottom": 10.45, "name": "S-6", "type": "SPT", "blow_count": 11, "specimens": [{ "water_content": 42.3, "liquid_limit": 67, "plastic_limit": 26 }] },
     { "top": 13.0, "bottom": 13.3, "name": "S-7", "type": "SPT", "blow_count": "50/5in", "remarks": "Refusal on cobble" },
-    { "top": 14.0, "bottom": 14.6, "name": "B-8", "type": "Bulk", "fines_content": 14 }
+    { "top": 14.0, "bottom": 14.6, "name": "B-8", "type": "Bulk", "specimens": [{ "fines_content": 14 }] }
   ]
 }

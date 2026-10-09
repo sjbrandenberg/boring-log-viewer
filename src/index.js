@@ -1,4 +1,5 @@
-export { renderBoringLog, hatchSwatch, hatchName, samplerSwatch, DEFAULT_COLUMNS, SAMPLER_NAMES } from './render.js';
+export { renderBoringLog, defaultLayout, layoutColumns, hatchSwatch, hatchName, samplerSwatch, DEFAULT_COLUMNS, SAMPLER_NAMES } from './render.js';
+export { BUILT_IN_COLUMNS } from './columns.js';
 export { validateBoringLog, schema } from './validate.js';
 export { normalizeBoringLog, BoringLogError } from './normalize.js';
 export { DUAL_NAMES, inferHatch, inferUscs, layerHatch, USCS_SYMBOLS, USCS_NAMES } from './classify.js';
@@ -7,3 +8,5 @@ export { inferMaterial } from './materials.js';
 export { parseAgs, agsToBoringLogs, looksLikeAgs, AgsError } from './ags.js';
 export { parseXml, diggsToBoringLogs, looksLikeDiggs, DiggsError } from './diggs.js';
 export { measureText, wrapText } from './text.js';
+export { renderSection, placeAlongLine, matchUnits, boringUnits, soilClass, lineLength, MAX_SECTION_LENGTH } from './section.js';
+export { renderSlice, sliceProfile, modelAt } from './slice.js';

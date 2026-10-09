@@ -184,8 +184,9 @@ export function agsToBoringLogs(text) {
             const name = type === 'Other' && r.SAMP_TYPE ? `${ref} ${r.SAMP_TYPE}`.trim() : ref;
             const s = { top, bottom, name: name || undefined, type };
             if (num(r.SAMP_DIA) > 0) s.sampler_diameter = num(r.SAMP_DIA);
-            if (r.SAMP_DESC) s.description = r.SAMP_DESC;
-            if (r.SAMP_REM) s.remarks = r.SAMP_REM;
+            // Samples have remarks only: the description, then the remarks.
+            const remarks = [r.SAMP_DESC, r.SAMP_REM].filter(Boolean).join('; ');
+            if (remarks) s.remarks = remarks;
             const recv = num(r.SAMP_RECV);
             if (recv !== undefined && recv >= 0) s.recovery = Math.round(((bottom - top) * recv) / 100 * 1000) / 1000;
             samples.push(s);
@@ -229,10 +230,29 @@ export function agsToBoringLogs(text) {
             if (pen.length) s.bottom = s.top + pen.reduce((a, b) => a + b, 0) / 1000;
         }
 
+        // Lab results go on the specimen they were measured on (SPEC_REF, SPEC_DPTH):
+        // one specimen per reference and depth within the sample. A specimen with
+        // a depth (SPEC_DPTH) is drawn at that depth; one without gets no box.
+        const specimenIndex = new Map();
+        const specimenFor = (s, r) => {
+            const ref = String(r.SPEC_REF ?? '').trim();
+            const depth = num(r.SPEC_DPTH);
+            const key = `${ref}|${depth ?? ''}`;
+            if (!specimenIndex.has(s)) specimenIndex.set(s, new Map());
+            const byKey = specimenIndex.get(s);
+            if (!byKey.has(key)) {
+                const sp = {};
+                if (ref) sp.name = ref;
+                if (depth !== undefined) sp.top = depth;
+                (s.specimens ??= []).push(sp);
+                byKey.set(key, sp);
+            }
+            return byKey.get(key);
+        };
         const labValue = (group, heading, apply) => {
             for (const r of (lab[group].get(id) ?? [])) {
                 const s = sampleFor(r);
-                if (s) apply(s, r[heading], r);
+                if (s) apply(specimenFor(s, r), r[heading], r);
             }
         };
         labValue('LNMC', 'LNMC_MC', (s, v) => { if (num(v) !== undefined) s.water_content = num(v); });
@@ -260,7 +280,7 @@ export function agsToBoringLogs(text) {
             units: { length: lengthUnit, unit_weight: 'kN/m3', diameter: 'mm' },
             metadata: clean(metadata),
             layers,
-            samples: samples.sort((a, b) => a.top - b.top).map(clean),
+            samples: samples.sort((a, b) => a.top - b.top).map(s => (s.specimens ? { ...s, specimens: s.specimens.sort((a, b) => (a.top ?? -1) - (b.top ?? -1)) } : s)).map(clean),
             groundwater,
             ...(depth_notes.length ? { depth_notes } : {}),
         };

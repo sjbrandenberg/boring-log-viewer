@@ -113,6 +113,14 @@ export function downloadName(doc, ext) {
     return `${slug}.${ext}`;
 }
 
+// Render options for a document: the form's, except that a width set in the
+// document's layout is kept.
+export function renderOptionsFor(doc, form) {
+    const options = renderOptions(form);
+    if (doc?.layout?.width > 0) delete options.width;
+    return options;
+}
+
 // Render options from the form's raw values.
 export function renderOptions(form) {
     const options = {
@@ -132,6 +140,8 @@ export function renderOptions(form) {
 export function summarize(doc) {
     const count = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
     const parts = [count(doc.layers?.length ?? 0, 'layer'), count(doc.samples?.length ?? 0, 'sample')];
+    const specimens = (Array.isArray(doc.samples) ? doc.samples : []).reduce((n, s) => n + (Array.isArray(s?.specimens) ? s.specimens.length : 0), 0);
+    if (specimens) parts.push(count(specimens, 'specimen'));
     if (doc.groundwater?.length) parts.push(count(doc.groundwater.length, 'groundwater reading'));
     return parts.join(', ');
 }

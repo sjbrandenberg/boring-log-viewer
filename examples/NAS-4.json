@@ -1,0 +1,176 @@
+{
+  "schema_version": "1.0",
+  "units": {
+    "length": "m",
+    "unit_weight": "kN/m3",
+    "diameter": "mm"
+  },
+  "metadata": {
+    "boring_name": "NAS-4",
+    "site_name": "Ming-Ju Rd, Nantou, Taiwan",
+    "latitude": 23.908378,
+    "longitude": 120.685361,
+    "start_date": "2001-10-28",
+    "end_date": "2001-10-29",
+    "boring_type": "Rotary wash/percussion with 9cm fishtail bit",
+    "rig": "Tripod",
+    "diameter": 120,
+    "hammer": "Safety Hammer (per Kovacs et al., 1983); ASTM D1586",
+    "logged_by": "Daniel Chu, UCLA"
+  },
+  "references": [
+    {
+      "text": "PEER Taiwan Ground Failure Database, Nantou",
+      "url": "https://apps.peer.berkeley.edu/lifelines/research_projects/3A02/nantou.html"
+    }
+  ],
+  "groundwater": [
+    {
+      "depth": 1.0,
+      "date": "2001-10-28",
+      "note": "No date given, assumed to be first day of testing"
+    }
+  ],
+  "layers": [
+    {
+      "top": 0.0,
+      "bottom": 0.2,
+      "description": "SLAB: 7 cm thick slab with 13 cm cobble fill underlain"
+    },
+    {
+      "top": 0.2,
+      "bottom": 0.8,
+      "description": "FILL: Brown, moist, soft to medium stiff silty clay"
+    },
+    {
+      "top": 0.8,
+      "bottom": 0.9,
+      "description": "SLAB: 10 cm thick old slab"
+    },
+    {
+      "top": 0.9,
+      "bottom": 1.5,
+      "description": "FILL: Brown, moist soft to medium stiff silty clay"
+    },
+    {
+      "top": 1.5,
+      "bottom": 3.0,
+      "description": "SAND AND SILT: Brown to yellowish brown, wet, loose, silty sand to sandy silt with some gravels",
+      "uscs": "SM-ML"
+    },
+    {
+      "top": 3.0,
+      "bottom": 6.9,
+      "description": "GRAVEL AND SAND: Dark brown, wet, very dense silty sand with gravels and cobbles up to 5 cm in diameter",
+      "uscs": "GP-GW"
+    }
+  ],
+  "samples": [
+    {
+      "top": 1.93,
+      "bottom": 2.38,
+      "name": "S-1",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "uscs": "SM-ML",
+      "blow_count": 3,
+      "energy_ratio": 70,
+      "specimens": [
+        {
+          "name": "NAS4-1",
+          "top": 1.93,
+          "bottom": 2.38,
+          "water_content": 19,
+          "dry_unit_weight": 17.7,
+          "fines_content": 60,
+          "liquid_limit": 20,
+          "plastic_limit": 16,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 2.55,
+      "bottom": 3.0,
+      "name": "No Recovery",
+      "type": "SPT",
+      "recovery": 0,
+      "blow_count": 7,
+      "energy_ratio": 72
+    },
+    {
+      "top": 3.55,
+      "bottom": 3.85,
+      "name": "S-2",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 73,
+      "energy_ratio": 68,
+      "specimens": [
+        {
+          "name": "NAS4-2",
+          "top": 3.55,
+          "bottom": 3.7,
+          "water_content": 17,
+          "dry_unit_weight": 18.1,
+          "fines_content": 6,
+          "remarks": "Specimen size assumed"
+        },
+        {
+          "name": "NAS4-2b",
+          "top": 3.7,
+          "bottom": 3.85,
+          "fines_content": 4,
+          "remarks": "Specimen size assumed"
+        }
+      ],
+      "remarks": "Measured as 23-50/15 cm (to refusal)"
+    },
+    {
+      "top": 4.72,
+      "bottom": 5.17,
+      "name": "S-3",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "uscs": "GP",
+      "blow_count": 27,
+      "energy_ratio": 80,
+      "specimens": [
+        {
+          "name": "NAS4-2",
+          "top": 4.72,
+          "bottom": 5.17,
+          "fines_content": 6,
+          "remarks": "Specimen size taken as sample size"
+        }
+      ]
+    },
+    {
+      "top": 6.15,
+      "bottom": 6.6,
+      "name": "S-4",
+      "type": "SPT",
+      "sampler_diameter": 38.1,
+      "blow_count": 46,
+      "energy_ratio": 72,
+      "specimens": [
+        {
+          "name": "NAS4-3",
+          "top": 6.15,
+          "bottom": 6.3,
+          "dry_unit_weight": 19.1,
+          "fines_content": 9,
+          "remarks": "Specimen size assumed"
+        },
+        {
+          "name": "NAS4-4b",
+          "top": 6.3,
+          "bottom": 6.45,
+          "water_content": 15,
+          "fines_content": 3,
+          "remarks": "Specimen size assumed"
+        }
+      ]
+    }
+  ]
+}

@@ -270,3 +270,14 @@ test('files may be larger than the JSON limit', async () => {
     await small.close();
     await tiny.close();
 });
+
+test('?columns can use the custom columns of the document\'s layout', async () => {
+    const doc = JSON.parse(coastal);
+    doc.samples[0].custom = { pocket_pen: 1.5 };
+    doc.layout = { columns: ['depth', 'graphic', 'description', { id: 'pp', source: 'sample', field: 'pocket_pen', label: 'PP (tsf)' }] };
+    const ok = await render('?columns=depth,graphic,description,pp', JSON.stringify(doc));
+    assert.equal(ok.statusCode, 200);
+    assert.match(ok.body, /PP \(tsf\)/);
+    const bad = await render('?columns=depth,qq', JSON.stringify(doc));
+    assert.equal(bad.statusCode, 400);
+});

@@ -1,15 +1,15 @@
 // Renders a boring log document to a standalone SVG string. Pure function:
 // no DOM, no network, no external images, so the same code runs in the
 // browser, in Node for the API, and in tests.
-import { normalizeBoringLog } from './normalize.js';
-import { DUAL_NAMES, inferUscs, layerHatch, USCS_NAMES, USCS_SYMBOLS } from './classify.js';
+import { normalizeBoringLog, recoveryRemark } from './normalize.js';
+import { DUAL_NAMES, checkUscs, usableUscs, describedUscs, inferUscs, layerHatch, USCS_NAMES, USCS_SYMBOLS } from './classify.js';
 import { inferMaterial } from './materials.js';
 import { HATCH_TILES } from './hatches.js';
 import { LITHOLOGY } from './lithology.js';
 
 // The built-in tile for a code, following the lithology fallback chain (e.g.
 // SANDSTONE -> ROCK_SED -> ROCK) when a code has no tile of its own.
-function builtInTile(code) {
+export function builtInTile(code) {
     for (let c = code, seen = 0; c && seen < 8; c = LITHOLOGY[c]?.fallback, seen++) {
         if (HATCH_TILES[c]) return HATCH_TILES[c];
     }
@@ -20,12 +20,8 @@ import { FONT_FAMILY, measureText, wrapText, escapeXml } from './text.js';
 import { SAMPLER_NAMES } from './samplers.js';
 export { SAMPLER_NAMES };
 
-export const DEFAULT_COLUMNS = [
-    'depth', 'elevation', 'groundwater', 'graphic', 'uscs', 'description',
-    'sample_type', 'sample_name', 'sampler_diameter', 'recovery', 'blow_count', 'sample_description',
-    'water_content', 'dry_unit_weight', 'specific_gravity', 'fines_content', 'liquid_limit', 'plastic_limit',
-    'remarks',
-];
+import { DEFAULT_COLUMNS, BUILT_IN_COLUMNS } from './columns.js';
+export { DEFAULT_COLUMNS };
 
 const DEFAULTS = {
     width: 800,          // total SVG width, px
@@ -88,6 +84,7 @@ function displayUnits(doc, opt) {
 
 const fmt = decimals => v => (typeof v === 'number' ? v.toFixed(decimals) : String(v));
 const has = field => doc => doc.samples.some(s => s[field] !== undefined);
+const hasSpec = field => doc => doc.specimens.some(s => s[field] !== undefined);
 
 function columnRegistry(u) {
     const diaDecimals = { mm: 0, cm: 1, m: 3, in: 2, ft: 3 }[u.dia];
@@ -96,7 +93,7 @@ function columnRegistry(u) {
         elevation: { kind: 'elevation', width: 38, label: `Elevation (${u.len})`, hasData: doc => doc.metadata.elevation !== undefined },
         groundwater: { kind: 'groundwater', width: 22, label: 'Water level', hasData: doc => doc.groundwater.length > 0 },
         graphic: { kind: 'graphic', width: 40, label: 'Graphic log', always: true },
-        uscs: { kind: 'uscs', width: 30, label: 'USCS', hasData: doc => doc.layers.some(l => shownUscs(l) || l.uscs_inferred) },
+        uscs: { kind: 'uscs', width: 30, label: 'USCS', hasData: doc => doc.layers.some(l => shownUscs(l) || l.uscs_inferred || l.uscs_check || l.uscs_invalid) },
         description: { kind: 'description', flex: 3, label: 'Material description', always: true },
         sample_type: { kind: 'sample_symbol', width: 24, label: 'Sample type', hasData: doc => doc.samples.length > 0 },
         sample_name: { kind: 'sample_value', width: 36, label: 'Sample no.', value: s => s.name, hasData: has('name') },
@@ -104,11 +101,6 @@ function columnRegistry(u) {
             kind: 'sample_value', width: 30, label: `Sampler dia. (${u.dia})`,
             value: s => s.sampler_diameter === undefined ? undefined : fmt(diaDecimals)(u.diameter(s.sampler_diameter)),
             hasData: has('sampler_diameter'),
-        },
-        recovery: {
-            kind: 'sample_value', width: 30, label: `Recovery (${u.len})`,
-            value: s => s.recovery === undefined ? undefined : fmt(2)(u.length(s.recovery)),
-            hasData: has('recovery'),
         },
         blow_count: {
             kind: 'sample_value', width: 34, label: 'Blow count',
@@ -120,26 +112,50 @@ function columnRegistry(u) {
             value: s => (s.energy_ratio === undefined ? undefined : fmt(0)(s.energy_ratio)),
             hasData: has('energy_ratio'),
         },
-        sample_description: { kind: 'sample_text', flex: 1.5, label: 'Sample description', value: s => s.description, hasData: has('description') },
-        water_content: { kind: 'sample_value', width: 30, label: 'Water content (%)', value: s => s.water_content === undefined ? undefined : fmt(1)(s.water_content), hasData: has('water_content') },
-        dry_unit_weight: {
-            kind: 'sample_value', width: 30, label: `Dry unit wt. (${UNIT_LABEL[u.uw]})`,
-            value: s => s.dry_unit_weight === undefined ? undefined : fmt(1)(u.unitWeight(s.dry_unit_weight)),
-            hasData: has('dry_unit_weight'),
+        // Specimens (NGL SPEC): a box over each specimen's depth range, its
+        // reference, and its lab results (NGL INDX and PLAS) on a row level with it.
+        specimen: { kind: 'specimen_symbol', width: 22, label: 'Specimen', hasData: doc => doc.specimens.some(s => s.located) },
+        specimen_name: { kind: 'specimen_value', width: 36, label: 'Specimen no.', value: s => s.name, hasData: hasSpec('name') },
+        water_content: { kind: 'specimen_value', width: 30, label: 'Water content (%)', value: s => s.water_content === undefined ? undefined : fmt(1)(s.water_content), hasData: hasSpec('water_content') },
+        total_unit_weight: {
+            kind: 'specimen_value', width: 30, label: `Total unit wt. (${UNIT_LABEL[u.uw]})`,
+            value: s => s.total_unit_weight === undefined ? undefined : fmt(1)(u.unitWeight(s.total_unit_weight)),
+            hasData: hasSpec('total_unit_weight'),
         },
-        specific_gravity: { kind: 'sample_value', width: 30, label: 'Specific gravity', value: s => s.specific_gravity === undefined ? undefined : fmt(2)(s.specific_gravity), hasData: has('specific_gravity') },
-        fines_content: { kind: 'sample_value', width: 30, label: 'Fines (%)', value: s => s.fines_content === undefined ? undefined : fmt(0)(s.fines_content), hasData: has('fines_content') },
+        dry_unit_weight: {
+            kind: 'specimen_value', width: 30, label: `Dry unit wt. (${UNIT_LABEL[u.uw]})`,
+            value: s => s.dry_unit_weight === undefined ? undefined : fmt(1)(u.unitWeight(s.dry_unit_weight)),
+            hasData: hasSpec('dry_unit_weight'),
+        },
+        specific_gravity: { kind: 'specimen_value', width: 30, label: 'Specific gravity', value: s => s.specific_gravity === undefined ? undefined : fmt(2)(s.specific_gravity), hasData: hasSpec('specific_gravity') },
+        fines_content: { kind: 'specimen_value', width: 30, label: 'Fines (%)', value: s => s.fines_content === undefined ? undefined : fmt(0)(s.fines_content), hasData: hasSpec('fines_content') },
         liquid_limit: {
-            kind: 'sample_value', width: 28, label: 'Liquid limit',
+            kind: 'specimen_value', width: 28, label: 'Liquid limit',
             value: s => (s.nonplastic ? 'NP' : s.liquid_limit === undefined ? undefined : fmt(0)(s.liquid_limit)),
-            hasData: doc => doc.samples.some(s => s.liquid_limit !== undefined || s.nonplastic),
+            hasData: doc => doc.specimens.some(s => s.liquid_limit !== undefined || s.nonplastic),
         },
         plastic_limit: {
-            kind: 'sample_value', width: 28, label: 'Plastic limit',
+            kind: 'specimen_value', width: 28, label: 'Plastic limit',
             value: s => (s.nonplastic ? 'NP' : s.plastic_limit === undefined ? undefined : fmt(0)(s.plastic_limit)),
-            hasData: doc => doc.samples.some(s => s.plastic_limit !== undefined || s.nonplastic),
+            hasData: doc => doc.specimens.some(s => s.plastic_limit !== undefined || s.nonplastic),
         },
-        remarks: { kind: 'sample_text', flex: 1, label: 'Remarks', value: s => s.remarks, hasData: has('remarks') },
+        // One column for all remarks: each sample's, level with its sample row, and
+        // each specimen's, level with its specimen row. A sample's recovery ("No
+        // recovery", "Recovery 0.36 m (80%)") is a note ahead of its remarks.
+        remarks: {
+            kind: 'remarks', flex: 1.5, label: 'Remarks', vertical_label: true,
+            specimenValue: s => s.remarks,
+            value: s => {
+                const note = recoveryRemark(s, u.length, u.len);
+                const text = s.remarks;
+                if (!note) return text;
+                if (!text) return note;
+                // Don't repeat "no recovery" when the remarks already say it.
+                if (note === 'No recovery' && /\b(no (sample |core )?recovery|not recovered)\b/i.test(text)) return text;
+                return `${note}; ${text}`;
+            },
+            hasData: doc => doc.samples.some(s => s.remarks !== undefined || s.recovery !== undefined) || doc.specimens.some(s => s.remarks !== undefined),
+        },
     };
 }
 
@@ -148,11 +164,93 @@ function columnRegistry(u) {
 const VALUE_WIDEN_FACTOR = 3;
 const VALUE_WIDEN_MAX = 150;
 
+// A custom column from the document's layout: a value from each sample's or
+// specimen's `custom`, or a blank column.
+function customColumn(entry) {
+    const field = entry.field ?? entry.id;
+    const show = v => (v === undefined || v === '' ? undefined : typeof v === 'number' && entry.decimals !== undefined ? v.toFixed(entry.decimals) : String(v));
+    if (entry.source === 'blank') return { kind: 'blank', label: entry.id, always: true };
+    const list = entry.source === 'specimen' ? 'specimens' : 'samples';
+    return {
+        kind: entry.source === 'specimen' ? 'specimen_value' : 'sample_value',
+        label: entry.id,
+        value: s => show(s.custom?.[field]),
+        hasData: doc => doc[list].some(s => s.custom?.[field] !== undefined),
+    };
+}
+
+// Relative width of a built-in column in a layout given without widths: its
+// usual width in px / 10 (text columns: description 30, remarks 15).
+const relativeWidth = def => (def.width ? def.width / 10 : def.flex * 10);
+
+// The document with everything drawn on the depth axis in display units, and
+// each layer's inferred USCS symbol and material.
+function prepareDoc(doc, opt, u) {
+    // Convert everything drawn on the depth axis to display units up front.
+    const layers = doc.layers.map(l => {
+        // A heading such as "GRAVEL AND SAND:" that reads as a mixed layer is looked past ("...silty sand with gravels" is SM).
+        const described = opt.infer_uscs && !l.uscs && !l.hatch ? describedUscs(l.description) : null;
+        const inferred = described ? { uscs: described } : null;
+        const material = opt.infer_materials && !l.hatch ? inferMaterial(l.description) : null;
+        // A recorded symbol that can't be right, or that the description contradicts
+        // (SP on a "sandy SILT"), is shown with ours in parentheses: "SP (ML)".
+        // An impossible one is always shown as given, and noted, even without inference.
+        const check = typeof l.uscs === 'string' ? checkUscs(l.uscs, opt.infer_uscs ? l.description : '') : null;
+        return {
+            ...l, top: u.length(l.top), bottom: u.length(l.bottom),
+            ...(inferred ? { uscs_inferred: inferred.uscs } : {}), ...(material ? { material_inferred: material } : {}),
+            ...(check?.inferred ? { uscs_check: check.inferred } : {}), ...(check?.invalid && usableUscs(l.uscs) ? { uscs_invalid: true } : {}),
+        };
+    });
+    const samples = doc.samples.map(s => ({ ...s, top: u.length(s.top), bottom: u.length(s.bottom) }));
+    const specimens = (doc.specimens ?? []).map(s => ({ ...s, top: u.length(s.top), bottom: u.length(s.bottom) }));
+    const groundwater = doc.groundwater.map(g => ({ ...g, depth: u.length(g.depth) }));
+    const depthNotes = doc.depth_notes.map(n => ({ ...n, depth: u.length(n.depth) }));
+    return { ...doc, layers, samples, specimens, groundwater, depth_notes: depthNotes };
+}
+
+// The default layout of a document: its columns as drawn with the built-in
+// layout, with relative widths that reproduce it. A starting point for `layout`.
+export function defaultLayout(input, options = {}) {
+    const doc = normalizeBoringLog(input);
+    const opt = { ...DEFAULTS, ...options };
+    const u = displayUnits(doc, opt);
+    const { cols, width } = resolveColumns({ ...prepareDoc(doc, opt, u), layout: undefined }, opt, u, opt.width);
+    return {
+        width: Math.ceil(width),
+        font_size: opt.font_size,
+        columns: cols.map(c => ({ id: c.id, width: Math.round(c.w) / 10 })),
+    };
+}
+
+// Every built-in column, for a layout editor: { id, label (in the document's
+// display units), width (its relative width when none is given), hasData,
+// always (depth, graphic and description are always drawn) }.
+export function layoutColumns(input, options = {}) {
+    const doc = normalizeBoringLog(input);
+    const opt = { ...DEFAULTS, ...options };
+    const u = displayUnits(doc, opt);
+    const drawDoc = prepareDoc(doc, opt, u);
+    const registry = columnRegistry(u);
+    return BUILT_IN_COLUMNS.map(id => ({
+        id,
+        label: registry[id].label,
+        width: relativeWidth(registry[id]),
+        hasData: Boolean(registry[id].always || registry[id].hasData(drawDoc)),
+        always: ['depth', 'graphic', 'description'].includes(id),
+    }));
+}
+
 function resolveColumns(doc, opt, u, totalWidth) {
     const registry = columnRegistry(u);
     const cols = [];
+    // The document's layout: its columns in order, with relative widths and labels.
+    const layout = Array.isArray(doc.layout?.columns) ? doc.layout.columns.map(e => (typeof e === 'string' ? { id: e } : e)) : null;
+    const entryOf = id => layout?.find(e => e.id === id);
+    // Columns asked for by the caller win over the layout's; the layout's custom
+    // columns can be among them.
+    const ids = opt.columns_given || !layout ? [...opt.columns] : layout.map(e => e.id);
     // Depth, graphic log and description are always drawn, in their usual places.
-    const ids = [...opt.columns];
     for (const id of ['depth', 'graphic', 'description']) {
         if (!ids.includes(id)) {
             const before = DEFAULT_COLUMNS.slice(DEFAULT_COLUMNS.indexOf(id) + 1).find(c => ids.includes(c));
@@ -160,18 +258,35 @@ function resolveColumns(doc, opt, u, totalWidth) {
         }
     }
     for (const id of ids) {
-        const def = registry[id];
+        const entry = entryOf(id);
+        const def = registry[id] ?? (entry?.source ? customColumn(entry) : null);
         if (!def) throw new Error(`Unknown column "${id}". Known columns: ${Object.keys(registry).join(', ')}`);
         if (opt.hide_empty_columns && !def.always && !def.hasData(doc)) continue;
-        const c = { id, ...def };
+        const c = { id, ...def, ...(entry?.label ? { label: entry.label } : {}) };
+        if (layout) {
+            // All widths are relative: the columns share the log's width in proportion.
+            c.rel = entry?.width ?? (registry[id] ? relativeWidth(def) : c.kind === 'blank' ? 4 : 3);
+            cols.push(c);
+            continue;
+        }
         // A value column widens to fit its longest value (e.g. "N=36 (18,29/36,-,-,-)")
         // rather than shrinking the text, taking the room from the flexible columns.
-        if (c.kind === 'sample_value' && c.width) {
-            const widest = Math.max(0, ...doc.samples.map(s => c.value(s)).filter(v => v !== undefined && v !== '')
+        if ((c.kind === 'sample_value' || c.kind === 'specimen_value') && c.width) {
+            const widest = Math.max(0, ...(c.kind === 'sample_value' ? doc.samples : doc.specimens).map(s => c.value(s)).filter(v => v !== undefined && v !== '')
                 .map(v => measureText(String(v), opt.font_size) + 8));
             if (widest > c.width) c.width = Math.round(Math.min(widest, c.width * VALUE_WIDEN_FACTOR, VALUE_WIDEN_MAX));
         }
         cols.push(c);
+    }
+    if (layout) {
+        const total = cols.reduce((n, c) => n + c.rel, 0);
+        let x = MARGIN;
+        for (const c of cols) {
+            c.w = ((totalWidth - 2 * MARGIN) * c.rel) / total;
+            c.x = x;
+            x += c.w;
+        }
+        return { cols, width: x + MARGIN };
     }
     const fixed = cols.reduce((n, c) => n + (c.width ?? 0), 0);
     const flexTotal = cols.reduce((n, c) => n + (c.flex ?? 0), 0);
@@ -223,7 +338,8 @@ function layoutDescriptions(layers, notes, col, scale, dTop, fs) {
     let cursor = -Infinity;
     return layers.map((layer, k) => {
         const lines = wrapText(layer.description ?? '', maxW, fs);
-        const textH = lines.length * lh + 2 * TEXT_PAD_Y;
+        // A USCS label with ours below it ("SP" over "(ML)") takes two lines.
+        const textH = Math.max(lines.length, layer.uscs_check ? 2 : 1) * lh + 2 * TEXT_PAD_Y;
         const layerTop = (layer.top - dTop) * scale;
         const layerBottom = (layer.bottom - dTop) * scale;
         const top = Math.max(layerTop, cursor);
@@ -240,7 +356,7 @@ function layoutDescriptions(layers, notes, col, scale, dTop, fs) {
     });
 }
 
-// Wraps each sample's text columns; the row heights don't depend on the scale.
+// Wraps each sample's (or specimen's) text columns; the row heights don't depend on the scale.
 function wrapSampleRows(samples, textCols, fs) {
     const lh = fs * 1.2;
     return samples.map(sample => {
@@ -318,6 +434,23 @@ function layoutSampleRows(wrappedRows, scale, dTop, fs) {
         const top = Math.max((rowAnchor(row.sample) - dTop) * scale - rowLead(fs), cursor);
         cursor = top + row.height;
         return { ...row, sTop, sBottom, top, bottom: cursor };
+    });
+}
+
+// The remarks column holds both samples' and specimens' remarks: each starts
+// level with its row, or below the previous remark if that ran long.
+function layoutRemarks(rows, specRows, col, fs) {
+    const lh = fs * 1.2;
+    const items = [
+        ...rows.map(rw => ({ text: col.value(rw.sample), top: rw.top })),
+        ...specRows.map(rw => ({ text: col.specimenValue(rw.sample), top: rw.top })),
+    ].filter(it => it.text).sort((a, b) => a.top - b.top);
+    let cursor = -Infinity;
+    return items.map(it => {
+        const lines = wrapText(it.text, col.w - 2 * TEXT_PAD_X, fs);
+        const top = Math.max(it.top, cursor);
+        cursor = top + lines.length * lh + 2 * TEXT_PAD_Y;
+        return { lines, top, bottom: cursor };
     });
 }
 
@@ -429,11 +562,15 @@ function samplerSymbol(type, x, y, w, h, patternId, custom) {
         case 'TripleTube':
             return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#bbb" stroke="#000" stroke-width="1.2"/>`
                 + line(x + w / 3, y, x + w / 3, Y, 0.8) + line(x + (2 * w) / 3, y, x + (2 * w) / 3, Y, 0.8);
-        case 'NoRecovery':
-            return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(h)}" fill="#fff" stroke="#000" stroke-width="1" stroke-dasharray="2 1.5"/>` + line(x, Y, X, y, 0.8);
         default:
             return box + `<path d="M${r(X)} ${r(y)}L${r(X)} ${r(Y)}L${r(x)} ${r(Y)}Z" fill="#000"/>`;
     }
+}
+
+// A specimen: a plain box over its depth range.
+const SPECIMEN_MIN_H = 3;
+function specimenSymbol(x, y, w, h) {
+    return `<rect x="${r(x)}" y="${r(y)}" width="${r(w)}" height="${r(Math.max(h, SPECIMEN_MIN_H))}" fill="#d9d9d9" stroke="#000" stroke-width="1"/>`;
 }
 
 function groundwaterSymbol(x, y) {
@@ -532,11 +669,14 @@ function drawHeader(doc, opt, u, x0, width, y0, fs) {
 
 // Column header height: the smallest height at which every rotated label
 // fits in the lines its column has room for.
+// Text columns (and a wide blank one) have level headings; the rest are rotated.
+const levelLabel = c => (c.flex || (c.kind === 'blank' && c.w > 70)) && !c.vertical_label;
+
 function columnHeaderHeight(cols, fs) {
     const lh = fs * 1.2;
     for (let h = 60; h <= 200; h += 10) {
         const ok = cols.every(c => {
-            if (c.flex) return wrapText(c.label, c.w - 8, fs, true).length * lh <= h - 8;
+            if (levelLabel(c)) return wrapText(c.label, c.w - 8, fs, true).length * lh <= h - 8;
             const maxLines = Math.max(1, Math.floor((c.w - 4) / lh));
             return wrapText(c.label, h - 8, fs, true).length <= maxLines;
         });
@@ -549,7 +689,8 @@ function drawColumnHeaders(cols, y0, h, fs) {
     const lh = fs * 1.2;
     const out = [];
     for (const c of cols) {
-        if (c.flex) {
+        // Text columns have level headings, except those marked vertical_label.
+        if (levelLabel(c)) {
             const lines = wrapText(c.label, c.w - 8, fs, true);
             const startY = y0 + h - 6 - (lines.length - 1) * lh;
             lines.forEach((ln, i) => out.push(text(c.x + c.w / 2, startY + i * lh, ln, { anchor: 'middle', bold: true })));
@@ -567,27 +708,20 @@ function drawColumnHeaders(cols, y0, h, fs) {
 
 export function renderBoringLog(input, options = {}) {
     const doc = normalizeBoringLog(input);
-    const opt = { ...DEFAULTS, ...options };
+    // The document's layout sets the width and font size, unless the caller does.
+    const fromLayout = {};
+    if (doc.layout?.width > 0) fromLayout.width = doc.layout.width;
+    if (doc.layout?.font_size > 0) fromLayout.font_size = doc.layout.font_size;
+    const opt = { ...DEFAULTS, ...fromLayout, ...options, columns_given: options.columns !== undefined };
     const fs = opt.font_size;
     const lh = fs * 1.2;
     const u = displayUnits(doc, opt);
     const prefix = opt.id_prefix ?? `blv${hashString(JSON.stringify(doc))}`;
 
-    // Convert everything drawn on the depth axis to display units up front.
-    const layers = doc.layers.map(l => {
-        const inferred = opt.infer_uscs && !l.uscs && !l.hatch ? inferUscs(l.description) : null;
-        const material = opt.infer_materials && !l.hatch ? inferMaterial(l.description) : null;
-        return {
-            ...l, top: u.length(l.top), bottom: u.length(l.bottom),
-            ...(inferred ? { uscs_inferred: inferred.uscs } : {}), ...(material ? { material_inferred: material } : {}),
-        };
-    });
-    const samples = doc.samples.map(s => ({ ...s, top: u.length(s.top), bottom: u.length(s.bottom) }));
-    const groundwater = doc.groundwater.map(g => ({ ...g, depth: u.length(g.depth) }));
-    const depthNotes = doc.depth_notes.map(n => ({ ...n, depth: u.length(n.depth) }));
-    const drawDoc = { ...doc, layers, samples, groundwater, depth_notes: depthNotes };
+    const drawDoc = prepareDoc(doc, opt, u);
+    const { layers, samples, specimens, groundwater, depth_notes: depthNotes } = drawDoc;
 
-    const deepest = Math.max(...layers.map(l => l.bottom), ...samples.map(s => s.bottom), ...groundwater.map(g => g.depth), ...depthNotes.map(n => n.depth));
+    const deepest = Math.max(...layers.map(l => l.bottom), ...samples.map(s => s.bottom), ...specimens.map(s => s.bottom), ...groundwater.map(g => g.depth), ...depthNotes.map(n => n.depth));
     const [dTop, dBottom] = opt.depth_range ?? [Math.min(0, ...layers.map(l => l.top)), deepest];
     const range = Math.max(dBottom - dTop, 1e-6);
 
@@ -595,23 +729,45 @@ export function renderBoringLog(input, options = {}) {
     const col = id => cols.find(c => c.id === id);
     const descCol = col('description');
     const sampleTextCols = cols.filter(c => c.kind === 'sample_text');
+    const specimenTextCols = cols.filter(c => c.kind === 'specimen_text');
+    const remarksCol = col('remarks');
+    // Specimen rows are laid out like sample rows, but on their own: a row starts
+    // level with its specimen.
+    const showSpecimenRows = cols.some(c => c.kind === 'specimen_value' || c.kind === 'specimen_text')
+        || Boolean(remarksCol && specimens.some(s => s.remarks));
 
     // Depth scale: start from the requested size, stretch until each sample row
     // lines up with its sampler (up to MAX_ALIGNED_HEIGHT), then until the
     // stacked text ends no lower than the bottom of the scale.
     let scale = opt.scale ?? opt.height / range;
     const wrappedRows = wrapSampleRows(samples, sampleTextCols, fs);
-    if (opt.fit_text) scale = Math.max(scale, Math.min(rowAlignScale(wrappedRows, dTop, fs), MAX_ALIGNED_HEIGHT / range));
+    const wrappedSpecRows = showSpecimenRows ? wrapSampleRows(specimens, specimenTextCols, fs) : [];
+    if (opt.fit_text) {
+        // Remarks share one column, so each must also have room before the next one.
+        const remarkRows = remarksCol ? [
+            ...samples.map(s => ({ sample: s, text: remarksCol.value(s) })),
+            ...(showSpecimenRows ? specimens : []).map(s => ({ sample: s, text: remarksCol.specimenValue(s) })),
+        ].filter(rw => rw.text).sort((a, b) => rowAnchor(a.sample) - rowAnchor(b.sample))
+            .map(rw => ({ sample: rw.sample, height: wrapText(rw.text, remarksCol.w - 2 * TEXT_PAD_X, fs).length * lh + 2 * TEXT_PAD_Y })) : [];
+        const align = Math.max(rowAlignScale(wrappedRows, dTop, fs), rowAlignScale(wrappedSpecRows, dTop, fs), rowAlignScale(remarkRows, dTop, fs));
+        scale = Math.max(scale, Math.min(align, MAX_ALIGNED_HEIGHT / range));
+    }
     let blocks;
     let rows;
-    for (let i = 0; i < 12; i++) {
+    let specRows;
+    let remarkBlocks;
+    // The layout always ends at the final scale: the graphic log and its layer
+    // boundaries are drawn from the same scale even when stretching stops early.
+    for (let i = 0; ; i++) {
         blocks = layoutDescriptions(layers, depthNotes, descCol, scale, dTop, fs);
         rows = layoutSampleRows(wrappedRows, scale, dTop, fs);
-        const needed = Math.max(0, ...blocks.map(b => b.bottom), ...rows.map(rw => rw.bottom));
-        if (!opt.fit_text || needed <= range * scale + 0.5) break;
+        specRows = layoutSampleRows(wrappedSpecRows, scale, dTop, fs);
+        remarkBlocks = remarksCol ? layoutRemarks(rows, specRows, remarksCol, fs) : [];
+        const needed = Math.max(0, ...blocks.map(b => b.bottom), ...rows.map(rw => rw.bottom), ...specRows.map(rw => rw.bottom), ...remarkBlocks.map(b => b.bottom));
+        if (!opt.fit_text || needed <= range * scale + 0.5 || i >= 40) break;
         scale *= needed / (range * scale) + 0.002;
     }
-    const contentBottom = Math.max(range * scale, ...blocks.map(b => b.bottom), ...rows.map(rw => rw.bottom));
+    const contentBottom = Math.max(range * scale, ...blocks.map(b => b.bottom), ...rows.map(rw => rw.bottom), ...specRows.map(rw => rw.bottom), ...remarkBlocks.map(b => b.bottom));
 
     const out = [];
     const defs = [];
@@ -743,8 +899,12 @@ export function renderBoringLog(input, options = {}) {
             }
         } else if (c.kind === 'uscs') {
             for (const b of blocks) {
-                const label = shownUscs(b.layer) ?? (b.layer.uscs_inferred ? `(${b.layer.uscs_inferred})` : null);
-                if (label) out.push(fittedText(c.x + c.w / 2, y0 + b.top + TEXT_PAD_Y + fs * 0.85, label, c.w - 4, fs));
+                const given = shownUscs(b.layer) ?? (b.layer.uscs_check || b.layer.uscs_invalid ? b.layer.uscs : null);
+                const label = given ?? (b.layer.uscs_inferred ? `(${b.layer.uscs_inferred})` : null);
+                const ty = y0 + b.top + TEXT_PAD_Y + fs * 0.85;
+                if (label) out.push(fittedText(c.x + c.w / 2, ty, label, c.w - 4, fs));
+                // Ours, when it differs, on the next line: "SP" over "(ML)".
+                if (given && b.layer.uscs_check) out.push(fittedText(c.x + c.w / 2, ty + lh, `(${b.layer.uscs_check})`, c.w - 4, fs));
             }
         } else if (c.kind === 'description') {
             for (const b of blocks) {
@@ -769,11 +929,41 @@ export function renderBoringLog(input, options = {}) {
                 const w = (c.w - 10 - (of - 1) * 2) / of;
                 out.push(samplerSymbol(s.type ?? 'Other', c.x + 5 + lane * (w + 2), top, w, h, `${prefix}-bulk`, samplerPattern(s.type)));
             });
+        } else if (c.kind === 'specimen_symbol') {
+            // A box over each specimen's depth range (at least SPECIMEN_MIN_H px tall,
+            // centred on a specimen given at one depth); overlapping ones side by side.
+            // Specimens without depths of their own get no box.
+            const drawn = specimens.filter(s => s.located).map(s => {
+                const h = (s.bottom - s.top) * scale;
+                const pad = h < SPECIMEN_MIN_H ? (SPECIMEN_MIN_H - h) / 2 / scale : 0;
+                return { top: s.top - pad, bottom: s.bottom + pad };
+            });
+            const order = drawn.map((d, k) => k).sort((a, b) => drawn[a].top - drawn[b].top || drawn[a].bottom - drawn[b].bottom);
+            const lanes = sampleLanes(order.map(k => drawn[k]));
+            order.forEach((k, j) => {
+                const { lane, of } = lanes[j];
+                const w = (c.w - 8 - (of - 1) * 2) / of;
+                out.push(specimenSymbol(c.x + 4 + lane * (w + 2), yOf(drawn[k].top), w, (drawn[k].bottom - drawn[k].top) * scale));
+            });
+        } else if (c.kind === 'specimen_value') {
+            for (const row of specRows) {
+                const v = c.value(row.sample);
+                if (v === undefined || v === '') continue;
+                out.push(fittedText(c.x + c.w / 2, y0 + row.top + TEXT_PAD_Y + fs * 0.85, String(v), c.w - 4, fs));
+            }
+        } else if (c.kind === 'specimen_text') {
+            for (const row of specRows) {
+                row.wrapped[c.id].forEach((ln, i) => out.push(text(c.x + TEXT_PAD_X, y0 + row.top + TEXT_PAD_Y + fs * 0.85 + i * lh, ln)));
+            }
         } else if (c.kind === 'sample_value') {
             for (const row of rows) {
                 const v = c.value(row.sample);
                 if (v === undefined || v === '') continue;
                 out.push(fittedText(c.x + c.w / 2, y0 + row.top + TEXT_PAD_Y + fs * 0.85, String(v), c.w - 4, fs));
+            }
+        } else if (c.kind === 'remarks') {
+            for (const b of remarkBlocks) {
+                b.lines.forEach((ln, i) => out.push(text(c.x + TEXT_PAD_X, y0 + b.top + TEXT_PAD_Y + fs * 0.85 + i * lh, ln)));
             }
         } else if (c.kind === 'sample_text') {
             for (const row of rows) {
@@ -839,11 +1029,12 @@ export function renderBoringLog(input, options = {}) {
         for (const type of [...usedSamplers].filter(t => !SAMPLER_NAMES[t]).sort()) {
             items.push({ kind: 'sampler', type, label: samplerPattern(type)?.name ?? type });
         }
+        if (cols.some(c => c.kind === 'specimen_symbol')) items.push({ kind: 'specimen', label: 'Specimen (depth range tested in the laboratory)' });
         for (const g of doc.groundwater) {
             const details = [g.date, g.note].filter(Boolean).join(', ');
             items.push({ kind: 'gw', label: `Groundwater at ${u.length(g.depth).toFixed(2)} ${u.len}${details ? ` (${details})` : ''}` });
         }
-        if (cols.some(c => c.kind === 'uscs') && layers.some(l => l.uscs_inferred)) {
+        if (cols.some(c => c.kind === 'uscs') && layers.some(l => l.uscs_inferred || l.uscs_check)) {
             items.push({ kind: 'text', symbol: '( )', label: 'USCS symbol inferred from the material description' });
         }
         if (items.length) {
@@ -880,6 +1071,8 @@ export function renderBoringLog(input, options = {}) {
                     out.push(`<rect x="${r(ix)}" y="${r(iy)}" width="30" height="16" fill="none" stroke="#000" stroke-width="0.75"/>`);
                 } else if (it.kind === 'sampler') {
                     out.push(samplerSymbol(it.type, ix + 9, iy, 12, 16, `${prefix}-bulk`, samplerPattern(it.type)));
+                } else if (it.kind === 'specimen') {
+                    out.push(specimenSymbol(ix + 10, iy, 10, 16));
                 } else if (it.kind === 'text') {
                     out.push(text(ix + 15, iy + 12, it.symbol, { anchor: 'middle' }));
                 } else {

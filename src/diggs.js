@@ -197,9 +197,11 @@ export function diggsToBoringLogs(text) {
         const act = ref(kid(smp, 'samplingActivityRef')) || ref(kid(smp, 'sampleProducedRef'));
         if (act && sampleIds.has(act) && id(smp)) sampleIds.set(id(smp), sampleIds.get(act));
     }
+    const specimenNames = new Map();
     for (const spec of all(root, 'SoilSpecimen')) {
         const s = sampleIds.get(ref(kid(spec, 'sampleRef')));
         if (s && id(spec)) sampleIds.set(id(spec), s);
+        if (id(spec)) specimenNames.set(id(spec), txt(kid(spec, 'name')) || undefined);
     }
 
     // Test results
@@ -227,7 +229,8 @@ export function diggsToBoringLogs(text) {
         const spt = all(test, 'DrivenPenetrationTest')[0];
         const blows = spt ? all(spt, 'DriveSet').sort((a, b) => Number(txt(kid(a, 'index'))) - Number(txt(kid(b, 'index')))).map(d => Number(txt(kid(d, 'blowCount')))) : [];
         if (!Object.keys(values).length && !blows.length) continue;
-        hole.tests.push({ top, base, values, blows, spt: Boolean(spt) || values.blow_count !== undefined, sample: sampleIds.get(ref(kid(test, 'sampleRef')) || ref(kid(test, 'specimenRef'))) });
+        const specimen = ref(kid(test, 'specimenRef'));
+        hole.tests.push({ top, base, values, blows, spt: Boolean(spt) || values.blow_count !== undefined, sample: sampleIds.get(ref(kid(test, 'sampleRef')) || specimen), specimen: specimen ? { id: specimen, name: specimenNames.get(specimen) } : null });
     }
 
     const documents = [...byRef.values()].map(hole => {
@@ -285,7 +288,11 @@ export function diggsToBoringLogs(text) {
         }
 
         // Unit weights were read as kN/m3; a log in feet reports them in pcf.
-        if (u === 'ft') for (const s of samples) if (s.dry_unit_weight !== undefined) s.dry_unit_weight = round(s.dry_unit_weight * 6.36588, 1);
+        if (u === 'ft') {
+            for (const sp of samples.flatMap(s => s.specimens ?? [])) if (sp.dry_unit_weight !== undefined) sp.dry_unit_weight = round(sp.dry_unit_weight * 6.36588, 1);
+        }
+        // Each specimen keyed internally; the key is not part of the document.
+        for (const s of samples) if (s.specimens) s.specimens = s.specimens.map(({ key, ...sp }) => sp);
         const metadata = boreholeMetadata(bh, projectName, u);
         if (!kept.length) say('no strata (LithologyObservation with a depth and description); add layers before drawing');
         const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== ''));
@@ -334,12 +341,28 @@ function applyTest(s, t, u) {
         if (s.blow_count === undefined && t.blows.length >= 3) s.blow_count = t.blows.slice(-2).reduce((a, b) => a + b, 0);
     }
     const number = f => (v[f] && Number.isFinite(Number(v[f].raw)) ? round(Number(v[f].raw), 2) : undefined);
-    if (number('water_content') !== undefined) s.water_content = number('water_content');
-    if (/^(true|yes|np|1)$/i.test(v.nonplastic?.raw ?? '') || /^np$/i.test(v.liquid_limit?.raw ?? '')) s.nonplastic = true;
-    if (number('liquid_limit') !== undefined) s.liquid_limit = number('liquid_limit');
-    if (number('plastic_limit') !== undefined) s.plastic_limit = number('plastic_limit');
-    if (number('fines_content') !== undefined) s.fines_content = number('fines_content');
-    if (number('specific_gravity') !== undefined) s.specific_gravity = number('specific_gravity');
+    const uscs = uscsValue(v.uscs?.raw);
+    if (uscs && !s.uscs) s.uscs = uscs;
+    const nonplastic = /^(true|yes|np|1)$/i.test(v.nonplastic?.raw ?? '') || /^np$/i.test(v.liquid_limit?.raw ?? '');
+    const labFields = ['water_content', 'liquid_limit', 'plastic_limit', 'fines_content', 'specific_gravity'];
+    if (!nonplastic && !(number('dry_density') > 0) && labFields.every(f => number(f) === undefined)) return;
+    // Lab results go on a specimen: the test's specimen (specimenRef), else one per
+    // tested interval, at the depths the test gives (none if it gives none).
+    const key = t.specimen?.id ?? `${t.top}|${t.base}`;
+    s.specimens ??= [];
+    let sp = s.specimens.find(x => x.key === key);
+    if (!sp) {
+        sp = { key };
+        if (t.specimen?.name) sp.name = t.specimen.name;
+        if (t.top !== undefined) {
+            sp.top = t.top;
+            if (t.base > t.top) sp.bottom = t.base;
+        }
+        s.specimens.push(sp);
+    }
+    s = sp;
+    for (const f of labFields) if (number(f) !== undefined) s[f] = number(f);
+    if (nonplastic) s.nonplastic = true;
     const dry = number('dry_density');
     if (dry > 0) {
         // To kN/m3: pcf, Mg/m3 (or g/cm3), or already kN/m3 (guessed from the size when no unit is given).
@@ -347,8 +370,6 @@ function applyTest(s, t, u) {
         const knm3 = /pcf|lb/.test(uom) || (!uom && dry > 30) ? dry / 6.36588 : /kn/.test(uom) || (!uom && dry > 5) ? dry : dry * 9.807;
         s.dry_unit_weight = round(knm3, 2);
     }
-    const uscs = uscsValue(v.uscs?.raw);
-    if (uscs && !s.uscs) s.uscs = uscs;
 }
 
 function boreholeMetadata(bh, projectName, u) {

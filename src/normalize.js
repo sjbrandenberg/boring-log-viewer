@@ -4,6 +4,7 @@
 import { LITHOLOGY } from './lithology.js';
 import { SAMPLER_NAMES } from './samplers.js';
 import { cleanSvg, svgDataUri } from './svg-pattern.js';
+import { BUILT_IN_COLUMNS } from './columns.js';
 
 export class BoringLogError extends Error {
     constructor(message, issues = []) {
@@ -26,6 +27,86 @@ export function stripNulls(value) {
         return out;
     }
     return value;
+}
+
+// "No recovery" is the outcome of a sample, not a sampler type or a sample
+// number, but it is often entered as one ("type": "NoRecovery", "name": "NR").
+// Such samples are read as recovery 0 (shown as "No recovery" in the remarks)
+// with a warning. A custom sampler pattern with that code is left alone.
+const NO_RECOVERY_TEXT = /^\s*(no[\s_.-]*(sample[\s_.-]*)?rec(overy|\.)?|n\.?\s?r\.?|not[\s_-]*recovered)\s*$/i;
+
+export function fixNoRecoverySamples(doc) {
+    const warnings = [];
+    if (!doc || typeof doc !== 'object' || !Array.isArray(doc.samples)) return { doc, warnings };
+    const patterns = doc.patterns && typeof doc.patterns === 'object' ? doc.patterns : {};
+    let changed = false;
+    const samples = doc.samples.map((sample, i) => {
+        if (!sample || typeof sample !== 'object') return sample;
+        const out = { ...sample };
+        let fixed = false;
+        if (typeof out.type === 'string' && NO_RECOVERY_TEXT.test(out.type) && !Object.prototype.hasOwnProperty.call(patterns, out.type)) {
+            warnings.push({ path: `/samples/${i}/type`, message: `"${out.type}" is not a sampler type; read as no recovery (use the sampler that was tried as "type" and "recovery": 0)` });
+            delete out.type;
+            fixed = true;
+        }
+        if (typeof out.name === 'string' && NO_RECOVERY_TEXT.test(out.name)) {
+            warnings.push({ path: `/samples/${i}/name`, message: `"${out.name}" is not a sample number; read as no recovery (use "recovery": 0)` });
+            delete out.name;
+            fixed = true;
+        }
+        if (!fixed) return sample;
+        changed = true;
+        out.recovery = 0;
+        return out;
+    });
+    return { doc: changed ? { ...doc, samples } : doc, warnings };
+}
+
+// Lab results belong to specimens (NGL: SAMP -> SPEC -> INDX, PLAS). Results
+// given on a sample itself, as in older documents, are kept as a specimen with
+// no depths of its own: its results are shown level with the sample, but no
+// specimen box is made up for it.
+export const LAB_FIELDS = ['water_content', 'total_unit_weight', 'dry_unit_weight', 'specific_gravity', 'fines_content', 'liquid_limit', 'plastic_limit', 'nonplastic'];
+const SAMPLE_LAB_FIELDS = LAB_FIELDS.filter(f => f !== 'total_unit_weight');
+
+export function sampleLabWarnings(doc) {
+    const warnings = [];
+    (Array.isArray(doc?.samples) ? doc.samples : []).forEach((s, i) => {
+        if (typeof s?.description === 'string' && s.description) warnings.push({ path: `/samples/${i}/description`, message: 'samples have remarks, not a description: it is shown at the start of the sample remarks; put it in "remarks"' });
+        const fields = SAMPLE_LAB_FIELDS.filter(f => s?.[f] !== undefined);
+        if (fields.length) warnings.push({ path: `/samples/${i}`, message: `lab results on the sample (${fields.join(', ')}) are shown level with the sample, without a specimen box; give them in "specimens" with the specimen's top and bottom` });
+    });
+    return warnings;
+}
+
+// A sample's specimens. One with a top (SPEC_TOP) is `located`: drawn as a box
+// from its top to its bottom (or at its top when there is no bottom). One without
+// is not drawn as a box; its row is placed by its sample's depths.
+export function specimensOf(sample) {
+    const out = [];
+    const legacy = {};
+    for (const f of SAMPLE_LAB_FIELDS) if (sample?.[f] !== undefined) legacy[f] = sample[f];
+    if (Object.keys(legacy).length) out.push({ top: sample.top, bottom: sample.bottom, ...legacy, located: false });
+    for (const sp of (Array.isArray(sample?.specimens) ? sample.specimens : [])) {
+        if (!sp || typeof sp !== 'object') continue;
+        if (typeof sp.top === 'number') out.push({ ...sp, bottom: sp.bottom ?? sp.top, located: true });
+        else out.push({ ...sp, top: sample.top, bottom: sample.bottom, located: false });
+    }
+    return out;
+}
+
+// The note on a sample's recovery shown in the remarks: "No recovery", or
+// "Recovery 0.36 m (80%)" with the length converted by `toDisplay`. The sample's
+// top and bottom must already be in the display units.
+export function recoveryRemark(sample, toDisplay = v => v, unit = '') {
+    const rec = sample?.recovery;
+    if (typeof rec !== 'number' || !Number.isFinite(rec)) return undefined;
+    if (rec <= 0) return 'No recovery';
+    const len = sample.bottom - sample.top;
+    const display = toDisplay(rec);
+    const shown = Number(display.toFixed(2));
+    const pct = len > 0 ? ` (${Math.round((display / len) * 100)}%)` : '';
+    return `Recovery ${shown}${unit ? ` ${unit}` : ''}${pct}`;
 }
 
 const USCS_CODES = new Set(['GW', 'GP', 'GM', 'GC', 'SW', 'SP', 'SM', 'SC', 'ML', 'CL', 'OL', 'MH', 'CH', 'OH', 'PT']);
@@ -93,13 +174,36 @@ export function checkPatternReferences(doc) {
     return errors;
 }
 
+// Checks the schema cannot express for `layout.columns`: a built-in id, or a new
+// id with a source; no id twice.
+export function checkLayout(doc) {
+    const errors = [];
+    const columns = doc?.layout?.columns;
+    if (!Array.isArray(columns)) return errors;
+    const seen = new Set();
+    columns.forEach((entry, i) => {
+        const path = `/layout/columns/${i}`;
+        const id = typeof entry === 'string' ? entry : entry?.id;
+        if (typeof id !== 'string') return; // reported by the schema
+        const builtIn = BUILT_IN_COLUMNS.includes(id);
+        if (seen.has(id)) errors.push({ path, message: `column "${id}" is listed twice` });
+        seen.add(id);
+        if (builtIn && entry?.source) errors.push({ path: `${path}/source`, message: `"${id}" is a built-in column; give a custom column an id of its own` });
+        if (!builtIn && !entry?.source) {
+            errors.push({ path, message: `unknown column "${id}": use a built-in column (${BUILT_IN_COLUMNS.join(', ')}), or give a custom column a "source" ("sample", "specimen" or "blank")` });
+        }
+    });
+    return errors;
+}
+
 // Checks the schema cannot express: intervals must have bottom > top.
 // Overlapping layers are a warning; the renderer draws them anyway.
 export function checkDepths(doc) {
     const errors = [];
     const warnings = [];
     const intervals = (list, name) => {
-        (list ?? []).forEach((item, i) => {
+        if (!Array.isArray(list)) return; // reported by the schema
+        list.forEach((item, i) => {
             if (typeof item?.top === 'number' && typeof item?.bottom === 'number' && !(item.bottom > item.top)) {
                 errors.push({ path: `/${name}/${i}`, message: `bottom (${item.bottom}) must be greater than top (${item.top})` });
             }
@@ -107,8 +211,25 @@ export function checkDepths(doc) {
     };
     intervals(doc.layers, 'layers');
     intervals(doc.samples, 'samples');
+    // A specimen may be at a single depth (bottom = top), and should lie within its sample.
+    (Array.isArray(doc.samples) ? doc.samples : []).forEach((sample, i) => {
+        (Array.isArray(sample?.specimens) ? sample.specimens : []).forEach((sp, k) => {
+            const path = `/samples/${i}/specimens/${k}`;
+            if (typeof sp?.top === 'number' && typeof sp?.bottom === 'number' && sp.bottom < sp.top) {
+                errors.push({ path, message: `bottom (${sp.bottom}) must not be less than top (${sp.top})` });
+                return;
+            }
+            if (typeof sp?.top !== 'number') return;
+            const top = sp.top;
+            const bottom = sp.bottom ?? sp.top;
+            if (typeof bottom === 'number' && typeof sample.top === 'number' && typeof sample.bottom === 'number'
+                && (top < sample.top - 1e-9 || bottom > sample.bottom + 1e-9)) {
+                warnings.push({ path, message: `specimen (${top}–${bottom}) is outside its sample (${sample.top}–${sample.bottom})` });
+            }
+        });
+    });
 
-    const layers = (doc.layers ?? [])
+    const layers = (Array.isArray(doc.layers) ? doc.layers : [])
         .map((l, i) => ({ ...l, i }))
         .filter(l => typeof l.top === 'number' && typeof l.bottom === 'number')
         .sort((a, b) => a.top - b.top);
@@ -138,7 +259,7 @@ export function normalizeBoringLog(input) {
     if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
         throw new BoringLogError('A boring log must be a JSON object', [{ path: '', message: 'must be object' }]);
     }
-    doc = stripNulls(doc);
+    doc = fixNoRecoverySamples(stripNulls(doc)).doc;
 
     const issues = [];
     if (!Array.isArray(doc.layers) || doc.layers.length === 0) {
@@ -158,9 +279,21 @@ export function normalizeBoringLog(input) {
     };
     numeric(doc.layers, 'layers', ['top', 'bottom']);
     numeric(doc.samples, 'samples', ['top', 'bottom']);
+    (Array.isArray(doc.samples) ? doc.samples : []).forEach((sample, i) => {
+        if (sample?.specimens === undefined) return;
+        if (!Array.isArray(sample.specimens)) {
+            issues.push({ path: `/samples/${i}/specimens`, message: 'must be an array' });
+            return;
+        }
+        sample.specimens.forEach((sp, k) => {
+            for (const f of ['top', 'bottom']) {
+                if (sp?.[f] !== undefined && (typeof sp[f] !== 'number' || !Number.isFinite(sp[f]))) issues.push({ path: `/samples/${i}/specimens/${k}/${f}`, message: 'must be a number' });
+            }
+        });
+    });
     numeric(doc.groundwater, 'groundwater', ['depth']);
     numeric(doc.depth_notes, 'depth_notes', ['depth']);
-    issues.push(...checkDepths(doc).errors, ...checkPatternReferences(doc));
+    issues.push(...checkDepths(doc).errors, ...checkPatternReferences(doc), ...checkLayout(doc));
     const pictures = patternImages(doc);
     issues.push(...pictures.issues);
     if (issues.length) {
@@ -168,6 +301,18 @@ export function normalizeBoringLog(input) {
     }
 
     const byTop = (a, b) => a.top - b.top || a.bottom - b.bottom;
+    const samples = [...(doc.samples ?? [])].sort(byTop);
+    // Every specimen, with the sample it was cut from; the samples keep only their own fields.
+    const specimens = samples.flatMap((s, i) => specimensOf(s).map(sp => ({ ...sp, sample: s.name, sample_index: i }))).sort(byTop);
+    const bareSamples = samples.map(s => {
+        const out = { ...s };
+        delete out.specimens;
+        // A sample's text is its remarks; a description (older documents) goes first in them.
+        if (typeof out.description === 'string' && out.description) out.remarks = out.remarks ? `${out.description}; ${out.remarks}` : out.description;
+        delete out.description;
+        for (const f of SAMPLE_LAB_FIELDS) delete out[f];
+        return out;
+    });
     return {
         ...doc,
         units: { length: 'm', unit_weight: 'kN/m3', diameter: 'mm', ...doc.units },
@@ -177,7 +322,9 @@ export function normalizeBoringLog(input) {
             ? { patterns: Object.fromEntries(Object.entries(doc.patterns).map(([code, p]) => [code, { ...p, ...pictures.images[code] }])) }
             : {}),
         layers: [...doc.layers].sort(byTop),
-        samples: [...(doc.samples ?? [])].sort(byTop),
+        samples: bareSamples,
+        // (Only when there are any, so documents without specimens keep their pattern ids.)
+        ...(specimens.length ? { specimens } : {}),
         groundwater: [...(doc.groundwater ?? [])].sort((a, b) => a.depth - b.depth),
         // A note without text has nothing to draw.
         depth_notes: (doc.depth_notes ?? []).filter(n => n.description).sort((a, b) => a.depth - b.depth),

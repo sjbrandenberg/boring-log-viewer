@@ -41,13 +41,14 @@ test('samples get sampler types, SPT results and lab values', () => {
     assert.deepEqual(at(0.5), [{ top: 0.5, bottom: 1, name: '1', type: 'Bulk' }]);
     assert.deepEqual(at(1.5), [{
         top: 1.5, bottom: 1.95, name: '2', type: 'Shelby', sampler_diameter: 100, recovery: 0.36,
-        water_content: 38, liquid_limit: 52, plastic_limit: 24, dry_unit_weight: 13.24, specific_gravity: 2.68,
+        // Lab results go on a specimen; without SPEC_DPTH it has no depths of its own.
+        specimens: [{ water_content: 38, liquid_limit: 52, plastic_limit: 24, dry_unit_weight: 13.24, specific_gravity: 2.68 }],
     }]);
     // An ES sample isn't a sampler type: drawn as Other, with the AGS code in its number
     assert.deepEqual(at(2), [{ top: 2, bottom: 2.15, name: '3 ES', type: 'Other', remarks: 'For chemical testing' }]);
     // The SPT at 4.00 m has its own sample; the D sample there keeps the lab results
     const [d4, spt4] = [at(4).find(s => s.type === 'Disturbed'), at(4).find(s => s.type === 'SPT')];
-    assert.deepEqual(d4, { top: 4, bottom: 4.15, name: '4', type: 'Disturbed', nonplastic: true, fines_content: 8 });
+    assert.deepEqual(d4, { top: 4, bottom: 4.15, name: '4', type: 'Disturbed', specimens: [{ nonplastic: true, fines_content: 8 }] });
     assert.deepEqual(spt4, { top: 4, bottom: 4.45, type: 'SPT', blow_count: 24, blows: [5, 11, 13], energy_ratio: 71 });
     // Refusal keeps the main drive's blows/penetration
     assert.equal(at(6)[0].blow_count, '50/150mm');
@@ -76,4 +77,22 @@ test('SPT reports given only as text ("N=36 (18,29/36,-,-,-)") give N and the bl
     const { samples } = agsToBoringLogs(ags).documents[0].document;
     const spt = samples.filter(s => s.type === 'SPT');
     assert.deepEqual(spt.map(s => [s.top, s.blow_count, s.blows]), [[4, 24, [5, 11, 13]], [6, 36, undefined]]);
+});
+
+test('lab results are grouped by specimen (SPEC_REF, SPEC_DPTH)', () => {
+    const ags = [
+        '"GROUP","PROJ"', '"HEADING","PROJ_ID"', '"UNIT",""', '"TYPE","ID"', '"DATA","P1"',
+        '"GROUP","LOCA"', '"HEADING","LOCA_ID","LOCA_FDEP"', '"UNIT","","m"', '"TYPE","ID","2DP"', '"DATA","BH1","5"',
+        '"GROUP","GEOL"', '"HEADING","LOCA_ID","GEOL_TOP","GEOL_BASE","GEOL_DESC"', '"UNIT","","m","m",""', '"TYPE","ID","2DP","2DP","X"', '"DATA","BH1","0","5","Soft grey CLAY"',
+        '"GROUP","SAMP"', '"HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SAMP_BASE"', '"UNIT","","m","","","","m"', '"TYPE","ID","2DP","X","PA","ID","2DP"', '"DATA","BH1","1.00","U1","U","S1","1.45"',
+        '"GROUP","LNMC"', '"HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","LNMC_MC"', '"UNIT","","m","","","","","m","%"', '"TYPE","ID","2DP","X","PA","ID","X","2DP","XN"',
+        '"DATA","BH1","1.00","U1","U","S1","A","1.10","31"', '"DATA","BH1","1.00","U1","U","S1","B","1.30","35"',
+        '"GROUP","LLPL"', '"HEADING","LOCA_ID","SAMP_TOP","SAMP_REF","SAMP_TYPE","SAMP_ID","SPEC_REF","SPEC_DPTH","LLPL_LL","LLPL_PL"', '"UNIT","","m","","","","","m","%","%"', '"TYPE","ID","2DP","X","PA","ID","X","2DP","XN","XN"',
+        '"DATA","BH1","1.00","U1","U","S1","A","1.10","48","22"',
+    ].join('\r\n');
+    const [sample] = agsToBoringLogs(ags).documents[0].document.samples;
+    assert.deepEqual(sample.specimens, [
+        { name: 'A', top: 1.1, water_content: 31, liquid_limit: 48, plastic_limit: 22 },
+        { name: 'B', top: 1.3, water_content: 35 },
+    ]);
 });

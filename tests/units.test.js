@@ -37,7 +37,9 @@ test('layerHatch prefers explicit hatch, then USCS, then the description', () =>
     assert.deepEqual(layerHatch({ hatch: 'none', uscs: 'SM' }), []);
     assert.deepEqual(layerHatch({ hatch: 'GP', uscs: 'SM' }), ['GP']);
     assert.deepEqual(layerHatch({ uscs: 'CL-ML', description: 'SAND' }), ['CL', 'ML']);
-    assert.deepEqual(layerHatch({ description: 'silty SAND' }), ['SM']);
+    assert.deepEqual(layerHatch({ description: 'silty SAND', uscs_inferred: 'SM' }), ['SM']);
+    // Without a USCS symbol (recorded or inferred), nothing is guessed from keywords.
+    assert.deepEqual(layerHatch({ description: 'clayey SILT' }), []);
 });
 
 test('every fixture passes validation', () => {
