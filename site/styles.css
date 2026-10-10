@@ -83,7 +83,10 @@ a { color: var(--accent); }
     flex-direction: column;
     gap: 8px;
     max-height: calc(100vh - 24px);
+    overflow-y: auto;
 }
+/* On short screens the text box gives up height so the map still fits in the pane. */
+.editor-pane textarea { min-height: 160px; }
 .editor-pane.dragging { outline: 2px dashed var(--accent); outline-offset: -6px; }
 
 .toolbar {
@@ -365,7 +368,7 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid var(--border); 
     .site-header { padding: 16px 16px 8px; }
     .layout { grid-template-columns: 1fr; padding: 0 16px 16px; }
     .editor-pane { position: static; max-height: none; }
-    textarea { min-height: 260px; }
+    .editor-pane textarea { min-height: 260px; }
     .format { margin: 0 16px 32px; }
 }
 
