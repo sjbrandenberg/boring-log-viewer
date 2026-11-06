@@ -40,7 +40,7 @@ test('samples get sampler types, SPT results and lab values', () => {
     const at = top => samples.filter(s => s.top === top);
     assert.deepEqual(at(0.5), [{ top: 0.5, bottom: 1, name: '1', type: 'Bulk' }]);
     assert.deepEqual(at(1.5), [{
-        top: 1.5, bottom: 1.95, name: '2', type: 'Shelby', sampler_diameter: 100, recovery: 0.36,
+        top: 1.5, bottom: 1.95, name: '2', type: 'Shelby', sampler_diameter: 100, recovery_percent: 80,
         // Lab results go on a specimen; without SPEC_DPTH it has no depths of its own.
         specimens: [{ water_content: 38, liquid_limit: 52, plastic_limit: 24, dry_unit_weight: 13.24, specific_gravity: 2.68 }],
     }]);

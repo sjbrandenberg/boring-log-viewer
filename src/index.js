@@ -10,3 +10,4 @@ export { parseXml, diggsToBoringLogs, looksLikeDiggs, DiggsError } from './diggs
 export { measureText, wrapText } from './text.js';
 export { renderSection, placeAlongLine, matchUnits, boringUnits, soilClass, lineLength, MAX_SECTION_LENGTH } from './section.js';
 export { renderSlice, sliceProfile, modelAt } from './slice.js';
+export { readXlsx, xlsxToBoringLog, workbookToBoringLog, looksLikeXlsx, XlsxError, SHEETS as XLSX_SHEETS } from './xlsx.js';

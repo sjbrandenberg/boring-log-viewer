@@ -94,7 +94,7 @@
       "bottom": 3.0,
       "name": "No Recovery",
       "type": "SPT",
-      "recovery": 0,
+      "recovery_percent": 0,
       "blow_count": 7,
       "energy_ratio": 72
     },

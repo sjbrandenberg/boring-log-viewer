@@ -4,12 +4,13 @@
   "title": "Boring log",
   "description": "A single geotechnical boring: metadata, stratigraphy, samples, and groundwater observations. Depths are measured downward from the ground surface in `units.length`.",
   "type": "object",
-  "required": ["schema_version", "layers"],
+  "required": ["layers"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "description": "Version of this schema the document follows.",
-      "const": "1.0"
+      "description": "Version of this schema the document follows. Optional: a document without it is read as the latest version (1.0).",
+      "const": "1.0",
+      "default": "1.0"
     },
     "units": {
       "description": "Units the numbers in this document are expressed in. Defaults to SI.",
@@ -203,7 +204,7 @@
             "pattern": "^(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?$"
           },
           "sampler_diameter": { "description": "Sampler outer diameter, in units.diameter.", "type": "number", "exclusiveMinimum": 0 },
-          "recovery": { "description": "Recovered length, in units.length; 0 means no recovery. Shown as a note in the remarks.", "type": "number", "minimum": 0 },
+          "recovery_percent": { "description": "Recovery, percent of the sample interval (top to bottom); 0 means no recovery. Shown as a note in the remarks. (An older \"recovery\" length is converted to this, with a warning.)", "type": "number", "minimum": 0 },
           "blow_count": {
             "description": "Blow count as reported (N or blows/ft). A string allows refusal notation such as \"50/3in\".",
             "type": ["number", "string"]
@@ -215,7 +216,8 @@
           },
           "energy_ratio": { "description": "Percent; overrides metadata.energy_ratio for this sample.", "type": "number", "exclusiveMinimum": 0 },
           "water_content": { "description": "Deprecated: give lab results on a specimen. Shown level with the sample, without a specimen box.", "type": "number", "minimum": 0 },
-          "dry_unit_weight": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "exclusiveMinimum": 0 },
+          "total_unit_weight": { "description": "Total (bulk) unit weight of the whole sample, in units.unit_weight (e.g. a tube weighed before extrusion). Shown level with the sample.", "type": "number", "exclusiveMinimum": 0 },
+          "dry_unit_weight": { "description": "Dry unit weight of the whole sample, in units.unit_weight. Shown level with the sample.", "type": "number", "exclusiveMinimum": 0 },
           "specific_gravity": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "exclusiveMinimum": 0 },
           "fines_content": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "minimum": 0, "maximum": 100 },
           "liquid_limit": { "description": "Deprecated: give lab results on a specimen.", "type": "number", "minimum": 0 },
@@ -239,6 +241,11 @@
                 "liquid_limit": { "description": "Percent (NGL PLAS_LL).", "type": "number", "minimum": 0 },
                 "plastic_limit": { "description": "Percent (NGL PLAS_PL).", "type": "number", "minimum": 0 },
                 "nonplastic": { "description": "True if the specimen is non-plastic (NP); LL/PL are then ignored.", "type": "boolean" },
+                "uscs": {
+                  "description": "USCS symbol from the laboratory classification of this specimen (e.g. from its Atterberg limits and sieve analysis). Shown in the Lab USCS column.",
+                  "type": "string",
+                  "pattern": "^(GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT)([-/](GW|GP|GM|GC|SW|SP|SM|SC|ML|CL|OL|MH|CH|OH|PT))?$"
+                },
                 "custom": {
                   "description": "Values for custom columns, by field name (see layout.columns), e.g. { \"cu\": 45 }.",
                   "type": "object",

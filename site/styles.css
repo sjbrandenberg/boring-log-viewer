@@ -58,7 +58,7 @@ a { color: var(--accent); }
 }
 .site-header h1 { margin: 0; font-size: 24px; }
 .site-header p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
-.site-header nav { display: flex; gap: 16px; }
+.site-header nav { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 
 .layout {
     display: grid;
@@ -167,6 +167,7 @@ button, .button, select, input[type="number"] {
     min-height: 32px;
 }
 button, .button { cursor: pointer; display: inline-flex; align-items: center; }
+a.button { text-decoration: none; box-sizing: border-box; }
 button:hover:not(:disabled), .button:hover { border-color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }

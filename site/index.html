@@ -14,12 +14,15 @@
 <header class="site-header">
     <div>
         <h1>Boring Log Viewer</h1>
-        <p>Paste boring log data as JSON to see the log drawn. Download it as SVG or PNG, or print it to PDF. Your data stays in your browser; only the map tiles for a log's location are loaded from OpenStreetMap or Esri.</p>
+        <p>Paste boring log data as JSON, or open an Excel workbook, to see the log drawn. Download it as SVG or PNG, or print it to PDF. Your data stays in your browser; only the map tiles for a log's location are loaded from OpenStreetMap or Esri.</p>
     </div>
     <nav>
         <a href="#format">JSON format</a>
+        <a href="#excel">Excel</a>
         <a href="#api">API</a>
         <a href="schema/boring-log.schema.json">Schema</a>
+        <a href="https://sjbrandenberg.github.io/boring-log-viewer/" target="_blank" rel="noopener" title="Documentation: tutorials and the full data format reference">Documentation</a>
+        <a href="https://github.com/sjbrandenberg/boring-log-viewer" target="_blank" rel="noopener" title="Source code on GitHub">GitHub</a>
     </nav>
 </header>
 
@@ -36,10 +39,12 @@
             <select id="example" aria-label="Load an example">
                 <option value="">Load example…</option>
             </select>
-            <label class="button" title="Boring log JSON files, AGS4 (.ags) files or DIGGS (.xml) files; each opens as its own log (one per borehole)">
+            <label class="button" title="Boring log JSON files, Excel workbooks (.xlsx, see the template), AGS4 (.ags) files or DIGGS (.xml) files; each opens as its own log (one per borehole)">
                 Open files…
-                <input id="file" type="file" multiple accept=".json,application/json,.ags,text/plain,.xml,.diggs,application/xml,text/xml" hidden>
+                <input id="file" type="file" multiple accept=".json,application/json,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.ags,text/plain,.xml,.diggs,application/xml,text/xml" hidden>
             </label>
+            <a class="button" href="templates/boring-log-template.xlsx" download title="An Excel workbook to fill in: one sheet per part of the log, with what goes in each column. Open the filled-in workbook with Open files… (see the Excel section below)">Excel template</a>
+            <a class="button" href="templates/B-3-example.xlsx" download title="The coastal example boring (B-3: layers, SPT samples, lab specimens, groundwater) as a filled-in Excel workbook. Open it with Open files… to see how it is read">Excel example</a>
             <button id="format" type="button">Format</button>
             <button id="layout-open" type="button" title="Choose the columns, their order, widths and headings, or add your own">Layout…</button>
             <button id="clear" type="button">Clear</button>
@@ -206,13 +211,13 @@
     <details class="builtins">
         <summary>Sampler symbols</summary>
         <ul id="builtin-samplers" class="builtin-list"></ul>
-        <p class="muted"><b>NoRecovery</b> is not a sampler symbol. A sample with that type (or "NR" or "No recovery" as its type or number) is accepted with a warning, drawn as Other, and noted as "No recovery" in the remarks. Better: give the sampler that was tried as its type and set <code>"recovery": 0</code>.</p>
+        <p class="muted"><b>NoRecovery</b> is not a sampler symbol. A sample with that type (or "NR" or "No recovery" as its type or number) is accepted with a warning, drawn as Other, and noted as "No recovery" in the remarks. Better: give the sampler that was tried as its type and set <code>"recovery_percent": 0</code>.</p>
     </details>
 </dialog>
 
 <section id="format" class="format">
     <h2>JSON format</h2>
-    <p>A boring log is one JSON object. Only <code>schema_version</code> and <code>layers</code> are required. Depths are measured down from the ground surface. Fields set to <code>null</code> are treated as missing. A misspelled field name is reported as an error, so typos don't go unnoticed.</p>
+    <p>A boring log is one JSON object. Only <code>layers</code> is required (<code>schema_version</code> is optional; the latest version is assumed). Depths are measured down from the ground surface. Fields set to <code>null</code> are treated as missing. A misspelled field name is reported as an error, so typos don't go unnoticed.</p>
     <pre><code>{
   "schema_version": "1.0",
   "units": { "length": "m", "unit_weight": "kN/m3", "diameter": "mm" },
@@ -234,9 +239,9 @@
         <dt><code>layers[]</code></dt>
         <dd><code>top</code>, <code>bottom</code>, <code>description</code>, <code>uscs</code> (e.g. <code>SM</code> or <code>SP-SM</code>), and <code>hatch</code> to choose the graphic log pattern: a USCS symbol, a built-in material such as <code>FILL</code>, <code>ASPHALT</code>, <code>SANDSTONE</code> or <code>GRANITE</code> (all 67 are listed in the <b>Hatches…</b> window), or your own (<code>"none"</code> leaves it blank). Without <code>hatch</code>, a material or rock named as the principal material in the description is drawn, such as fill (also "FILL: silty sand" or "(hydraulic fill)"), asphalt, topsoil, no recovery or shale, ahead of the USCS symbol; otherwise, without <code>uscs</code>, the pattern is guessed from the description, and when the description determines a USCS symbol (e.g. "fat CLAY" or "(SP-SM)"), it is shown in parentheses. A recorded <code>uscs</code> that isn't a possible symbol (such as <code>GW-GP</code>) or that differs from the symbol the description determines (SP-SM on a "well graded SAND") gets a warning, and the symbol read from the description is shown below it in parentheses: SP-SM (SW).</dd>
         <dt><code>samples[]</code></dt>
-        <dd><code>top</code>, <code>bottom</code>, <code>name</code>, <code>type</code> (SPT, ModCal, DamesMoore, Shelby, Piston, Osterberg, Pitcher, Denison, LargeDiameter, Block, DirectPush, GelPush, Sonic, Core, TripleTube, Bulk, Grab, Composite, Auger, Trench, Disturbed, Other, and NoRecovery, which is accepted with a warning and noted as "No recovery" in the remarks; the <b>Hatches…</b> dialog shows each symbol), <code>blow_count</code> (a number, or text such as <code>"50/5in"</code>), <code>blows</code> (per increment, e.g. <code>[6, 8, 10]</code>), <code>energy_ratio</code>, <code>sampler_diameter</code>, <code>recovery</code>, <code>remarks</code> (a sample has remarks, not a description), <code>specimens</code>. <code>recovery</code> is the recovered length and is noted in the remarks ("Recovery 0.36 m (80%)"); use <code>"recovery": 0</code> for no recovery and keep the sampler that was tried as <code>type</code>.</dd>
+        <dd><code>top</code>, <code>bottom</code>, <code>name</code>, <code>type</code> (SPT, ModCal, DamesMoore, Shelby, Piston, Osterberg, Pitcher, Denison, LargeDiameter, Block, DirectPush, GelPush, Sonic, Core, TripleTube, Bulk, Grab, Composite, Auger, Trench, Disturbed, Other, and NoRecovery, which is accepted with a warning and noted as "No recovery" in the remarks; the <b>Hatches…</b> dialog shows each symbol), <code>blow_count</code> (a number, or text such as <code>"50/5in"</code>), <code>blows</code> (per increment, e.g. <code>[6, 8, 10]</code>), <code>energy_ratio</code>, <code>sampler_diameter</code>, <code>recovery_percent</code>, <code>total_unit_weight</code> and <code>dry_unit_weight</code> (of the whole sample), <code>remarks</code> (a sample has remarks, not a description), <code>specimens</code>. <code>recovery_percent</code> is the recovery as a percent of the sample length and is noted in the remarks ("Recovery 80%"); use <code>"recovery_percent": 0</code> for no recovery and keep the sampler that was tried as <code>type</code>. An older <code>recovery</code> length is converted to a percent, with a warning.</dd>
         <dt><code>samples[].specimens[]</code></dt>
-        <dd>The specimens tested in the laboratory, as in NGL (SPEC, with its INDX and PLAS results): <code>name</code>, <code>top</code>, <code>bottom</code>, <code>water_content</code>, <code>total_unit_weight</code>, <code>dry_unit_weight</code>, <code>specific_gravity</code>, <code>fines_content</code>, <code>liquid_limit</code>, <code>plastic_limit</code>, <code>nonplastic</code>, <code>remarks</code>. Each is drawn as a box over its depth range in the Specimen column, with its name and results on a row level with it. A specimen without <code>top</code> gets no box and its results are shown level with the sample; with <code>top</code> only, it is drawn at that depth. Lab results put on the sample itself are shown the same way, with a warning.</dd>
+        <dd>The specimens tested in the laboratory, as in NGL (SPEC, with its INDX and PLAS results): <code>name</code>, <code>top</code>, <code>bottom</code>, <code>water_content</code>, <code>total_unit_weight</code>, <code>dry_unit_weight</code>, <code>specific_gravity</code>, <code>fines_content</code>, <code>liquid_limit</code>, <code>plastic_limit</code>, <code>nonplastic</code>, <code>uscs</code> (from the lab classification; shown in the Lab USCS column), <code>remarks</code>. Each is drawn as a box over its depth range in the Specimen column, with its name and results on a row level with it. A specimen without <code>top</code> gets no box and its results are shown level with the sample; with <code>top</code> only, it is drawn at that depth. Lab results put on the sample itself are shown the same way, with a warning (except unit weights, which may be given for a whole sample).</dd>
         <dt><code>groundwater[]</code></dt>
         <dd><code>depth</code>, <code>date</code>, <code>note</code>.</dd>
         <dt><code>depth_notes[]</code></dt>
@@ -249,6 +254,12 @@
         <dd>Your own graphic log patterns and sampler symbols, by code: <code>{ "FILL": { "name": "Fill", "svg": "&lt;svg viewBox='0 0 40 20'&gt;&lt;line x1='0' y1='20' x2='40' y2='0' stroke='black'/&gt;&lt;/svg&gt;" } }</code>, as SVG markup (drawing elements only: <code>path</code>, <code>rect</code>, <code>circle</code>, <code>ellipse</code>, <code>line</code>, <code>polyline</code>, <code>polygon</code>, <code>g</code>), or as a picture: <code>"image": "data:image/png;base64,…"</code> with <code>"width"</code> and <code>"height"</code> in px. Add <code>"kind": "sampler"</code> for a sampler symbol, and <code>tile_width</code> (px) to change the tile size. A USCS code or built-in sampler name replaces the built-in pattern. The <b>Hatches…</b> button builds these entries from an image file and applies them to the layers or samples you pick. They are saved in the JSON, not on the server; to use them with the API, see <a href="#api-hatches">using your own hatches with the API</a>.</dd>
     </dl>
     <p>The complete definition is in the <a href="schema/boring-log.schema.json">JSON Schema</a>.</p>
+</section>
+
+<section id="excel" class="format">
+    <h2>Excel workbooks</h2>
+    <p>Instead of writing JSON, you can fill in the <a href="templates/boring-log-template.xlsx" download>Excel template</a> and open it with <b>Open files…</b> (or drop it on the editor). One workbook holds one boring; it is converted to the JSON format in the editor, so you can check, edit and download it as usual. The workbook is read in your browser and is not uploaded.</p>
+    <p>Each sheet is one part of the JSON: <b>Units</b>, <b>Metadata</b>, <b>Layers</b>, <b>Samples</b>, <b>Specimens</b>, <b>Groundwater</b>, <b>Depth notes</b>, <b>References</b>, <b>Layout</b> and <b>Columns</b>. The table sheets have one row per layer, sample and so on, under a header row of field names (the names used in the JSON); the Units, Metadata and Layout sheets have a field name in column A and its value in column B. The rows of explanation above each header row (units, allowed values) can be deleted: the header row is found by its field names. Specimens are put with their sample by the sample name in their <code>sample_name</code> column. Extra columns on the Samples and Specimens sheets become <code>custom</code> values, which the Columns sheet can show. Filled-in examples: <a href="templates/B-3-example.xlsx" download>B-3-example.xlsx</a> (the coastal example: layers, SPT samples, lab specimens with Atterberg limits and unit weights, groundwater) and <a href="templates/NAS-1.xlsx" download>NAS-1.xlsx</a> (a real boring from Nantou, Taiwan).</p>
 </section>
 
 <section id="api" class="format">

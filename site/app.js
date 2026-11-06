@@ -1,6 +1,7 @@
 // Paste page: edit JSON, see validation messages and a live preview, download
 // the log as SVG or PNG, or print it to PDF. Everything runs in the browser.
 import { renderBoringLog, validateBoringLog, BoringLogError, agsToBoringLogs, looksLikeAgs, diggsToBoringLogs, looksLikeDiggs } from '../src/index.js';
+import { xlsxToBoringLog, looksLikeXlsx } from '../src/xlsx.js';
 import { syntaxErrorLocation, locatePointer, downloadName, renderOptions, renderOptionsFor, summarize } from './lib.js';
 import { setUpPatternsDialog } from './patterns.js';
 import { setUpLayoutDialog } from './layout.js';
@@ -17,8 +18,8 @@ import nas3 from '../examples/NAS-3.json' with { type: 'json' };
 import nas4 from '../examples/NAS-4.json' with { type: 'json' };
 
 const EXAMPLES = {
-    coastal: { label: 'Coastal boring (metric, lab data)', doc: coastal },
-    vspdb: { label: 'Treasure Island boring (US units, SPT)', doc: vspdb },
+    coastal: { label: 'Coastal boring (synthetic data, metric, lab data)', doc: coastal },
+    vspdb: { label: 'Treasure Island boring (synthetic data, US units, SPT)', doc: vspdb },
     dense: { label: 'Thin layers with long descriptions', doc: dense },
     minimal: { label: 'Minimal (one layer)', doc: minimal },
     nantou_site: { label: 'Nantou site: NAS-1 to NAS-4 (four real borings, opens four tabs)', docs: [nas1, nas2, nas3, nas4] },
@@ -397,7 +398,7 @@ $('clear').addEventListener('click', () => {
     setText('');
 });
 
-// ------------------------------------------------------------ opening files (JSON, AGS4, DIGGS)
+// ------------------------------------------------------------ opening files (JSON, AGS4, DIGGS, Excel)
 
 // An AGS4 or DIGGS file becomes one log per borehole with strata.
 function convertFile(name, text, format) {
@@ -413,6 +414,19 @@ function convertFile(name, text, format) {
     });
 }
 
+// An Excel workbook (laid out like templates/boring-log-template.xlsx) is one log.
+async function convertWorkbook(file) {
+    const { document, warnings } = await xlsxToBoringLog(await file.arrayBuffer());
+    if (!document.layers.length && !document.samples && !document.metadata) {
+        throw new Error(`no boring log data found${warnings.length ? ` (${warnings.join('; ')})` : ''}. Fill in at least the Layers sheet of the Excel template: the top and bottom depth of each layer`);
+    }
+    const name = document.metadata?.boring_name ?? file.name.replace(/\.xlsx?$/i, '');
+    const text = `Converted ${name} from ${file.name} (Excel).`
+        + (warnings.length ? ` Note: ${warnings.join('; ')}.` : '')
+        + ' Edit the JSON as usual; the workbook itself is not changed.';
+    return createLog(JSON.stringify(document, null, 2), { name, note: text });
+}
+
 async function openFiles(fileList) {
     const files = [...(fileList ?? [])];
     if (!files.length) return;
@@ -423,8 +437,12 @@ async function openFiles(fileList) {
             problems.push(`${file.name} is larger than 20 MB`);
             continue;
         }
-        const text = await file.text();
         try {
+            if (/\.xlsx?$/i.test(file.name) || looksLikeXlsx(new Uint8Array(await file.slice(0, 4).arrayBuffer()))) {
+                added.push(await convertWorkbook(file));
+                continue;
+            }
+            const text = await file.text();
             if (/\.ags$/i.test(file.name) || looksLikeAgs(text)) added.push(...convertFile(file.name, text, 'AGS4'));
             else if (looksLikeDiggs(text)) added.push(...convertFile(file.name, text, 'DIGGS'));
             else added.push(createLog(text, { name: file.name.replace(/\.json$/i, '') }));

@@ -4,7 +4,7 @@
   "metadata": {
     "project": "Coastal liquefaction case histories (synthetic example)",
     "site_name": "Harbor Terminal Wharf",
-    "boring_name": "B-3",
+    "boring_name": "B-3 (synthetic data for demonstration purposes only; not a real boring log)",
     "latitude": 33.74215,
     "longitude": -118.26541,
     "elevation": 3.2,

@@ -66,7 +66,9 @@ export function lithologyArt() {
         SHALE: () => dashRows(9, 8, 14, T),                                                                               // FGDC 620
         SILTSTONE: () => dashRows(5, 9, 18, T) + dotRows(5, 7, 0.8, H / 10),                                              // FGDC 616
         MUDSTONE: () => dashRows(5, 10, 20, T) + dotRows(5, 10, 0.8, H / 10),                                             // FGDC 619 (closest)
-        CLAYSTONE: () => dashRows(9, 8, 14, T),                                                                           // FGDC 620
+        // Claystone shares FGDC 620 with shale; to tell them apart on a log, claystone's
+        // clay dashes sit between solid bedding lines (shale is dashes only).
+        CLAYSTONE: () => dashRows(6, 8, 13, T) + [0, 1, 2, 3].map(k => line(-2, k * H / 3, W + 2, k * H / 3, T)).join(''),
         CONGLOMERATE: r => scatter(r, 16, 15, 4, perElement(i => blob(r, 2 + (i % 3) * 0.9, 'none', T))) + dots(r, 30, 0.8, 6), // FGDC 601
         BRECCIA: r => scatter(r, 14, 17, 5, perElement(() => shard(r, 4, T))) + dots(r, 16, 0.8, 8),                      // FGDC 605
         // ---- Sedimentary, chemical and organic

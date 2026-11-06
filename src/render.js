@@ -139,14 +139,16 @@ function columnRegistry(u) {
             value: s => (s.nonplastic ? 'NP' : s.plastic_limit === undefined ? undefined : fmt(0)(s.plastic_limit)),
             hasData: doc => doc.specimens.some(s => s.plastic_limit !== undefined || s.nonplastic),
         },
+        // USCS symbol from a specimen's laboratory classification.
+        specimen_uscs: { kind: 'specimen_value', width: 30, label: 'Lab USCS', value: s => s.uscs, hasData: hasSpec('uscs') },
         // One column for all remarks: each sample's, level with its sample row, and
         // each specimen's, level with its specimen row. A sample's recovery ("No
-        // recovery", "Recovery 0.36 m (80%)") is a note ahead of its remarks.
+        // recovery", "Recovery 80%") is a note ahead of its remarks.
         remarks: {
             kind: 'remarks', flex: 1.5, label: 'Remarks', vertical_label: true,
             specimenValue: s => s.remarks,
             value: s => {
-                const note = recoveryRemark(s, u.length, u.len);
+                const note = recoveryRemark(s);
                 const text = s.remarks;
                 if (!note) return text;
                 if (!text) return note;
@@ -154,7 +156,7 @@ function columnRegistry(u) {
                 if (note === 'No recovery' && /\b(no (sample |core )?recovery|not recovered)\b/i.test(text)) return text;
                 return `${note}; ${text}`;
             },
-            hasData: doc => doc.samples.some(s => s.remarks !== undefined || s.recovery !== undefined) || doc.specimens.some(s => s.remarks !== undefined),
+            hasData: doc => doc.samples.some(s => s.remarks !== undefined || s.recovery_percent !== undefined) || doc.specimens.some(s => s.remarks !== undefined),
         },
     };
 }

@@ -105,7 +105,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   - Rock: metamorphic (non-foliated): `QUARTZITE`, `MARBLE`, `HORNFELS`, `SERPENTINITE`, `GREENSTONE`
   - Rock: fault rock: `FAULT_GOUGE`, `FAULT_BRECCIA`, `MYLONITE`
 - **`samples`**: `{ top, bottom, name, type, blow_count, blows, energy_ratio,
-  sampler_diameter, recovery, remarks, specimens }`. A sample's text is its
+  sampler_diameter, recovery_percent, total_unit_weight, dry_unit_weight, remarks, specimens }`. A sample's text is its
   `remarks` (NGL `SAMP_REM`); a `description` from older documents is accepted,
   with a warning, and shown at the start of the remarks. Lab results
   go on the sample's specimens (below). `type` picks the symbol in the
@@ -115,18 +115,20 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   `TripleTube`; disturbed samples `Bulk`, `Grab`, `Composite`, `Auger`,
   `Trench`, `Disturbed`; and `Other` (the default). `NoRecovery` is also
   accepted, with a warning (see below). The list and
-  legend names are in `src/samplers.js`. `recovery` is the recovered length;
-  it is shown as a note at the start of the sample's remarks, "Recovery 0.36 m
-  (80%)", or "No recovery" when it is 0. No recovery is an outcome, not a
+  legend names are in `src/samplers.js`. `recovery_percent` is the recovery as a
+  percent of the sample interval; it is shown as a note at the start of the
+  sample's remarks, "Recovery 80%", or "No recovery" when it is 0 (an older
+  `recovery` length is converted to a percent, with a warning). No recovery is an outcome, not a
   sampler type: give the sampler that was tried as `type`. A sample whose
   `type` or `name` is "NoRecovery", "No recovery" or "NR" is read as
-  `recovery: 0` (with a warning), drawn as `Other` or its given type.
+  `recovery_percent: 0` (with a warning), drawn as `Other` or its given type.
 - **`specimens`** (in a sample): the specimens cut from the sample for
   laboratory tests. As in NGL, lab results belong to a specimen (`SPEC`:
   `SPEC_REF`, `SPEC_TOP`, `SPEC_BASE`, `SPEC_REM`), with its index tests
   (`INDX`) and Atterberg limits (`PLAS`), not to the sample: `{ name, top,
   bottom, water_content, total_unit_weight, dry_unit_weight, specific_gravity,
-  fines_content, liquid_limit, plastic_limit, nonplastic, remarks }`. A
+  fines_content, liquid_limit, plastic_limit, nonplastic, uscs, remarks }`
+  (`uscs` is the lab classification, drawn in the **Lab USCS** column). A
   specimen without `top` gets no box (none is made up from the sample's
   depths) and its results are shown level with the sample; one with `top` and
   no `bottom` is drawn at that depth. Each is drawn as a grey box over its depth range in the
@@ -135,7 +137,9 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   show several specimens' results. A specimen outside its sample gets a
   warning; a `bottom` above the `top` is an error. Lab results given on the
   sample itself (`water_content`, `liquid_limit`..., as in older documents)
-  are still accepted, with a warning, and shown the same way, without a box. AGS4 lab rows go on the specimen given by `SPEC_REF` and
+  are still accepted, with a warning, and shown the same way, without a box.
+  `total_unit_weight` and `dry_unit_weight` may be given for a whole sample
+  (e.g. a tube weighed before extrusion), without a warning. AGS4 lab rows go on the specimen given by `SPEC_REF` and
   `SPEC_DPTH`; DIGGS results on their `specimenRef` (else one specimen per
   tested interval).
 - **`groundwater`**: a list of `{ depth, date, note }`.
@@ -272,6 +276,24 @@ are laid out the same way, on their own, each level with its specimen. With
 so every row lines up with its sampler symbol, and then until all descriptions
 end within the depth of the boring. The first stretch is capped at an 8,000 px
 log body; past that, rows that would collide are pushed down instead.
+
+
+## Excel workbooks
+
+The web page also opens Excel workbooks (`.xlsx`) laid out like
+`site/templates/boring-log-template.xlsx` (served as
+`templates/boring-log-template.xlsx`, with filled-in examples `B-3-example.xlsx`
+and `NAS-1.xlsx`). One workbook is one boring; each sheet is one part of the
+JSON (Units, Metadata, Layers, Samples, Specimens, Groundwater, Depth notes,
+References, Layout, Columns). The template's instruction rows are optional:
+header rows are found by their field names. The converter is `src/xlsx.js`
+(`xlsxToBoringLog(bytes)` -> `{ document, warnings }`, no dependencies; it
+runs in the browser, not in the API). Its `SHEETS` list defines the sheets
+and fields; after changing it, rebuild the templates with
+`python3 scripts/build-xlsx-template.py`,
+`python3 scripts/build-xlsx-template.py examples/NAS-1.json` and
+`python3 scripts/build-xlsx-template.py tests/fixtures/coastal-style.json site/templates/B-3-example.xlsx`
+(needs openpyxl), then the test fixtures as in `tests/xlsx.test.js`.
 
 ## Website
 
@@ -483,7 +505,7 @@ document per `Borehole` (also `TestPit`, `Trench`; CPT soundings are skipped):
 | `Project`, `Borehole` | metadata: project, name, latitude/longitude/elevation from `referencePoint` (x y z, i.e. longitude first), dates, construction method and rig, logger and drilling contractor from the roles, remarks |
 | linear referencing | the document's length unit (ft or m), from each borehole's `LinearReferencingMethod` |
 | `LithologyObservation` | layers: `lithDescription`, or one composed from consistency, color, major and minor constituents and moisture; USCS from `classificationCode`/`legendCode`. An observation at a single depth inside a stratum becomes a depth note ("@ 4.5'; reddish brown"); outside one it starts a stratum |
-| `SamplingActivity` | samples: method codes such as SS/SPT, ST/SH (Shelby), core sizes, bulk; recovery converted to the log's units |
+| `SamplingActivity` | samples: method codes such as SS/SPT, ST/SH (Shelby), core sizes, bulk; recovery length converted to a percent of the sample interval |
 | `Test` results | SPT N-value and drive-set blows; water content, liquid and plastic limits, nonplastic, fines, dry density (as unit weight, pcf for logs in feet), specific gravity, USCS symbol. Matched to samples by `sampleRef`, else by depth |
 | `WaterStrike` | groundwater |
 

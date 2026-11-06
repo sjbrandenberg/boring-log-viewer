@@ -188,7 +188,7 @@ export function agsToBoringLogs(text) {
             const remarks = [r.SAMP_DESC, r.SAMP_REM].filter(Boolean).join('; ');
             if (remarks) s.remarks = remarks;
             const recv = num(r.SAMP_RECV);
-            if (recv !== undefined && recv >= 0) s.recovery = Math.round(((bottom - top) * recv) / 100 * 1000) / 1000;
+            if (recv !== undefined && recv >= 0) s.recovery_percent = recv; // SAMP_RECV is already a percent
             samples.push(s);
             index.set(sampleKey(r), s);
         }

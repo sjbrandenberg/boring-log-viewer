@@ -1,6 +1,6 @@
 // Builds the static paste page into public/: bundles site/app.js (with the
 // renderer, Ajv and Leaflet) and copies the HTML, CSS (with Leaflet's), icon
-// and JSON Schema.
+// JSON Schema and the Excel templates.
 //   node scripts/build-site.js           one-off build
 //   node scripts/build-site.js --serve   rebuild on change and serve on :8080
 import { cpSync, mkdirSync, rmSync } from 'node:fs';
@@ -16,6 +16,7 @@ function copyStatic() {
     }
     cpSync(new URL('node_modules/leaflet/dist/leaflet.css', root), new URL('leaflet.css', out));
     cpSync(new URL('node_modules/leaflet/dist/images/', root), new URL('images/', out), { recursive: true });
+    cpSync(new URL('site/templates/', root), new URL('templates/', out), { recursive: true });
     mkdirSync(new URL('schema/', out), { recursive: true });
     cpSync(new URL('schema/boring-log.schema.json', root), new URL('schema/boring-log.schema.json', out));
 }
