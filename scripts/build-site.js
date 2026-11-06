@@ -11,7 +11,7 @@ const out = new URL('public/', root);
 const serve = process.argv.includes('--serve');
 
 function copyStatic() {
-    for (const file of ['index.html', 'styles.css', 'favicon.svg', 'site-page.css']) {
+    for (const file of ['index.html', 'styles.css', 'favicon.svg']) {
         cpSync(new URL(`site/${file}`, root), new URL(file, out));
     }
     cpSync(new URL('node_modules/leaflet/dist/leaflet.css', root), new URL('leaflet.css', out));
@@ -42,23 +42,11 @@ const options = {
     }],
 };
 
-// The site page (POST /api/site) has its own script; the API embeds it.
-const sitePage = {
-    ...options,
-    entryPoints: [new URL('site/site-page.js', root).pathname.replace(/^\/([A-Za-z]:)/, '$1')],
-    outfile: new URL('site-page.js', out).pathname.replace(/^\/([A-Za-z]:)/, '$1'),
-    minify: true,
-    sourcemap: false,
-    plugins: [],
-};
-
 if (serve) {
-    await esbuild.build(sitePage);
     const ctx = await esbuild.context(options);
     await ctx.watch();
     const { port } = await ctx.serve({ servedir: new URL('public/', root).pathname.replace(/^\/([A-Za-z]:)/, '$1'), port: 8080 });
     console.log(`serving http://localhost:${port}/`);
 } else {
     await esbuild.build(options);
-    await esbuild.build(sitePage);
 }
