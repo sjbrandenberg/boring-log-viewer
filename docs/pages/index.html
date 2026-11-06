@@ -16,13 +16,11 @@
 </ul>
 <p>You don't need to be a programmer. If you can fill in a spreadsheet, you can write the data the viewer needs; the <a href="getting-started.html">first tutorial</a> walks through it. Or fill in the <a href="excel.html">Excel template</a> and open it directly.</p>
 
-<h2 id="three-ways">Four ways to use it</h2>
+<h2 id="three-ways">Three ways to use it</h2>
 <div class="cards">
-    <a class="card" href="getting-started.html"><b>1. On the web page</b><span>Paste or type your data, see the log update as you type, and download it. Nothing to install. Your data stays in your browser.</span></a>
-    <a class="card" href="importing.html"><b>2. Open an AGS4 or DIGGS file</b><span>Open a standard data-transfer file and the borings in it are drawn directly.</span></a>
-    <a class="card" href="excel.html"><b>3. Fill in an Excel workbook</b><span>Download the template, put your layers, samples and lab results in its sheets, and open it in the viewer. No JSON to write.</span></a>
-    <a class="card" href="api.html"><b>4. From a script</b><span>Send the data from Python or any other program to the Application Programming Interface (API) and get an image back. Good for drawing many logs at once. Or draw them in your own web page with the JavaScript code.</span></a>
-
+    <a class="card" href="getting-started.html"><b>1. On the web page</b><span>Paste or type your data, or open a JSON, Excel, AGS4 or DIGGS file, and see the log update as you type. Download it as an image. Nothing to install. Your data stays in your browser.</span></a>
+    <a class="card" href="api.html"><b>2. From a script, with the API</b><span>Send the data (JSON, AGS4 or DIGGS) from Python or any other program to the Application Programming Interface (API) and get an image back. Good for drawing many logs at once.</span></a>
+    <a class="card" href="javascript.html"><b>3. JavaScript in your own page</b><span>Draw logs in your own web page or Node.js program with the viewer's JavaScript code. No server needed.</span></a>
 </div>
 
 <h2 id="what-it-draws">What it draws</h2>
@@ -51,8 +49,16 @@
   ]
 }</code></pre>
 <p>That's a complete boring log: two layers, with depths in feet. Everything else (samples, blow counts, lab data, groundwater) is optional and added the same way. The <a href="data-format.html">data format reference</a> lists every field.</p>
-<p>JSON may not be familiar to everyone, so the viewer also reads the data from an Excel workbook, with a separate sheet for each part of the boring log (see <a href="excel.html">Excel workbooks</a>).</p>
-<p>It also reads <b>AGS4</b> files (common in the UK and internationally) and <b>DIGGS</b> XML files (used by several US state DOTs), converting them to the same JSON. See <a href="importing.html">Importing AGS4 and DIGGS</a>.</p>
+<p>If your data isn't in JSON, three translators write the JSON for you:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Format</th><th>Where</th><th>Details</th></tr></thead>
+    <tbody>
+        <tr><td><b>Excel</b> workbook laid out like the template, one sheet per part of the log</td><td>Web page</td><td><a href="excel.html">Excel workbooks</a></td></tr>
+        <tr><td><b>AGS4</b> (common in the UK and internationally)</td><td>Web page and API</td><td><a href="importing.html#ags">Importing AGS4 and DIGGS</a></td></tr>
+        <tr><td><b>DIGGS</b> XML (used by several US state DOTs)</td><td>Web page and API</td><td><a href="importing.html#diggs">Importing AGS4 and DIGGS</a></td></tr>
+    </tbody>
+</table></div>
+<p>Each one converts the file to the same JSON, which you can then check, edit and save.</p>
 
 <div class="callout tip">
     <strong>New here?</strong>
