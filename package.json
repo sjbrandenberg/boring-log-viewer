@@ -1,6 +1,6 @@
 {
   "name": "boring-log-viewer",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Render geotechnical boring logs from JSON as SVG",
   "type": "module",
   "main": "src/index.js",
@@ -34,6 +34,6 @@
     "leaflet": "^1.9.4",
     "opentype.js": "^2.0.0"
   },
-  "license": "MIT",
+  "license": "BSD-3-Clause",
   "private": true
 }
