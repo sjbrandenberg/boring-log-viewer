@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My boring log app</title>
+<style>
+    body { font-family: system-ui, sans-serif; margin: 16px; color: #222; }
+    .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+    textarea { width: 100%; height: 220px; font: 13px monospace; box-sizing: border-box; }
+    #message { color: #b00020; white-space: pre-wrap; }
+    #logs svg { display: block; max-width: 100%; height: auto; margin: 12px 0; border: 1px solid #ddd; }
+</style>
+</head>
+<body>
+<h1>My boring log app</h1>
+
+<div class="bar">
+    <label>Open JSON, Excel, AGS4 or DIGGS files <input id="files" type="file" multiple accept=".json,.xlsx,.ags,.xml"></label>
+</div>
+<textarea id="json" spellcheck="false">{
+  "units": { "length": "ft" },
+  "metadata": { "boring_name": "B-1" },
+  "layers": [
+    { "top": 0, "bottom": 4, "description": "Brown, loose, moist, silty SAND (fill)" },
+    { "top": 4, "bottom": 12, "description": "Gray, medium dense, wet, poorly graded SAND with silt" },
+    { "top": 12, "bottom": 20, "description": "Gray, soft, wet, lean CLAY" }
+  ],
+  "samples": [
+    { "top": 7.5, "bottom": 9, "name": "S-1", "type": "SPT", "blows": [6, 9, 11] },
+    { "top": 12.5, "bottom": 14.5, "name": "T-2", "type": "Shelby", "recovery_percent": 90,
+      "specimens": [{ "name": "T-2a", "top": 12.6, "bottom": 13.1, "water_content": 36.5, "liquid_limit": 44, "plastic_limit": 21, "uscs": "CL" }] }
+  ]
+}</textarea>
+<div class="bar">
+    <button id="draw">Draw</button>
+    <label>Units <select id="units"><option value="">as in the data</option><option value="m">metric</option><option value="ft">US</option></select></label>
+    <button id="download" disabled>Download SVG</button>
+</div>
+<p id="message"></p>
+<div id="logs"></div>
+
+<script type="module">
+// The viewer's code, loaded straight from GitHub. Replace "main" with a release
+// tag or commit to pin a version, or download the src folder and use a local
+// path such as './boring-log-viewer/src/'.
+const LIB = 'https://cdn.jsdelivr.net/gh/sjbrandenberg/boring-log-viewer@main/src/';
+const { renderBoringLog } = await import(LIB + 'render.js');
+const { xlsxToBoringLog } = await import(LIB + 'xlsx.js');
+const { agsToBoringLogs } = await import(LIB + 'ags.js');
+const { diggsToBoringLogs } = await import(LIB + 'diggs.js');
+
+const $ = id => document.getElementById(id);
+let drawn = []; // [{ name, svg }]
+
+// Draws a list of boring logs (JSON objects) into the page.
+function draw(logs) {
+    $('message').textContent = '';
+    $('logs').innerHTML = '';
+    drawn = [];
+    for (const log of logs) {
+        const name = log.metadata?.boring_name ?? 'boring-log';
+        try {
+            const svg = renderBoringLog(log, { width: 900, units: $('units').value || undefined });
+            $('logs').insertAdjacentHTML('beforeend', svg);
+            drawn.push({ name, svg });
+        } catch (e) {
+            // A log that can't be drawn: e.issues lists each problem with its JSON path.
+            const issues = (e.issues ?? []).map(i => `  ${i.path}: ${i.message}`).join('\n');
+            $('message').textContent += `${name}: ${e.message}\n${issues}\n`;
+        }
+    }
+    $('download').disabled = drawn.length === 0;
+}
+
+$('draw').onclick = () => {
+    try {
+        draw([JSON.parse($('json').value)]);
+    } catch (e) {
+        $('message').textContent = `Not valid JSON: ${e.message}`;
+    }
+};
+$('units').onchange = () => $('draw').click();
+
+// Every file opened becomes one or more logs (an AGS4 or DIGGS file has one per borehole;
+// boreholes without strata, such as CPT locations, are skipped).
+const withStrata = converted => converted.documents.map(d => d.document).filter(doc => doc.layers.length > 0);
+$('files').onchange = async e => {
+    const logs = [];
+    for (const file of e.target.files) {
+        try {
+            if (/\.xlsx$/i.test(file.name)) {
+                logs.push((await xlsxToBoringLog(await file.arrayBuffer())).document);
+            } else if (/\.ags$/i.test(file.name)) {
+                logs.push(...withStrata(agsToBoringLogs(await file.text())));
+            } else if (/\.xml$/i.test(file.name)) {
+                logs.push(...withStrata(diggsToBoringLogs(await file.text())));
+            } else {
+                logs.push(JSON.parse(await file.text()));
+            }
+        } catch (err) {
+            $('message').textContent += `${file.name}: ${err.message}\n`;
+        }
+    }
+    if (logs.length === 1) $('json').value = JSON.stringify(logs[0], null, 2);
+    draw(logs);
+};
+
+$('download').onclick = () => {
+    for (const { name, svg } of drawn) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+        a.download = `${name}.svg`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+};
+
+$('draw').click();
+</script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!-- title: JavaScript in your own page -->
+<!-- description: Draw boring logs in your own web page or Node.js program with the viewer's JavaScript code, with no server. -->
+<h1>JavaScript in your own page</h1>
+<p class="lead">The viewer's drawing code is plain JavaScript. Use it in your own web page or Node.js program to draw boring logs with no server and nothing sent anywhere.</p>
+
+<p>This is the third way to draw a log, next to the <a href="https://uclageo.com/boring-log-viewer/">web page</a> and the <a href="api.html">render API</a>. It suits a website that shows its own borings, an offline tool, or a program that draws many logs.</p>
+<p>The main function is <code>renderBoringLog(log, options)</code>. It takes a boring log (a JSON object, or JSON text, as in the <a href="data-format.html">data format reference</a>) and the <a href="options.html">display options</a>, and returns the drawing as SVG text. Put the SVG in the page, or save it as a file.</p>
+
+<h2 id="minimal">The shortest example</h2>
+<p>Save this as <code>boring-log.html</code> and open it in a browser. The code is loaded from the GitHub repository through the jsDelivr CDN, so there is nothing to install.</p>
+<div class="code-file"><div class="code-file-head"><code>boring-log.html</code></div><pre><code>&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;Boring log&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;log&quot;&gt;&lt;/div&gt;
+&lt;script type=&quot;module&quot;&gt;
+import { renderBoringLog } from &#x27;https://cdn.jsdelivr.net/gh/sjbrandenberg/boring-log-viewer@main/src/render.js&#x27;;
+
+const log = {
+  units: { length: &quot;ft&quot; },
+  metadata: { boring_name: &quot;B-1&quot; },
+  layers: [
+    { top: 0, bottom: 4, description: &quot;Brown, loose, moist, silty SAND (fill)&quot; },
+    { top: 4, bottom: 20, description: &quot;Gray, soft, wet, lean CLAY&quot; }
+  ],
+  samples: [{ top: 7.5, bottom: 9, name: &quot;S-1&quot;, type: &quot;SPT&quot;, blows: [3, 4, 4] }]
+};
+
+document.getElementById(&#x27;log&#x27;).innerHTML = renderBoringLog(log, { width: 800 });
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+<p>If your browser won't run it from a file on your disk, serve the folder instead: run <code>python -m http.server</code> in it and open <code>http://localhost:8000/boring-log.html</code>.</p>
+
+<h2 id="app">A small application</h2>
+<p>This page is a working application in about 100 lines. You can type or paste JSON, or open JSON, Excel, AGS4 and DIGGS files (several at once), and each boring is drawn. You can also switch between metric and US units and download the logs as SVG files. Download it and open it in a browser to try it, then change it to suit your own site.</p>
+<p><a class="button-link" href="examples/boring-log-app.html" download>Download boring-log-app.html</a></p>
+<div class="code-file"><div class="code-file-head"><code>boring-log-app.html</code><a href="examples/boring-log-app.html" download>Download</a></div><pre><code>&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;My boring log app&lt;/title&gt;
+&lt;style&gt;
+    body { font-family: system-ui, sans-serif; margin: 16px; color: #222; }
+    .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+    textarea { width: 100%; height: 220px; font: 13px monospace; box-sizing: border-box; }
+    #message { color: #b00020; white-space: pre-wrap; }
+    #logs svg { display: block; max-width: 100%; height: auto; margin: 12px 0; border: 1px solid #ddd; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;h1&gt;My boring log app&lt;/h1&gt;
+
+&lt;div class=&quot;bar&quot;&gt;
+    &lt;label&gt;Open JSON, Excel, AGS4 or DIGGS files &lt;input id=&quot;files&quot; type=&quot;file&quot; multiple accept=&quot;.json,.xlsx,.ags,.xml&quot;&gt;&lt;/label&gt;
+&lt;/div&gt;
+&lt;textarea id=&quot;json&quot; spellcheck=&quot;false&quot;&gt;{
+  &quot;units&quot;: { &quot;length&quot;: &quot;ft&quot; },
+  &quot;metadata&quot;: { &quot;boring_name&quot;: &quot;B-1&quot; },
+  &quot;layers&quot;: [
+    { &quot;top&quot;: 0, &quot;bottom&quot;: 4, &quot;description&quot;: &quot;Brown, loose, moist, silty SAND (fill)&quot; },
+    { &quot;top&quot;: 4, &quot;bottom&quot;: 12, &quot;description&quot;: &quot;Gray, medium dense, wet, poorly graded SAND with silt&quot; },
+    { &quot;top&quot;: 12, &quot;bottom&quot;: 20, &quot;description&quot;: &quot;Gray, soft, wet, lean CLAY&quot; }
+  ],
+  &quot;samples&quot;: [
+    { &quot;top&quot;: 7.5, &quot;bottom&quot;: 9, &quot;name&quot;: &quot;S-1&quot;, &quot;type&quot;: &quot;SPT&quot;, &quot;blows&quot;: [6, 9, 11] },
+    { &quot;top&quot;: 12.5, &quot;bottom&quot;: 14.5, &quot;name&quot;: &quot;T-2&quot;, &quot;type&quot;: &quot;Shelby&quot;, &quot;recovery_percent&quot;: 90,
+      &quot;specimens&quot;: [{ &quot;name&quot;: &quot;T-2a&quot;, &quot;top&quot;: 12.6, &quot;bottom&quot;: 13.1, &quot;water_content&quot;: 36.5, &quot;liquid_limit&quot;: 44, &quot;plastic_limit&quot;: 21, &quot;uscs&quot;: &quot;CL&quot; }] }
+  ]
+}&lt;/textarea&gt;
+&lt;div class=&quot;bar&quot;&gt;
+    &lt;button id=&quot;draw&quot;&gt;Draw&lt;/button&gt;
+    &lt;label&gt;Units &lt;select id=&quot;units&quot;&gt;&lt;option value=&quot;&quot;&gt;as in the data&lt;/option&gt;&lt;option value=&quot;m&quot;&gt;metric&lt;/option&gt;&lt;option value=&quot;ft&quot;&gt;US&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;
+    &lt;button id=&quot;download&quot; disabled&gt;Download SVG&lt;/button&gt;
+&lt;/div&gt;
+&lt;p id=&quot;message&quot;&gt;&lt;/p&gt;
+&lt;div id=&quot;logs&quot;&gt;&lt;/div&gt;
+
+&lt;script type=&quot;module&quot;&gt;
+// The viewer&#x27;s code, loaded straight from GitHub. Replace &quot;main&quot; with a release
+// tag or commit to pin a version, or download the src folder and use a local
+// path such as &#x27;./boring-log-viewer/src/&#x27;.
+const LIB = &#x27;https://cdn.jsdelivr.net/gh/sjbrandenberg/boring-log-viewer@main/src/&#x27;;
+const { renderBoringLog } = await import(LIB + &#x27;render.js&#x27;);
+const { xlsxToBoringLog } = await import(LIB + &#x27;xlsx.js&#x27;);
+const { agsToBoringLogs } = await import(LIB + &#x27;ags.js&#x27;);
+const { diggsToBoringLogs } = await import(LIB + &#x27;diggs.js&#x27;);
+
+const $ = id =&gt; document.getElementById(id);
+let drawn = []; // [{ name, svg }]
+
+// Draws a list of boring logs (JSON objects) into the page.
+function draw(logs) {
+    $(&#x27;message&#x27;).textContent = &#x27;&#x27;;
+    $(&#x27;logs&#x27;).innerHTML = &#x27;&#x27;;
+    drawn = [];
+    for (const log of logs) {
+        const name = log.metadata?.boring_name ?? &#x27;boring-log&#x27;;
+        try {
+            const svg = renderBoringLog(log, { width: 900, units: $(&#x27;units&#x27;).value || undefined });
+            $(&#x27;logs&#x27;).insertAdjacentHTML(&#x27;beforeend&#x27;, svg);
+            drawn.push({ name, svg });
+        } catch (e) {
+            // A log that can&#x27;t be drawn: e.issues lists each problem with its JSON path.
+            const issues = (e.issues ?? []).map(i =&gt; `  ${i.path}: ${i.message}`).join(&#x27;\n&#x27;);
+            $(&#x27;message&#x27;).textContent += `${name}: ${e.message}\n${issues}\n`;
+        }
+    }
+    $(&#x27;download&#x27;).disabled = drawn.length === 0;
+}
+
+$(&#x27;draw&#x27;).onclick = () =&gt; {
+    try {
+        draw([JSON.parse($(&#x27;json&#x27;).value)]);
+    } catch (e) {
+        $(&#x27;message&#x27;).textContent = `Not valid JSON: ${e.message}`;
+    }
+};
+$(&#x27;units&#x27;).onchange = () =&gt; $(&#x27;draw&#x27;).click();
+
+// Every file opened becomes one or more logs (an AGS4 or DIGGS file has one per borehole;
+// boreholes without strata, such as CPT locations, are skipped).
+const withStrata = converted =&gt; converted.documents.map(d =&gt; d.document).filter(doc =&gt; doc.layers.length &gt; 0);
+$(&#x27;files&#x27;).onchange = async e =&gt; {
+    const logs = [];
+    for (const file of e.target.files) {
+        try {
+            if (/\.xlsx$/i.test(file.name)) {
+                logs.push((await xlsxToBoringLog(await file.arrayBuffer())).document);
+            } else if (/\.ags$/i.test(file.name)) {
+                logs.push(...withStrata(agsToBoringLogs(await file.text())));
+            } else if (/\.xml$/i.test(file.name)) {
+                logs.push(...withStrata(diggsToBoringLogs(await file.text())));
+            } else {
+                logs.push(JSON.parse(await file.text()));
+            }
+        } catch (err) {
+            $(&#x27;message&#x27;).textContent += `${file.name}: ${err.message}\n`;
+        }
+    }
+    if (logs.length === 1) $(&#x27;json&#x27;).value = JSON.stringify(logs[0], null, 2);
+    draw(logs);
+};
+
+$(&#x27;download&#x27;).onclick = () =&gt; {
+    for (const { name, svg } of drawn) {
+        const a = document.createElement(&#x27;a&#x27;);
+        a.href = URL.createObjectURL(new Blob([svg], { type: &#x27;image/svg+xml&#x27; }));
+        a.download = `${name}.svg`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+};
+
+$(&#x27;draw&#x27;).click();
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre></div>
+<p>The parts it uses, all in the repository's <code>src</code> folder, and none needing anything else:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Module</th><th>Function</th><th>What it does</th></tr></thead>
+    <tbody>
+        <tr><td><code>render.js</code></td><td><code>renderBoringLog(log, options)</code></td><td>Draws a log and returns the SVG text. If the log can't be drawn, it throws an error whose <code>issues</code> list each problem with its JSON path (<code>/layers/0</code>) and message.</td></tr>
+        <tr><td><code>xlsx.js</code></td><td><code>await xlsxToBoringLog(bytes)</code></td><td>Reads an Excel workbook laid out like the <a href="excel.html">template</a>. Returns <code>{ document, warnings }</code>.</td></tr>
+        <tr><td><code>ags.js</code></td><td><code>agsToBoringLogs(text)</code></td><td>Converts an AGS4 file. Returns <code>{ documents: [{ loca_id, document }], warnings }</code>, one per borehole.</td></tr>
+        <tr><td><code>diggs.js</code></td><td><code>diggsToBoringLogs(text)</code></td><td>Converts a DIGGS file, in the same form as <code>agsToBoringLogs</code>.</td></tr>
+    </tbody>
+</table></div>
+
+<div class="callout">
+    <strong>Pin a version</strong>
+    <p><code>@main</code> in the address loads the latest code, which can change. For a website that should keep drawing the same way, replace <code>main</code> with a release tag or a commit. Or download the repository's <code>src</code> folder, put it next to your page, and import from it, e.g. <code>'./boring-log-viewer/src/render.js'</code>.</p>
+</div>
+
+<h2 id="validate">Checking a log</h2>
+<p><code>renderBoringLog</code> stops only on problems that make a log impossible to draw. A full check against the <a href="boring-log.schema.json">JSON Schema</a> (for example, misspelled field names, and warnings such as gaps between layers) is <code>validateBoringLog(log)</code>. It needs the Ajv library, so in a browser either use a bundler (below) or send the log to the API's <a href="api.html#other">api/validate</a>. It returns <code>{ valid, errors, warnings }</code>.</p>
+
+<h2 id="node">In Node.js or with a bundler</h2>
+<p>Install the package from GitHub, then import from it:</p>
+<pre><code>npm install github:sjbrandenberg/boring-log-viewer</code></pre>
+<pre><code>import { readFileSync, writeFileSync } from &#x27;node:fs&#x27;;
+import { renderBoringLog, validateBoringLog } from &#x27;boring-log-viewer&#x27;;
+
+const log = JSON.parse(readFileSync(&#x27;B-1.json&#x27;, &#x27;utf8&#x27;));
+
+const { valid, errors, warnings } = validateBoringLog(log);
+if (!valid) throw new Error(JSON.stringify(errors, null, 2));
+for (const w of warnings) console.warn(w.path, w.message);
+
+writeFileSync(&#x27;B-1.svg&#x27;, renderBoringLog(log, { width: 900, units: &#x27;ft&#x27; }));</code></pre>
+<p>This needs Node.js 22 or later. To make a PNG, convert the SVG with a library such as <code>@resvg/resvg-js</code>, as the API does. The same <code>import</code> works in a web application built with Vite, webpack or esbuild, which also bundles Ajv for <code>validateBoringLog</code>.</p>
+
+        

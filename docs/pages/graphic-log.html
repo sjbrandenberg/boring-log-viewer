@@ -11,7 +11,7 @@
     <li><b>The layer's <code>uscs</code></b> symbol.</li>
     <li><b>A USCS symbol worked out from the description</b>, such as SM from "silty SAND". It's also shown in the USCS column, in parentheses.</li>
 </ol>
-<p>If none of these applies, the layer has no symbol and its graphic log is left blank. The viewer doesn't guess: "SAND, fine to medium" or "clayey SILT" doesn't say enough to classify the soil, so it isn't drawn as SP, ML or MH.</p>
+<p>If none of these applies, the layer has no symbol and its graphic log is left blank.</p>
 <div class="callout">
     <strong>Want full control?</strong>
     <p>Give every layer a <code>uscs</code> or <code>hatch</code>. To stop materials being picked out of descriptions, turn off <code>infer_materials</code>; to stop symbols being read from descriptions (both inferred and checked), turn off <code>infer_uscs</code>. Both are <a href="options.html#inference">display options</a>.</p>
@@ -22,14 +22,14 @@
 <!-- inference: Brown silty SAND | Gray, stiff, moist, lean CLAY, low plasticity | fat CLAY with sand | poorly graded SAND with silt | Brown sandy lean CLAY (CL) | silty clay | organic SILT, high plasticity | SAND, fine to medium | clayey SILT | lean to fat CLAY | FILL: silty sand, loose | Dark gray silty SAND (HYDRAULIC FILL) | ASPHALT concrete, 100 mm | Topsoil, dark brown, organic silt with roots | silty SAND with trace shells | coarse pumice SAND | SHALE, black, hard | rock, clay | No recovery -->
 
 <h3 id="uscs-rules">When a USCS symbol is inferred</h3>
-<p>A symbol is read from a description only when the description determines it:</p>
+<p>A symbol is inferred only when the soil description provides adequate information:</p>
 <ul>
     <li>a symbol written in the text, such as "(SP-SM)";</li>
     <li>an ASTM D2487 group name, such as "fat CLAY", "silty SAND" or "poorly graded SAND with silt";</li>
     <li>CLAY or SILT with a plasticity descriptor ("CLAY, high plasticity");</li>
     <li>"silty clay" (CL-ML), SILT group names (ML), and organic SILT or CLAY with low (OL) or high (OH) plasticity.</li>
 </ul>
-<p>Mixed layers, ranges ("lean to fat"), bare SAND or GRAVEL, and "clayey SILT" get no symbol. A heading such as "GRAVEL AND SAND:" that reads as a mixed layer is looked past, and the soil described after it is used. These rules were checked against 655 layer descriptions from the Next Generation Liquefaction (NGL) database.</p>
+<p>If a soil description doesn't contain adequate information, the viewer doesn't assign a USCS symbol. For example, "SAND, fine to medium" doesn't contain gradation and/or plasticity information required to classify it as SP, SW, SM, SC, or a dual symbol. Similarly, "clayey SILT" doesn't say enough to classify the soil as ML or MH, so the viewer doesn't assign a symbol. A heading such as "GRAVEL AND SAND:" that names two different soil types is skipped, and the soil described after it is used.</p>
 
 <h3 id="material-rules">When a material is picked out</h3>
 <p>A material counts only when it is the <em>principal</em> material of the description:</p>
@@ -40,12 +40,12 @@
     <li><b>No recovery</b> or core loss, when no soil is named.</li>
     <li><b>Rock names</b>: "SHALE, black, hard", "Weathered GRANITE". "rock, clay" is claystone.</li>
 </ul>
-<p>A minor constituent never counts: "silty SAND with trace shells" is sand. A soil named in capitals wins over a material that isn't: "coarse pumice SAND" is sand. Bentonite is drawn as CH. These rules were checked against 802 NGL layer descriptions.</p>
+<p>A minor constituent never counts: "silty SAND with trace shells" is sand. A soil named in capitals wins over a material that isn't: "coarse pumice SAND" is sand. Bentonite is drawn as CH. </p>
 
 <h2 id="checking">Checking recorded symbols</h2>
 <p>A <code>uscs</code> you give is checked too, because logs (especially older ones) sometimes have symbols that can't be right, or that disagree with their own description. When that happens, the log shows both, so a reader can see the discrepancy: the recorded symbol, with the one read from the description below it in parentheses. The validator also gives a warning for each.</p>
 <ul>
-    <li><b>Not a possible symbol.</b> ASTM D2487 dual symbols are the eleven shown <a href="#duals">below</a> plus CL-ML (in either order, e.g. SM-SP), and borderline soils are written with "/" (CL/CH). Something like <code>GW-GP</code> or <code>SM-G</code> is accepted, but flagged.</li>
+    <li><b>Not a possible symbol.</b> ASTM D2487 dual symbols are the ten shown <a href="#duals">below</a> plus CL-ML (in either order, e.g. SM-SP), and borderline soils are written with "/" (CL/CH). Something like <code>GW-GP</code> or <code>SM-G</code> is accepted, but flagged.</li>
     <li><b>The description reads differently.</b> <code>SP-SM</code> on a "well graded SAND" is flagged, because the description says SW.</li>
     <li><b>Agreement is read generously.</b> A recorded symbol that includes the one read from the description counts as agreeing: a dual (SP-SM for "silty SAND"), a dual in the other order (ML-CL), or a borderline symbol (CL/CH for "lean CLAY").</li>
 </ul>
@@ -62,7 +62,9 @@
 <p>Other pairs, such as <code>CL-ML</code> (silty clay), <code>ML/CL</code> or <code>SP-FILL</code>, or a pair where one half is your own pattern, are drawn with the column split in half: the first symbol on the left, the second on the right. You can write a pair with <code>-</code> or <code>/</code>.</p>
 
 <h2 id="materials">Materials and rock</h2>
-<p>To use one of these, set the layer's <code>hatch</code> to its code, for example <code>"hatch": "SANDSTONE"</code>. They can also be paired with each other or with a USCS symbol: <code>"hatch": "SP-FILL"</code>. Rock patterns follow the FGDC <i>Digital Cartographic Standard for Geologic Map Symbolization</i> (FGDC-STD-013-2006, section 37), drawn at a density that reads in a narrow column. A few related codes share a pattern with their group.</p>
+<p>To use one of these, set the layer's <code>hatch</code> to its code, for example <code>"hatch": "SANDSTONE"</code>. They can also be paired with each other or with a USCS symbol: <code>"hatch": "SP-FILL"</code>. Rock patterns follow the FGDC <i>Digital Cartographic Standard for Geologic Map Symbolization</i> (FGDC-STD-013-2006, section 37), drawn at a density that reads in a narrow column.</p>
 <!-- gallery: materials -->
 
 <p>Need a symbol that isn't here, or want your office's own version of one? See <a href="custom-hatches.html">Your own hatches</a>.</p>
+
+        

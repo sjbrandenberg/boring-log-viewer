@@ -48,12 +48,11 @@ const NAV = [
     ['layout.html', 'Columns and layout', null],
     ['custom-hatches.html', 'Your own hatches', null],
     ['several-logs.html', 'Several logs and the map', 'Sites with many borings'],
-    ['site-view.html', 'Site view: sections and 3D', null],
-    ['cross-sections.html', 'How cross-sections are drawn', null],
-    ['model-3d.html', 'The 3D model', null],
-    ['importing.html', 'Importing AGS4 and DIGGS', 'Other ways in and out'],
+    ['excel.html', 'Excel workbooks', 'Other ways in and out'],
+    ['importing.html', 'Importing AGS4 and DIGGS', null],
     ['options.html', 'Display options', null],
     ['api.html', 'Render API (scripts)', null],
+    ['javascript.html', 'JavaScript in your own page', null],
     ['troubleshooting.html', 'Troubleshooting and FAQ', 'Help'],
 ];
 
@@ -200,6 +199,8 @@ function build() {
     cpSync(new URL('site/favicon.svg', root), new URL('favicon.svg', out));
     cpSync(new URL('schema/boring-log.schema.json', root), new URL('boring-log.schema.json', out));
     for (const f of readdirSync(new URL('examples/', src)).filter(f => f.endsWith('.json'))) example(f);
+    // Other example files (Excel workbooks, the example JavaScript page) are copied as they are.
+    for (const f of readdirSync(new URL('examples/', src)).filter(f => !f.endsWith('.json'))) cpSync(new URL(`examples/${f}`, src), new URL(`examples/${f}`, out));
     writeFileSync(new URL('.nojekyll', out), '');
 
     const layout = readFileSync(new URL('_layout.html', src), 'utf8');

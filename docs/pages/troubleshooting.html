@@ -1,5 +1,5 @@
 <!-- title: Troubleshooting and FAQ -->
-<!-- description: Fixes for common error messages, making JSON from a spreadsheet, and answers to common questions. -->
+<!-- description: Fixes for common error messages, and answers to common questions. -->
 <h1>Troubleshooting and FAQ</h1>
 <p class="lead">Common error messages and what to do about them, getting data out of Excel, and other questions.</p>
 
@@ -14,7 +14,7 @@
         <tr><td>is not a recognized USCS symbol (e.g. SM, CL, SP-SM)</td><td>The <code>uscs</code> field takes USCS group symbols and pairs of them. Put anything else (such as "FILL") in the description, or use <code>hatch</code> for a material such as <code>FILL</code>.</td></tr>
         <tr><td>unknown sampler type "SHELBY": use a built-in type or define it in patterns</td><td>The sample <code>type</code> isn't one of the <a href="samples.html#types">sampler codes</a>. Codes are case-sensitive: <code>Shelby</code>, not <code>SHELBY</code>.</td></tr>
         <tr><td>must be number</td><td>A number was written in quotes (<code>"top": "4"</code>), or contains units or text (<code>"water_content": "12%"</code>). Write just the number: <code>"top": 4</code>.</td></tr>
-        <tr><td>must be "1.0"</td><td><code>schema_version</code> must be exactly <code>"1.0"</code>, in quotes.</td></tr>
+        <tr><td>must be "1.0"</td><td>If you give <code>schema_version</code>, it must be exactly <code>"1.0"</code>, in quotes. You can also leave it out.</td></tr>
         <tr><td>must have required property 'bottom'</td><td>Every layer and sample needs both <code>top</code> and <code>bottom</code>.</td></tr>
     </tbody>
 </table></div>
@@ -26,41 +26,11 @@
     <li><b>"GP-GW" is not a possible USCS symbol</b>: it isn't one of the ASTM D2487 dual symbols. Use a real dual symbol, or "/" for a borderline soil (e.g. CL/CH).</li>
     <li><b>lab results on the sample (water_content) are shown level with the sample, without a specimen box</b>: the data is in the older format. Move the results into a <code>specimens</code> list; see <a href="samples.html#old-format">results on the sample</a>.</li>
     <li><b>samples have remarks, not a description</b>: rename the sample's <code>description</code> to <code>remarks</code>.</li>
-    <li><b>"NoRecovery" is not a sampler type</b> (or <b>"No Recovery" is not a sample number</b>): give the sampler that was tried as <code>type</code>, and <code>"recovery": 0</code>. See <a href="samples.html#recovery">recovery</a>.</li>
+    <li><b>"NoRecovery" is not a sampler type</b> (or <b>"No Recovery" is not a sample number</b>): give the sampler that was tried as <code>type</code>, and <code>"recovery_percent": 0</code>. See <a href="samples.html#recovery">recovery</a>.</li>
     <li><b>specimen (3–3.2) is outside its sample (1–2)</b>: check the specimen's depths.</li>
     <li><b>gap between 5 and 6 (no layer described)</b>: there's no layer from 5 to 6. It's left blank on the log. If the gap is real (e.g. no recovery), add a layer for it, perhaps with <code>"hatch": "NO_RECOVERY"</code>.</li>
     <li><b>overlaps layer 1 (4–12)</b>: two layers cover the same depths. Check the depths.</li>
 </ul>
-
-<h2 id="excel">Making JSON from a spreadsheet</h2>
-<p>If your layers are in Excel with columns for top, bottom and description, you can have Excel write the JSON for you.</p>
-<ol class="steps">
-    <li>Suppose the top depth is in column A, bottom in B and description in C, starting in row 2. In D2 enter:
-<pre><code>="{ ""top"": "&amp;A2&amp;", ""bottom"": "&amp;B2&amp;", ""description"": """&amp;SUBSTITUTE(C2,"""","\""")&amp;""" },"</code></pre>
-    and fill it down. Each cell now holds one layer, such as <code>{ "top": 0, "bottom": 4, "description": "Brown silty SAND" },</code>. (The <code>SUBSTITUTE</code> handles a description that contains a double quote, such as 3" gravel.)</li>
-    <li>Copy column D and paste it into the viewer between the brackets of <code>"layers": [</code> and <code>]</code>.</li>
-    <li><b>Delete the comma after the last layer.</b></li>
-</ol>
-<p>Samples work the same way, with one cell per field. To leave a value out when its cell is empty, wrap it in an <code>IF</code>, for example for blow count in column E: <code>IF(E2="","",", ""blow_count"": "&amp;E2)</code>. Laboratory results go in a <code>specimens</code> list inside the sample (see <a href="samples.html#specimens">specimens</a>).</p>
-<p>For many borings, a short script is easier. This Python example reads <code>layers.csv</code> (columns <code>boring, top, bottom, description, uscs</code>) and writes one JSON file per boring:</p>
-<pre><code>import csv, json
-from collections import defaultdict
-
-borings = defaultdict(list)
-with open("layers.csv", newline="", encoding="utf-8-sig") as f:
-    for row in csv.DictReader(f):
-        layer = {"top": float(row["top"]), "bottom": float(row["bottom"]),
-                 "description": row["description"]}
-        if row.get("uscs"):
-            layer["uscs"] = row["uscs"]
-        borings[row["boring"]].append(layer)
-
-for name, layers in borings.items():
-    log = {"schema_version": "1.0", "units": {"length": "ft"},
-           "metadata": {"boring_name": name}, "layers": layers}
-    with open(f"{name}.json", "w", encoding="utf-8") as f:
-        json.dump(log, f, indent=2)</code></pre>
-<p>The files can then be opened on the web page, or drawn all at once with the <a href="api.html#batch">API</a>.</p>
 
 <h2 id="faq">Questions</h2>
 
@@ -86,10 +56,7 @@ for name, layers in borings.items():
 <p>It was inferred from the description, not recorded in the data. The legend says so too. Add <code>uscs</code> to the layer to show it without parentheses, or turn off <code>infer_uscs</code> to hide inferred symbols.</p>
 
 <h3 id="rock">Can I log rock cores?</h3>
-<p>Yes: there are hatches for over 40 rock types, plus weathered rock and intermediate geomaterial, and sampler types for rock core and triple-tube core with <code>recovery</code>. There aren't dedicated RQD or fracture-frequency columns yet; put RQD in <code>remarks</code>.</p>
-
-<h3 id="sections">Can it draw cross-sections?</h3>
-<p>Yes, from a set of borings with coordinates: see <a href="site-view.html">Site view</a>. The layers between borings are connected automatically, as a first interpretation to check, not a geologic model.</p>
+<p>Yes: there are hatches for over 40 rock types, plus weathered rock and intermediate geomaterial, and sampler types for rock core and triple-tube core with <code>recovery_percent</code>. There aren't dedicated RQD or fracture-frequency columns yet; put RQD in <code>remarks</code>.</p>
 
 <h3 id="cpt">Can it draw CPT soundings?</h3>
 <p>No, it draws boring logs only. CPT soundings in a DIGGS file are skipped.</p>
@@ -99,3 +66,5 @@ for name, layers in borings.items():
 
 <h3 id="bug">I found a bug, or need a feature</h3>
 <p>Please <a href="https://github.com/sjbrandenberg/boring-log-viewer/issues">open an issue on GitHub</a>. Include the JSON (or file) that shows the problem, with any confidential information removed.</p>
+
+        
