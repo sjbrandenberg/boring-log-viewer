@@ -8,10 +8,10 @@
 <div class="table-wrap"><table class="wrap">
     <thead><tr><th>Option</th><th>On the web page</th><th>Default</th><th>What it does</th></tr></thead>
     <tbody>
-        <tr><td><code>units</code></td><td>Units</td><td>as in the data</td><td>Display lengths in <code>m</code> or <code>ft</code>. Unit weights and diameters follow (kN/m³ and mm, or pcf and in) unless set below.</td></tr>
+        <tr><td><code>units</code></td><td>Units</td><td>as in the data</td><td>Display lengths in <code>m</code> or <code>ft</code>. Unit weights and diameters follow (kN/m³ and mm, or pcf and in) unless set below, but only when this changes the data's length unit; otherwise they stay in the data's own units.</td></tr>
         <tr><td><code>unit_weight</code></td><td>–</td><td>follows <code>units</code></td><td>Display unit weight in <code>kN/m3</code> or <code>pcf</code></td></tr>
         <tr><td><code>diameter_units</code></td><td>–</td><td>follows <code>units</code></td><td>Display diameters in <code>mm</code>, <code>cm</code>, <code>m</code>, <code>in</code> or <code>ft</code></td></tr>
-        <tr><td><code>width</code></td><td>Width</td><td>layout's, else 800</td><td>Width of the drawing in px. It's widened automatically if the text columns would be too narrow.</td></tr>
+        <tr><td><code>width</code></td><td>Width</td><td>layout's, else 800</td><td>Width of the drawing in px. It's widened automatically if the text columns would be too narrow, except when the log has a <a href="layout.html">layout</a>: then the columns share the width given.</td></tr>
         <tr><td><code>height</code></td><td>–</td><td>500</td><td>Starting height of the log body in px (before Fit text stretches it)</td></tr>
         <tr><td><code>scale</code></td><td>–</td><td>–</td><td>Fixed depth scale, in px per metre or foot. Overrides <code>height</code>.</td></tr>
         <tr><td><code>fit_text</code></td><td>Fit text</td><td>on</td><td>Stretch the depth scale so sample rows line up with their symbols and descriptions fit (see <a href="reading-the-log.html#depth-scale">why the depth scale stretches</a>)</td></tr>
@@ -30,7 +30,7 @@
 </table></div>
 
 <h2 id="units">Units</h2>
-<p>The data can be in one system and the drawing in another. A boring entered in feet can be drawn in metres by choosing <b>Metric</b> on the web page, or <code>units=m</code> in the API. Every depth, elevation, recovery, unit weight and diameter is converted; percentages and blow counts aren't affected.</p>
+<p>The data can be in one system and the drawing in another. A boring entered in feet can be drawn in metres by choosing <b>Metric</b> on the web page, or <code>units=m</code> in the API. Every depth, elevation, unit weight and diameter is converted; percentages and blow counts aren't affected.</p>
 
 <h2 id="size">Size and depth scale</h2>
 <ul>
@@ -44,7 +44,7 @@
 <pre><code>depth, elevation, groundwater, graphic, uscs, description,
 sample_type, sample_name, sampler_diameter, blow_count,
 specimen, specimen_name,
-water_content, total_unit_weight, dry_unit_weight, specific_gravity, fines_content, liquid_limit, plastic_limit,
+water_content, total_unit_weight, dry_unit_weight, specific_gravity, fines_content, liquid_limit, plastic_limit, specimen_uscs,
 remarks</code></pre>
 <p>There is one more column, <code>energy_ratio</code>, for a per-sample hammer energy ratio. It isn't in the default list, so add it where you want it. For example, a log with only the field data:</p>
 <pre><code>columns=depth,graphic,uscs,description,sample_type,sample_name,blow_count,energy_ratio</code></pre>
@@ -52,3 +52,5 @@ remarks</code></pre>
 
 <h2 id="inference">Symbol inference</h2>
 <p><code>infer_uscs</code> and <code>infer_materials</code> control the two kinds of reading described in <a href="graphic-log.html#order">how the symbol is chosen</a> and <a href="graphic-log.html#checking">checking recorded symbols</a>. Turn them off when your data already gives a <code>uscs</code> or <code>hatch</code> for every layer and you don't want the descriptions second-guessed.</p>
+
+        

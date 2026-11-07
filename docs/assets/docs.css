@@ -73,8 +73,24 @@ kbd { border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 
 }
 .brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font-weight: 650; font-size: 17px; }
 .brand span { color: var(--muted); font-weight: 400; }
+.toplinks { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.toplink {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 14px;
+    white-space: nowrap;
+}
+.toplink:hover { background: var(--accent-soft); color: var(--accent); }
+.icon { width: 18px; height: 18px; flex: none; }
 .open-app {
-    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: var(--accent);
     color: var(--bg);
     padding: 6px 14px;
@@ -85,6 +101,7 @@ kbd { border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 
     white-space: nowrap;
 }
 .menu-button { display: none; }
+.button-link { display: inline-block; background: var(--accent); color: var(--bg); padding: 6px 14px; border-radius: var(--radius); text-decoration: none; font-weight: 600; }
 
 .shell { display: grid; grid-template-columns: 270px minmax(0, 1fr); }
 
@@ -109,7 +126,8 @@ kbd { border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 
 
 @media (max-width: 860px) {
     .topbar { padding: 0 16px; }
-    .brand span, .open-app { display: none; }
+    .brand span, .toplinks .label { display: none; }
+    .toplink, .open-app { padding: 7px; }
     .menu-button {
         display: block;
         font: inherit;
@@ -232,3 +250,4 @@ dl.fields dd { margin: 2px 0 0 20px; }
     .shell { display: block; }
     .content { max-width: none; padding: 0; }
 }
+

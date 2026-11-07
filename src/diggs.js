@@ -188,7 +188,11 @@ export function diggsToBoringLogs(text) {
         const type = samplerType(method);
         const s = { top, bottom: base > top ? base : top + convert(type === 'SPT' ? 0.45 : 0.15, 'm', hole.depthUnit), name: txt(kid(act, 'name')) || undefined, type };
         const rec = kid(act, 'totalSampleRecoveryLength');
-        if (rec && Number.isFinite(Number(txt(rec)))) s.recovery = round(convert(Number(txt(rec)), unitOf(rec.attrs.uom) ?? hole.depthUnit, hole.depthUnit));
+        // DIGGS gives the recovered length; the log takes it as a percent of the sample interval.
+        if (rec && Number.isFinite(Number(txt(rec))) && s.bottom > s.top) {
+            const len = convert(Number(txt(rec)), unitOf(rec.attrs.uom) ?? hole.depthUnit, hole.depthUnit);
+            s.recovery_percent = Math.round((len / (s.bottom - s.top)) * 1000) / 10;
+        }
         if (type === 'Other' && method) s.remarks = `sampling method ${method}`;
         hole.samples.push(s);
         for (const e of [act, ...all(act, 'SampleProduced'), ...all(act, 'Sample')]) if (id(e)) sampleIds.set(id(e), s);

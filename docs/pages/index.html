@@ -1,43 +1,42 @@
 <!-- title: Overview -->
 <!-- description: Documentation for the Boring Log Viewer: draw geotechnical boring logs from JSON, AGS4 or DIGGS data, in the browser or from a script. -->
 <h1>Boring Log Viewer</h1>
-<p class="lead">Turn boring log data into a clean, consistent boring log drawing: graphic log, USCS symbols, material descriptions, samples, blow counts, laboratory results and groundwater, on one page.</p>
+<p class="lead">Turn boring log data into a clean, consistent boring log drawing including a graphic log, USCS symbols, material descriptions, samples, blow counts, laboratory results and groundwater.</p>
 
-<p>You give it the data for one boring: the layers, the samples and what was measured on them. It draws the log for you, with standard soil symbols, a depth scale, a legend and a header. You can download the result as an SVG or PNG image, or print it to PDF.</p>
+<p>You give it the data for one boring including metadata, stratigraphy, soil descriptions, sample and specimen information, and it draws the boring log for you. It uses standard soil symbols, a depth scale, a legend and a header. You can download the result as an SVG or PNG image, or print it to PDF.</p>
 
 <!-- log: full-example.json -->
 
 <h2 id="who">Who it's for</h2>
-<p>The viewer was written for geotechnical engineers, engineering geologists, researchers and students who need to show boring logs, for example:</p>
+<p>The viewer was written for geotechnical engineers, engineering geologists, researchers and students who need to show boring logs. For example:</p>
 <ul>
     <li>drawing logs for a report or a paper from data you already have in a spreadsheet or database;</li>
     <li>looking at an AGS4 or DIGGS file someone sent you, without special software;</li>
-    <li>showing boring logs on a website. The case-history databases at <a href="https://www.nextgenerationliquefaction.org">nextgenerationliquefaction.org</a> and <a href="https://www.vspdb.org">vspdb.org</a> draw their logs with it.</li>
+    <li>showing boring logs on a website. The case-history databases at <a href="https://www.nextgenerationliquefaction.org">nextgenerationliquefaction.org</a> and <a href="https://www.vspdb.org">vspdb.org</a> draw their boring logs with it.</li>
 </ul>
-<p>You don't need to be a programmer. If you can fill in a spreadsheet, you can write the data the viewer needs; the <a href="getting-started.html">first tutorial</a> walks through it.</p>
+<p>You don't need to be a programmer. If you can fill in a spreadsheet, you can write the data the viewer needs; the <a href="getting-started.html">first tutorial</a> walks through it. Or fill in the <a href="excel.html">Excel template</a> and open it directly.</p>
 
 <h2 id="three-ways">Three ways to use it</h2>
 <div class="cards">
-    <a class="card" href="getting-started.html"><b>1. On the web page</b><span>Paste or type your data, see the log update as you type, and download it. Nothing to install. Your data stays in your browser.</span></a>
-    <a class="card" href="importing.html"><b>2. Open an AGS4 or DIGGS file</b><span>Open a standard data-transfer file and the borings in it are drawn directly.</span></a>
-    <a class="card" href="api.html"><b>3. From a script</b><span>Send the data from Python or any other program to the render API and get an image back. Good for drawing many logs at once.</span></a>
-    <a class="card" href="site-view.html"><b>4. A whole site</b><span>Send all the borings of a site together and get a page with suggested cross-sections, a 3D model, every log and a map.</span></a>
+    <a class="card" href="getting-started.html"><b>1. On the web page</b><span>Paste or type your data, or open a JSON, Excel, AGS4 or DIGGS file, and see the log update as you type. Download it as an image. Nothing to install. Your data stays in your browser.</span></a>
+    <a class="card" href="api.html"><b>2. From a script, with the API</b><span>Send the data (JSON, AGS4 or DIGGS) from Python or any other program to the Application Programming Interface (API) and get an image back. Good for drawing many logs at once.</span></a>
+    <a class="card" href="javascript.html"><b>3. JavaScript in your own page</b><span>Draw logs in your own web page or Node.js program with the viewer's JavaScript code. No server needed.</span></a>
 </div>
 
 <h2 id="what-it-draws">What it draws</h2>
 <ul>
     <li><b>Header</b> with the project, boring name, location, elevation, dates, drilling method, hammer and the references the data came from.</li>
     <li><b>Depth</b> and <b>elevation</b> scales, in metres or feet.</li>
-    <li><b>Groundwater</b> levels, with the date and a note for each reading.</li>
-    <li><b>Graphic log</b> using the USCS soil symbols of the Caltrans <i>Soil and Rock Logging, Classification, and Presentation Manual</i> (2010), plus 67 symbols for fill, pavement, organic and other materials, and rock types after the FGDC geologic map standard. If you don't give a symbol, it is worked out from the material description.</li>
+    <li><b>Groundwater</b> levels: every reading is marked ▽ in the water level column, and its date and note are listed in the legend (not beside the symbol).</li>
+    <li><b>Graphic log</b> using the USCS soil symbols of the Caltrans <i>Soil and Rock Logging, Classification, and Presentation Manual</i> (2010), plus 67 symbols for fill, pavement, organic and other materials, and rock types after the FGDC geologic map standard. If you don't give a symbol, it is worked out from the material description when the description determines it. Descriptions that don't, such as a bare "SAND" or "GRAVEL", "clayey SILT", or a mixed layer, get no symbol and a blank graphic log until you add <code>uscs</code> or <code>hatch</code> (see <a href="graphic-log.html#uscs-rules">Graphic log</a>).</li>
     <li><b>Material descriptions</b> beside their layers, with leader lines when a long description has to be moved down, and notes at a single depth (such as "thin sand lens") in italics.</li>
     <li><b>Samples</b>: 22 sampler symbols (SPT, Modified California, Shelby tube, rock core, bulk and so on), sample numbers, blow counts, recovery.</li>
-    <li><b>Laboratory specimens</b>, each at its own depth within its sample, with water content, total and dry unit weight, specific gravity, fines content, and liquid and plastic limits.</li>
+    <li><b>Laboratory specimens</b>, each at its own depth within its sample, with water content, total and dry unit weight, specific gravity, fines content, liquid and plastic limits, and a lab USCS symbol.</li>
     <li><b>Your own columns</b>, such as pocket penetrometer readings or undrained strength, with your own headings and widths.</li>
     <li><b>Legend</b> listing only the symbols that appear in this log.</li>
 </ul>
 <p>Columns with no data are left out, so a log with only layers is a narrow, simple drawing, and one with full laboratory data gets every column.</p>
-<p>For a site with several borings, the web page keeps them in tabs and shows them on a map, and the <a href="site-view.html">site view</a> connects them in cross-sections and a 3D model.</p>
+<p>For a site with several borings, the web page keeps them in tabs and shows them on a map.</p>
 
 <h2 id="data">Where the data comes from</h2>
 <p>The viewer reads a boring log written in <b>JSON</b>, a plain-text format for structured data. JSON looks like this:</p>
@@ -50,9 +49,20 @@
   ]
 }</code></pre>
 <p>That's a complete boring log: two layers, with depths in feet. Everything else (samples, blow counts, lab data, groundwater) is optional and added the same way. The <a href="data-format.html">data format reference</a> lists every field.</p>
-<p>It also reads <b>AGS4</b> files (common in the UK and internationally) and <b>DIGGS</b> XML files (used by several US state DOTs), converting them to the same JSON. See <a href="importing.html">Importing AGS4 and DIGGS</a>.</p>
+<p>If your data isn't in JSON, three translators write the JSON for you:</p>
+<div class="table-wrap"><table class="wrap">
+    <thead><tr><th>Format</th><th>Where</th><th>Details</th></tr></thead>
+    <tbody>
+        <tr><td><b>Excel</b> workbook laid out like the template, one sheet per part of the log</td><td>Web page</td><td><a href="excel.html">Excel workbooks</a></td></tr>
+        <tr><td><b>AGS4</b> (common in the UK and internationally)</td><td>Web page and API</td><td><a href="importing.html#ags">Importing AGS4 and DIGGS</a></td></tr>
+        <tr><td><b>DIGGS</b> XML (used by several US state DOTs)</td><td>Web page and API</td><td><a href="importing.html#diggs">Importing AGS4 and DIGGS</a></td></tr>
+    </tbody>
+</table></div>
+<p>Each one converts the file to the same JSON, which you can then check, edit and save.</p>
 
 <div class="callout tip">
     <strong>New here?</strong>
     <p>Start with <a href="getting-started.html">Your first boring log</a>. It takes about ten minutes and builds a complete log in three steps.</p>
 </div>
+
+        

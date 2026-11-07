@@ -105,7 +105,7 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   - Rock: metamorphic (non-foliated): `QUARTZITE`, `MARBLE`, `HORNFELS`, `SERPENTINITE`, `GREENSTONE`
   - Rock: fault rock: `FAULT_GOUGE`, `FAULT_BRECCIA`, `MYLONITE`
 - **`samples`**: `{ top, bottom, name, type, blow_count, blows, energy_ratio,
-  sampler_diameter, recovery, remarks, specimens }`. A sample's text is its
+  sampler_diameter, recovery_percent, total_unit_weight, dry_unit_weight, remarks, specimens }`. A sample's text is its
   `remarks` (NGL `SAMP_REM`); a `description` from older documents is accepted,
   with a warning, and shown at the start of the remarks. Lab results
   go on the sample's specimens (below). `type` picks the symbol in the
@@ -115,18 +115,20 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   `TripleTube`; disturbed samples `Bulk`, `Grab`, `Composite`, `Auger`,
   `Trench`, `Disturbed`; and `Other` (the default). `NoRecovery` is also
   accepted, with a warning (see below). The list and
-  legend names are in `src/samplers.js`. `recovery` is the recovered length;
-  it is shown as a note at the start of the sample's remarks, "Recovery 0.36 m
-  (80%)", or "No recovery" when it is 0. No recovery is an outcome, not a
+  legend names are in `src/samplers.js`. `recovery_percent` is the recovery as a
+  percent of the sample interval; it is shown as a note at the start of the
+  sample's remarks, "Recovery 80%", or "No recovery" when it is 0 (an older
+  `recovery` length is converted to a percent, with a warning). No recovery is an outcome, not a
   sampler type: give the sampler that was tried as `type`. A sample whose
   `type` or `name` is "NoRecovery", "No recovery" or "NR" is read as
-  `recovery: 0` (with a warning), drawn as `Other` or its given type.
+  `recovery_percent: 0` (with a warning), drawn as `Other` or its given type.
 - **`specimens`** (in a sample): the specimens cut from the sample for
   laboratory tests. As in NGL, lab results belong to a specimen (`SPEC`:
   `SPEC_REF`, `SPEC_TOP`, `SPEC_BASE`, `SPEC_REM`), with its index tests
   (`INDX`) and Atterberg limits (`PLAS`), not to the sample: `{ name, top,
   bottom, water_content, total_unit_weight, dry_unit_weight, specific_gravity,
-  fines_content, liquid_limit, plastic_limit, nonplastic, remarks }`. A
+  fines_content, liquid_limit, plastic_limit, nonplastic, uscs, remarks }`
+  (`uscs` is the lab classification, drawn in the **Lab USCS** column). A
   specimen without `top` gets no box (none is made up from the sample's
   depths) and its results are shown level with the sample; one with `top` and
   no `bottom` is drawn at that depth. Each is drawn as a grey box over its depth range in the
@@ -135,7 +137,9 @@ Full examples are in [`tests/fixtures/`](tests/fixtures/). Main points:
   show several specimens' results. A specimen outside its sample gets a
   warning; a `bottom` above the `top` is an error. Lab results given on the
   sample itself (`water_content`, `liquid_limit`..., as in older documents)
-  are still accepted, with a warning, and shown the same way, without a box. AGS4 lab rows go on the specimen given by `SPEC_REF` and
+  are still accepted, with a warning, and shown the same way, without a box.
+  `total_unit_weight` and `dry_unit_weight` may be given for a whole sample
+  (e.g. a tube weighed before extrusion), without a warning. AGS4 lab rows go on the specimen given by `SPEC_REF` and
   `SPEC_DPTH`; DIGGS results on their `specimenRef` (else one specimen per
   tested interval).
 - **`groundwater`**: a list of `{ depth, date, note }`.
@@ -273,6 +277,24 @@ so every row lines up with its sampler symbol, and then until all descriptions
 end within the depth of the boring. The first stretch is capped at an 8,000 px
 log body; past that, rows that would collide are pushed down instead.
 
+
+## Excel workbooks
+
+The web page also opens Excel workbooks (`.xlsx`) laid out like
+`site/templates/boring-log-template.xlsx` (served as
+`templates/boring-log-template.xlsx`, with filled-in examples `B-3-example.xlsx`
+and `NAS-1.xlsx`). One workbook is one boring; each sheet is one part of the
+JSON (Units, Metadata, Layers, Samples, Specimens, Groundwater, Depth notes,
+References, Layout, Columns). The template's instruction rows are optional:
+header rows are found by their field names. The converter is `src/xlsx.js`
+(`xlsxToBoringLog(bytes)` -> `{ document, warnings }`, no dependencies; it
+runs in the browser, not in the API). Its `SHEETS` list defines the sheets
+and fields; after changing it, rebuild the templates with
+`python3 scripts/build-xlsx-template.py`,
+`python3 scripts/build-xlsx-template.py examples/NAS-1.json` and
+`python3 scripts/build-xlsx-template.py tests/fixtures/coastal-style.json site/templates/B-3-example.xlsx`
+(needs openpyxl), then the test fixtures as in `tests/xlsx.test.js`.
+
 ## Website
 
 The paste page is in `site/`. `npm run build` bundles it, with the renderer and
@@ -293,11 +315,6 @@ entirely in the browser:
   clicking a marker opens that log. It zooms to the logs within 50 km of the
   one being edited. The map tiles are the only thing the page loads from
   elsewhere. Leaflet draws the map and is bundled into the page.
-- The page draws boring logs only. Cross-sections and the 3D model of a set
-  of borings are on the site page that `POST /api/site` returns (see
-  [Site API](#site-api-for-ngl), [Cross-sections](#cross-sections) and
-  [3D view](#3d-view)); `site/map.js` can still draw a section line, but
-  this page doesn't use it.
 - Syntax and schema errors are listed with their location. Clicking one selects
   the offending text in the editor.
 - The preview updates as you type.
@@ -310,144 +327,6 @@ from one site in Nantou, Taiwan (`examples/NAS-1.json` to `NAS-4.json`, from the
 PEER Taiwan Ground Failure Database via the NGL database), which open together
 in four tabs. They show no-recovery samples and USCS symbols that
 don't match their descriptions.
-
-## Cross-sections
-
-`renderSection(entries, options)` and `placeAlongLine(points, line, corridor)`
-in `src/section.js` draw a section from several borings; the site page and
-`/api/site/section` use them for the suggested sections or a given line. How the layers are connected:
-
-1. Each boring's layers are grouped into units: consecutive layers of the same
-   main soil (gravel, sand, silt, clay, organic soils and peat) or material
-   (fill, pavement, rock, or another built-in material such as topsoil). The
-   class comes from the hatch the log draws, so a dual symbol such as SP-SM is
-   sand and an inferred symbol counts too. No recovery, water and voids never
-   connect. A recorded value that is not a USCS symbol (GP-GW, SM-ML) is
-   replaced by our guess, the symbol read from the description or else its
-   first group symbol, marked with * in the labels and listed under the figure.
-2. The units of each pair of neighbouring borings are matched top to bottom by
-   sequence alignment (as for DNA): matches never cross, connect only units of
-   the same main soil (SP, SP-SM and SW connect; CL and CH connect; ML and MH
-   connect; CL-ML (or ML-CL), ASTM's silty clay, is a clay that connects
-   both to clay and to silt, so ML joins CL-ML, which joins CL, but ML never
-   connects directly to a plain CL; sand never connects to either), and
-   prefer units at similar depths (or elevations).
-3. Matched units are drawn as bands between the borings, each half showing
-   its own boring's layers (a unit of SC over SM keeps both, at their share of
-   the unit's thickness, with dotted lines between them); where a silt joins
-   a silty clay, the colour blends from one to the other across the middle.
-   They are bounded by smooth curves (a layer's bottom and the next layer's
-   top share their slopes, so no sliver opens between them): where a boundary continues across
-   several borings its slope at each boring blends the slopes on either side
-   (level where they differ in sign, so the curve never overshoots), and it
-   meets a boring level where it ends. Units with no match fill the space
-   between the connections above and below them with no gaps (dashed
-   outlines): one boring's units thin out towards the other boring while the
-   other's thicken, the shallower group on top; a group with no counterpart
-   tapers to the other boring. Below the last connection, where the shallower
-   boring has ended, the deeper boring's units continue level to it, the top
-   one reaching up to the connection above (and on to the end of the section
-   when the shallower boring is the outermost one). Beyond the outer
-   borings, their layers are carried on level to the ends of the section (A
-   and A′, or B and B′ and so on for the site's suggested sections), with
-   dashed ends. Above each end is the compass direction it points to (e.g.
-   "← WSW" over A and "ENE →" over A′), and the note under the figure gives
-   the line's bearing.
-4. A red "?" marks where an end or a connection is uncertain: at the point
-   where a layer that pinches out runs out, at the end of a layer carried past
-   a boring or to the end of the section, and on the upper boundary of a
-   connection between units that share no depth (or elevation) range.
-5. When the borings have no ground elevations (as in NGL), they are aligned
-   at the ground surface, and a disclaimer under the figure (and in the 3D
-   legend) says that the layer boundaries between borings are therefore not
-   known with certainty.
-6. The first groundwater reading of each boring is joined to its neighbours'
-   by a smooth dashed blue curve.
-7. By default (`style: 'colour'`) the layers between borings are coloured by
-   main soil (gravel orange, sand yellow, silt light green, clay green, organic
-   brown, fill grey, pavement dark grey, rock purple-grey) and each connected
-   layer is labelled once, where it has the most room, e.g. "Clayey and silty
-   SAND (SC, SM)" (just the symbols when the name doesn't fit); the boring
-   columns keep their hatches. `style: 'hatch'` draws the USCS hatches between
-   borings instead. The site page has a switch for it on its Cross-sections tab.
-
-A section line can be at most 10 km long (`MAX_SECTION_LENGTH` in
-`src/section.js`): the API answers 400 for a longer `?line=`. The suggested
-sections of a site are not limited.
-
-The vertical axis is elevation when every boring has `metadata.elevation`,
-otherwise depth below ground. Borings closer together than a column width are
-spread apart and labelled with their own distances. The result is an
-automatic interpretation and the figure says so.
-
-## 3D view
-
-The site page's **3D model** tab (`site/block.js`) draws the site's borings
-that have coordinates as a block
-model with three.js, in the style of Rocscience Settle3's soil profile: a box
-around the borings (12 % margin) with the layers as coloured solids, the
-borings as columns coloured by their layers (always drawn on top), the water
-table as a dashed blue line around the sides (and a surface inside when the
-layers are made see-through with the Opacity slider), distance and depth axes
-with tick marks on the edges of the box that face you (they move to the other
-edges when the view is turned round, so they are never behind the block), and a legend listing the layers from the top by name
-("Silty and lean CLAY (ML-CL, CL-ML, CL)"); no text on the model itself.
-Layers with the same name share a colour and one legend entry (marked "more
-than one layer" when it occurs at several depths); different layers of one
-main soil, such as several sands, get different shades of that soil's colour,
-and the boring columns use the same colours as the block.
-
-How the model is built (`src/model3d.js`, with `src/geometry.js`):
-
-1. Neighbouring borings are found by a Delaunay triangulation of their
-   positions, leaving out edges more than 2.5 times longer than the
-   nearest-neighbour distance at either end (borings in a line are joined in
-   order).
-2. Between each pair of neighbours, the borings' units are matched by the same
-   rules as the cross-sections (same main soil, silt joined to clay only
-   through a silty clay, no crossing, similar depths). Units joined directly or through other borings
-   form one model layer.
-3. The layers are put in order from the top: each boring's order where they
-   agree, and by mean depth where they conflict.
-4. Each layer's thickness at each boring is its thickness there, or 0 where
-   the boring doesn't have it. Over a 48 × 48 grid, every thickness is
-   interpolated by inverse distance (power 2, exact at the borings) and the
-   layers are stacked down from the ground (level, or the interpolated ground
-   elevation when every boring has one). Layers missing in a boring thin out
-   towards it.
-5. Below the layers, down to the deepest boring, is "Not explored". The water
-   table is the first reading of each boring, interpolated the same way.
-6. The vertical exaggeration starts so the deepest boring is about 0.3 of the
-   box's width, and can be changed with a slider.
-
-**Slice** (not offered on the site page; `startSlice()` and the other slice
-functions of `setUpBlock()` in `site/block.js` are there for a page that
-wants it): two points on the model, A and A′, are picked with clicks. The
-block is cut along the vertical plane through them: the side nearer the
-camera is cut away (**Flip side** cuts the other), and the cut face shows the
-layers. Below the view, the slice from A to A′ is drawn as a 2D section of the
-model (`renderSlice()` in `src/slice.js`): the interpolated layers, ground,
-water table and the part not explored, the borings within 5 % of the box's
-size of the line at their distances along it, distance and depth (or
-elevation) axes, A and A′ with the directions they point to, a legend of the
-layers it cuts and the vertical exaggeration. It downloads as SVG or PNG. A
-slice can be at most 10 km long. The 3D **PNG** includes the cut; the 3D
-**SVG** shows the whole block.
-
-Drag to turn, right-drag (or Shift-drag) to move, scroll to zoom. **SVG** and **PNG** save the
-current view (angle, exaggeration, opacity), cropped to the model, with the
-legend below it:
-
-- **PNG** is drawn again by WebGL at 1–4× the size on screen (the PNG menu),
-  up to 8192 px a side (less if the graphics card can't draw that much); the
-  labels, axes and legend are added as vector text, so they stay sharp.
-- **SVG** is vector throughout: the faces of the block that face the camera
-  (the ground and two or three sides, with each layer's band), shaded like the
-  view, the layer boundaries, water table, borings, labels and legend, so it
-  scales to any size and opens in Illustrator or Inkscape. With opacity below 1
-  the faces are see-through, but the layers' surfaces inside the block are not
-  drawn.
-The model is an automatic interpretation and the legend says so.
 
 ## AGS4 import
 
@@ -483,7 +362,7 @@ document per `Borehole` (also `TestPit`, `Trench`; CPT soundings are skipped):
 | `Project`, `Borehole` | metadata: project, name, latitude/longitude/elevation from `referencePoint` (x y z, i.e. longitude first), dates, construction method and rig, logger and drilling contractor from the roles, remarks |
 | linear referencing | the document's length unit (ft or m), from each borehole's `LinearReferencingMethod` |
 | `LithologyObservation` | layers: `lithDescription`, or one composed from consistency, color, major and minor constituents and moisture; USCS from `classificationCode`/`legendCode`. An observation at a single depth inside a stratum becomes a depth note ("@ 4.5'; reddish brown"); outside one it starts a stratum |
-| `SamplingActivity` | samples: method codes such as SS/SPT, ST/SH (Shelby), core sizes, bulk; recovery converted to the log's units |
+| `SamplingActivity` | samples: method codes such as SS/SPT, ST/SH (Shelby), core sizes, bulk; recovery length converted to a percent of the sample interval |
 | `Test` results | SPT N-value and drive-set blows; water content, liquid and plastic limits, nonplastic, fines, dry density (as unit weight, pcf for logs in feet), specific gravity, USCS symbol. Matched to samples by `sampleRef`, else by depth |
 | `WaterStrike` | groundwater |
 
@@ -504,8 +383,6 @@ annotated DIGGS 3 borehole, and the Bolivian grading example.
 | `POST /api/ags` | An AGS4 file (`text/plain`) converted to `{ documents: [{ loca_id, document }], warnings }` |
 | `POST /api/diggs` | A DIGGS file (`application/xml`) converted the same way |
 | `POST /api/validate` | `{ valid, errors, warnings }` |
-| `POST /api/site` | A whole site: the [site page](#site-api-for-ngl) (HTML, default) or, with `?format=json`, its borings, suggested cross-sections and 3D model as data |
-| `POST /api/site/section` | One cross-section of a site (`?id=A` or `?line=lat,lon;lat,lon`) as SVG, PNG, HTML or JSON |
 | `GET /api/schema` | The JSON Schema |
 | `GET /api/health` | `{ status, version, endpoints }` |
 
@@ -528,7 +405,7 @@ curl -X POST -H "Content-Type: text/plain" --data-binary @site.ags "https://ucla
   - 422 for AGS4 and DIGGS: not AGS4 (e.g. AGS3) or malformed XML, no
     `LOCA` group or `Borehole`, no borehole chosen from several, or a borehole
     with no strata.
-  - 413: a JSON body over 1 MB (10 MB for `/api/site`), or an AGS4/DIGGS file over 10 MB.
+  - 413: a JSON body over 1 MB, or an AGS4/DIGGS file over 10 MB.
   - 422: an invalid log, more than 2,000 layers or 5,000 samples, or a PNG over
     40 megapixels.
   - 429: over the rate limit (60 requests per minute per client by default).
@@ -538,73 +415,6 @@ curl -X POST -H "Content-Type: text/plain" --data-binary @site.ags "https://ucla
   credentials. Request bodies are not stored or logged.
 - **PNGs** are drawn with resvg using the bundled Arimo font (`server/fonts.js`),
   never the server's own fonts, so the text matches the measured layout.
-
-### Site API (for NGL)
-
-NGL's **Plot** button sends one boring to `/api/render`. For a site, send all
-of its borings at once to `/api/site`:
-
-```sh
-# The site page: 3D model, suggested cross-sections, every log and a map
-curl -X POST -H "Content-Type: application/json" --data-binary @site.json \
-     "https://uclageo.com/boring-log-viewer/api/site" -o site.html
-# The same as data
-curl -X POST -H "Content-Type: application/json" --data-binary @site.json \
-     "https://uclageo.com/boring-log-viewer/api/site?format=json&grid=40" -o site-model.json
-# One section as PNG
-curl -X POST -H "Content-Type: application/json" --data-binary @site.json \
-     "https://uclageo.com/boring-log-viewer/api/site/section?id=A&format=png" -o A.png
-```
-
-**Body:** `{ "name": "Nantou", "borings": [boring log, ...] }`, a bare array
-of boring logs, or an AGS4 / DIGGS file (every borehole with strata). At most
-200 borings and 10 MB. Each boring is validated as for `/api/render`; errors
-point at the boring (`/borings/2/layers/0/bottom`). Borings without
-`metadata.latitude` and `longitude` are still shown as logs, but are left out
-of the map, sections and 3D model (a warning says so).
-
-**`POST /api/site`** — query: `format=html|json` (HTML by default, or JSON when
-`Accept` asks only for it), `name`, `units`, `style=colour|hatch` and `width`
-for the sections, `svg=false` to leave the section SVGs out of the JSON,
-`grid=2..100` to add the model's surfaces on a grid, `download=true`.
-
-- **HTML** is one self-contained page (script, styles and data inlined; only
-  map tiles come from elsewhere), so NGL can open it in a new tab, an iframe or
-  save it. It has three tabs, each with only its own options at the top:
-  **3D model** (exaggeration, opacity, SVG, PNG at 1–4×), **Cross-sections** (pick a
-  suggested section, colours or hatches, units, SVG/PNG) and **Boring logs**
-  (pick a boring, units, SVG/PNG). Clicking a line on the map opens that
-  section; clicking a boring opens its log. The server must have been built
-  (`npm run build`) for this; otherwise it answers 503 and JSON still works.
-- **JSON:** `{ name, borings: [{ index, name, latitude, longitude, depth,
-  units }], sections: [...], model, warnings }`. Each section is `{ id, name,
-  kind, description, line: [{ lat, lon }], corridor, length, borings: [{ name,
-  index, chainage, offset, side }], svg, warnings }`. With `svg=true`, each section's own drawing warnings are in its `warnings`, not in the top-level `warnings`, so check both. `model` (null with fewer
-  than two located borings) is `{ levels: 'elevation'|'depth', box,
-  layers: [{ id, label, uscs, guessed, colour, soil, borings }], borings: [{
-  index, name, x, y, ground, depth, groundwater, units: [{ top, bottom, layer
-  }] }] }`, positions in metres east and north of the site's centre, layers
-  from the top. With `grid=n`, `model.grid` adds `{ nx, ny, x, y, ground,
-  tops: [one array per layer], base, water }`, levels in metres at the
-  (n + 1)² grid points, row by row from the south.
-
-**Suggested cross-sections** (`src/site.js`, `autoSections`), from the layout
-of the borings:
-
-| id | section | when |
-|---|---|---|
-| A | Along the site: the direction the borings spread most (principal axis), through their centre; borings within 15 % of its length (25 m at least) | always (two or more located borings) |
-| B | Across the site, at right angles to A through the boring nearest the centre | the site is at least 20 % as wide as it is long |
-| next | Through every boring, a bent line from boring to boring in order along the site | A and B leave borings out, or project one from more than 10 m away |
-| next | Across at 25 % and 75 % along | more than six borings on a site at least twice as long as wide |
-
-A section that would show the same borings as an earlier one is left out, and
-letters follow on (A, B, C, ...).
-
-**`POST /api/site/section`** — query: `id=A` (a suggested section) or
-`line=lat,lon;lat,lon[;...]` with `corridor` (m, default 100), plus `format=svg|png|html|json`,
-`style`, `units`, `width`, `title`, `png_scale`, `download`. 404 for an
-unknown id (the message lists the ids); 422 when no boring is near the line.
 
 Deployment (Rocky Linux 9, Apache, systemd) is described in
 [`deploy/README.md`](deploy/README.md).

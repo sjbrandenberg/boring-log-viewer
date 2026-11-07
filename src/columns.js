@@ -4,7 +4,7 @@ export const DEFAULT_COLUMNS = [
     'depth', 'elevation', 'groundwater', 'graphic', 'uscs', 'description',
     'sample_type', 'sample_name', 'sampler_diameter', 'blow_count',
     'specimen', 'specimen_name',
-    'water_content', 'total_unit_weight', 'dry_unit_weight', 'specific_gravity', 'fines_content', 'liquid_limit', 'plastic_limit',
+    'water_content', 'total_unit_weight', 'dry_unit_weight', 'specific_gravity', 'fines_content', 'liquid_limit', 'plastic_limit', 'specimen_uscs',
     'remarks',
 ];
 

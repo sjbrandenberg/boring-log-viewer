@@ -2,27 +2,34 @@
   "@context": "https://w3id.org/codemeta/3.0",
   "@type": "SoftwareSourceCode",
   "name": "Boring Log Viewer",
-  "description": "Renders geotechnical boring logs from JSON, AGS4 or DIGGS data as standalone SVG drawings: graphic log with USCS and material symbols, material descriptions, samples, blow counts, laboratory specimens and groundwater. It also draws automatic cross-sections and a 3D layer model from several borings at a site. It runs as a web page in the browser, as a render API for scripts, and as a JavaScript module.",
-  "version": "0.1.0",
+  "description": "The Boring Log Viewer is open-source software that draws geotechnical boring logs from structured data. It reads a boring described in a JSON format, defined by a published JSON Schema, and produces a consistent boring log drawing: a header, depth and elevation scales, a graphic log with Unified Soil Classification System (USCS) symbols and symbols for fill, pavement, organic materials and rock, material descriptions, samples and sampler types, blow counts, laboratory specimens with their test results, groundwater levels, and a legend. A USCS symbol that is not given is inferred from the material description only when the description determines it, and recorded symbols are checked against their descriptions. Logs can be drawn in three ways: on a web page in the browser, with no installation and no data leaving the user's computer; through a web service (API) that returns SVG, PNG or HTML for use by databases and scripts; and as a JavaScript module in other web pages or Node.js programs. Translators convert Excel workbooks laid out like the provided template, and AGS4 and DIGGS data-transfer files, into the same JSON format. Users can define their own columns, layouts, hatch patterns and sampler symbols. The software is used to display boring logs in geotechnical case-history databases such as the Next Generation Liquefaction (NGL) database and VSPDB.",
+  "version": "1.0.0",
   "dateCreated": "2026-09-24",
-  "dateModified": "YYYY-MM-DD",
-  "datePublished": "YYYY-MM-DD",
-  "license": "https://spdx.org/licenses/MIT",
+  "dateModified": "2026-11-06",
+  "datePublished": "2026-11-06",
+  "license": "https://spdx.org/licenses/BSD-3-Clause",
   "author": [
     {
       "@type": "Person",
-      "@id": "https://orcid.org/0000-0000-0000-0000",
-      "givenName": "FIRSTNAME",
-      "familyName": "LASTNAME",
-      "email": "EMAIL@EXAMPLE.EDU",
-      "affiliation": { "@type": "Organization", "name": "AFFILIATION" }
+      "@id": "https://orcid.org/0009-0009-7676-6567",
+      "givenName": "Arda",
+      "familyName": "Sahin",
+      "email": "arda120222@g.ucla.edu",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Department of Civil and Environmental Engineering, University of California, Los Angeles"
+      }
     },
     {
       "@type": "Person",
-      "@id": "https://orcid.org/0000-0000-0000-0000",
-      "givenName": "FIRSTNAME",
-      "familyName": "LASTNAME",
-      "affiliation": { "@type": "Organization", "name": "AFFILIATION" }
+      "@id": "https://orcid.org/0000-0003-2493-592X",
+      "givenName": "Scott J.",
+      "familyName": "Brandenberg",
+      "email": "sjbrandenberg@g.ucla.edu",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Department of Civil and Environmental Engineering, University of California, Los Angeles"
+      }
     }
   ],
   "codeRepository": "https://github.com/sjbrandenberg/boring-log-viewer",
@@ -37,30 +44,39 @@
     "boring log",
     "borehole log",
     "subsurface investigation",
+    "site characterization",
     "USCS",
     "standard penetration test",
+    "laboratory testing",
     "AGS4",
     "DIGGS",
-    "cross-section",
-    "natural hazards",
+    "JSON Schema",
+    "data visualization",
     "liquefaction",
-    "SVG"
+    "natural hazards"
   ],
-  "programmingLanguage": ["JavaScript"],
-  "runtimePlatform": ["Node.js 22 or later", "Web browser"],
-  "operatingSystem": ["Linux", "Windows", "macOS"],
+  "programmingLanguage": [
+    "JavaScript"
+  ],
+  "runtimePlatform": [
+    "Node.js 22 or later",
+    "Web browser"
+  ],
+  "operatingSystem": [
+    "Linux",
+    "Windows",
+    "macOS"
+  ],
   "softwareRequirements": [
     "ajv ^8.20.0",
     "fastify ^5.12.5",
     "@fastify/rate-limit ^11.2.0",
     "@resvg/resvg-js ^2.6.2",
-    "@fontsource/arimo ^5.3.0",
-    "delaunator ^5.1.0"
+    "@fontsource/arimo ^5.3.0"
   ],
   "softwareSuggestions": [
     "esbuild ^0.28.2 (building the web page)",
     "leaflet ^1.9.4 (map, bundled into the web page)",
-    "three ^0.186.1 (3D model, bundled into the site page)",
     "imagetracerjs ^1.2.6 (tracing custom hatches)",
     "opentype.js ^2.0.0 (regenerating font metrics)"
   ]

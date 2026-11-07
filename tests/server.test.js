@@ -18,7 +18,7 @@ test('renders SVG by default', async () => {
     const res = await render();
     assert.equal(res.statusCode, 200);
     assert.equal(res.headers['content-type'], 'image/svg+xml; charset=utf-8');
-    assert.equal(res.headers['content-disposition'], 'inline; filename="B-3.svg"');
+    assert.equal(res.headers['content-disposition'], 'inline; filename="B-3_synthetic_data_for_demonstration_purposes_only_not_a_real_boring_log.svg"');
     assert.match(res.body, /^<\?xml version="1.0" encoding="UTF-8"\?>\n<svg /);
     assert.equal(res.headers['access-control-allow-origin'], '*');
 });
@@ -39,9 +39,9 @@ test('renders a standalone HTML page', async () => {
     const res = await render('?format=html&download=true');
     assert.equal(res.statusCode, 200);
     assert.equal(res.headers['content-type'], 'text/html; charset=utf-8');
-    assert.equal(res.headers['content-disposition'], 'attachment; filename="B-3.html"');
+    assert.equal(res.headers['content-disposition'], 'attachment; filename="B-3_synthetic_data_for_demonstration_purposes_only_not_a_real_boring_log.html"');
     assert.match(res.body, /^<!doctype html>/);
-    assert.match(res.body, /<title>B-3<\/title>/);
+    assert.match(res.body, /<title>B-3 \(synthetic data for demonstration purposes only; not a real boring log\)<\/title>/);
     assert.match(res.body, /<svg [^>]*>[\s\S]*<\/svg>/);
 });
 

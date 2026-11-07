@@ -53,7 +53,7 @@ test('samples get their sampler type, recovery, SPT drive sets and lab results',
     assert.deepEqual(samples, [
         // "38 19" separated by ts, not cs, is still read as LL and PL; dry density 101.2 pcf
         { top: 3, bottom: 5, name: 'T-2', type: 'Shelby', uscs: 'CL', specimens: [{ top: 3, bottom: 5, liquid_limit: 38, plastic_limit: 19, water_content: 24.5, dry_unit_weight: 101.2 }] },
-        { top: 10, bottom: 11.5, name: 'S-1', type: 'SPT', recovery: 1, blow_count: 14, blows: [4, 6, 8] },
+        { top: 10, bottom: 11.5, name: 'S-1', type: 'SPT', recovery_percent: 66.7, blow_count: 14, blows: [4, 6, 8] },
     ]);
 });
 

@@ -14,23 +14,40 @@ test('NoRecovery is not a sampler type', () => {
     assert.equal(SAMPLER_NAMES.NoRecovery, undefined);
 });
 
-test('recovery is a note in the remarks, not a column', () => {
-    const svg = renderBoringLog(base([
-        { top: 1, bottom: 1.45, name: 'S-1', type: 'SPT', recovery: 0.36 },
-        { top: 2, bottom: 2.45, name: 'S-2', type: 'SPT', recovery: 0, remarks: 'Rock in shoe' },
-        { top: 3, bottom: 3.45, name: 'S-3', type: 'Shelby', recovery: 0, remarks: 'No recovery, tube bent' },
-    ]));
-    const t = text(svg);
-    assert.doesNotMatch(t, /Recovery \(m\)/);
+test('recovery is a percent, shown as a note in the remarks, not a column', () => {
+    const doc = base([
+        { top: 1, bottom: 1.45, name: 'S-1', type: 'SPT', recovery_percent: 80 },
+        { top: 2, bottom: 2.45, name: 'S-2', type: 'SPT', recovery_percent: 0, remarks: 'Rock in shoe' },
+        { top: 3, bottom: 3.45, name: 'S-3', type: 'Shelby', recovery_percent: 0, remarks: 'No recovery, tube bent' },
+    ]);
+    const result = validateBoringLog(doc);
+    assert.equal(result.valid, true, JSON.stringify(result.errors));
+    assert.equal(result.warnings.length, 0);
+    const t = text(renderBoringLog(doc));
+    assert.doesNotMatch(t, /Recovery \(/);
     assert.match(t, /Remarks/);
-    assert.match(t, /Recovery 0\.36 m \(80%\)/);
+    assert.match(t, /Recovery 80%/);
     assert.match(t, /No recovery; Rock in shoe/);
     assert.equal((t.match(/no recovery/gi) ?? []).length, 2);
 });
 
-test('recovery is converted to the display units', () => {
-    const t = text(renderBoringLog(base([{ top: 1, bottom: 1.5, type: 'SPT', recovery: 0.3048 }]), { units: 'ft' }));
-    assert.match(t, /Recovery 1 ft \(61%\)/);
+test('an older recovery length is converted to a percent, with a warning', () => {
+    const doc = base([{ top: 1, bottom: 1.45, name: 'S-1', type: 'SPT', recovery: 0.36 }]);
+    const result = validateBoringLog(doc);
+    assert.equal(result.valid, true, JSON.stringify(result.errors));
+    assert.equal(result.warnings.length, 1);
+    assert.match(result.warnings[0].message, /recovery_percent.*80%/);
+    assert.match(text(renderBoringLog(doc)), /Recovery 80%/);
+    // Both given: the percent wins, and the length is ignored with a warning.
+    const both = validateBoringLog(base([{ top: 1, bottom: 1.45, type: 'SPT', recovery: 0.36, recovery_percent: 50 }]));
+    assert.equal(both.valid, true);
+    assert.match(both.warnings[0].message, /ignored/);
+    assert.match(text(renderBoringLog(base([{ top: 1, bottom: 1.45, type: 'SPT', recovery: 0.36, recovery_percent: 50 }]))), /Recovery 50%/);
+});
+
+test('recovery does not depend on the display units', () => {
+    const t = text(renderBoringLog(base([{ top: 1, bottom: 1.5, type: 'SPT', recovery_percent: 61 }]), { units: 'ft' }));
+    assert.match(t, /Recovery 61%/);
 });
 
 test('"no recovery" entered as the type or sample number becomes a note, with a warning', () => {

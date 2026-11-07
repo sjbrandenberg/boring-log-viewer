@@ -3,50 +3,51 @@
 <h1>Samples, specimens and tests</h1>
 <p class="lead">How samples, blow counts, recovery and laboratory results are entered and drawn.</p>
 
-<p>The data follows the way a laboratory works, and the way the Next Generation Liquefaction (NGL) database stores it:</p>
+<p>The data distinguishes samples from specimens as follows:</p>
 <ul>
     <li>A <b>sample</b> is what came out of the ground: an SPT, a Shelby tube, a core run. It has a depth interval, a sampler type, blow counts, recovery and remarks.</li>
-    <li>A <b>specimen</b> is a piece cut from a sample for laboratory tests. Its results (water content, unit weight, Atterberg limits, fines and so on) belong to it, at its own depth. One Shelby tube can give several specimens.</li>
+    <li>A <b>specimen</b> is a piece trimmed from a sample. Laboratory tests (water content, unit weight, Atterberg limits, fines content) are performed on specimens. Many specimens are often trimmed from a single sample.</li>
 </ul>
 <!-- log: step2-samples.json -->
-<p>Above, sample T-3 (a Shelby tube) has two specimens, T-3a and T-3b, each drawn as a grey box at its depth in the <b>Specimen</b> column with its results on its own row. The tube's recovery is noted in the remarks.</p>
+<p>In the example above, sample T-3 (a Shelby tube) has two specimens, T-3a and T-3b, each drawn as a grey box at its depth in the <b>Specimen</b> column with its results on its own row. The tube's recovery is noted in the remarks.</p>
 
 <h2 id="interval">Sample depth interval</h2>
-<p>Each sample has a <code>top</code> and <code>bottom</code> depth: the interval the sampler was driven or pushed over. The sampler symbol is drawn over that interval, and the sample's values (number, blow count) are written level with the middle of it.</p>
+<p>Each sample has a <code>top</code> and <code>bottom</code> depth: the interval through which the sampler was driven or pushed. The sampler symbol is drawn over that interval, and the sample's values (number, blow count) are aligned with the sample center.</p>
 <ul>
-    <li>For an <b>SPT</b>, use the full 18 in (0.45 m) drive, e.g. 10.0 to 11.5 ft.</li>
-    <li>For a <b>Shelby tube</b> or <b>core run</b>, use the length pushed or cored, and give the recovered length in <code>recovery</code>.</li>
-    <li>For a refusal, use the depth actually reached, e.g. 13.0 to 13.3 m for 50 blows in 5 in.</li>
+    <li>For an <b>SPT</b>, the sample length is the full 18 in (0.45 m) drive, e.g. 10.0 to 11.5 ft.</li>
+    <li>For a <b>Shelby tube</b> or <b>core run</b>, the sample length is the length pushed or cored, and the recovery is given in <code>recovery_percent</code>.</li>
+    <li>When a sample reaches refusal, use the depth actually reached, e.g. 13.0 to 13.3 m for 50 blows in 5 in.</li>
 </ul>
 
 <h2 id="types">Sampler types</h2>
-<p>Set a sample's <code>type</code> to one of these codes (spelled exactly as shown) to choose its symbol. Without a <code>type</code>, the sample is drawn as <code>Other</code>.</p>
+<p>A sample's <code>type</code> is defined by one of these codes (spelled exactly as shown), and the sampler symbol is selected based on its type. Without a <code>type</code>, the sample is drawn as <code>Other</code>.</p>
 <!-- gallery: samplers -->
 <p>You can replace any of these symbols with your own, or add new sampler types; see <a href="custom-hatches.html#samplers">Your own hatches</a>.</p>
 
 <h2 id="recovery">Recovery and no recovery</h2>
-<p><code>recovery</code> is the recovered length, in the log's length unit. It's shown as a note at the start of the sample's remarks, with the percentage of the sample interval: "Recovery 1.8 ft (90%)". A recovery of <code>0</code> is shown as "No recovery".</p>
-<p>No recovery is an outcome, not a kind of sampler. Give the sampler that was tried as the <code>type</code>, and <code>"recovery": 0</code>:</p>
-<pre><code>{ "top": 25, "bottom": 26.5, "name": "S-6", "type": "SPT", "blow_count": 12, "recovery": 0 }</code></pre>
-<p>Older data often marks it differently. A sample whose <code>type</code> is <code>"NoRecovery"</code>, or whose <code>type</code> or <code>name</code> is "No recovery" or "NR", is read as <code>"recovery": 0</code>, with a warning, and drawn as <code>Other</code> (or its given type).</p>
+<p><code>recovery_percent</code> is the recovered length as a percent of the sample interval (top to bottom). A Shelby tube pushed 2.0 ft that recovered 1.8 ft has <code>"recovery_percent": 90</code>. It's shown as a note at the start of the sample's remarks: "Recovery 90%". A recovery of <code>0</code> is shown as "No recovery".</p>
+<p>Earlier versions took <code>recovery</code> as a length. Such data is still read: the length is converted to a percent of the sample interval, with a warning.</p>
+<p>No recovery is an outcome, not a kind of sampler. Give the sampler that was tried as the <code>type</code>, and <code>"recovery_percent": 0</code>:</p>
+<pre><code>{ "top": 25, "bottom": 26.5, "name": "S-6", "type": "SPT", "blow_count": 12, "recovery_percent": 0 }</code></pre>
+<p>Older data often marks it differently. A sample whose <code>type</code> is <code>"NoRecovery"</code>, or whose <code>type</code> or <code>name</code> is "No recovery" or "NR", is read as <code>"recovery_percent": 0</code>, with a warning, and drawn as <code>Other</code> (or its given type).</p>
 
 <h2 id="blow-counts">Blow counts</h2>
 <p>There are two fields, and you can give either or both:</p>
 <ul>
     <li><b><code>blow_count</code></b> is the value you want shown in the blow count column: a number such as <code>14</code> (an SPT N-value, or blows per foot for another sampler), or text for refusal, such as <code>"50/5in"</code> or <code>"50/150mm"</code>.</li>
-    <li><b><code>blows</code></b> is the list of blows per increment, such as <code>[6, 8, 10]</code> for an SPT's three 6 in increments.</li>
+    <li><b><code>blows</code></b> is the list of blows per increment, such as <code>[6, 8, 10]</code> for an SPT's three 6 inch increments.</li>
 </ul>
 <p>If you give <code>blow_count</code>, that's what is shown. If you give only <code>blows</code>, the increments are shown joined with dashes: <code>6-8-10</code>.</p>
 <div class="callout warn">
     <strong>Blow counts are shown as given</strong>
-    <p>The viewer doesn't correct blow counts for energy, overburden or sampler type. A Modified California blow count is shown as recorded, not converted to an SPT N-value. Put corrected values in <code>remarks</code>, or in a <a href="layout.html#custom">custom column</a>, if you need them on the log.</p>
+    <p>The viewer doesn't correct blow counts for energy, overburden or sampler type. A Modified California blow count is shown as recorded, not converted to an SPT N-value. We really shouldn't be using Modified California samplers, but we still do (especially in southern California), so they're included in this boring log viewer, unfortunately. Put corrected values in <code>remarks</code>, or in a <a href="layout.html#custom">custom column</a>, if you need them on the log.</p>
 </div>
 <p><b>Energy ratio.</b> Give the hammer's energy ratio in <code>metadata.energy_ratio</code>; it's shown in the header as "ER = 82%". If it varies between samples, give <code>energy_ratio</code> on each sample and add the <code>energy_ratio</code> column, which isn't shown by default (see <a href="layout.html">Columns and layout</a>).</p>
 
 <h2 id="specimens">Specimens and laboratory results</h2>
 <p>Put laboratory results in the sample's <code>specimens</code> list:</p>
 <pre><code>{
-  "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby", "recovery": 1.8,
+  "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby", "recovery_percent": 90,
   "specimens": [
     { "name": "T-3a", "top": 12.6, "bottom": 13.1,
       "water_content": 36.5, "liquid_limit": 44, "plastic_limit": 21 },
@@ -66,6 +67,7 @@
         <tr><td><code>fines_content</code></td><td>Fines (%)</td><td>% passing No. 200 sieve</td></tr>
         <tr><td><code>liquid_limit</code>, <code>plastic_limit</code></td><td>Liquid limit, Plastic limit</td><td>%</td></tr>
         <tr><td><code>nonplastic</code></td><td>"NP" in both limit columns (any limits given are ignored)</td><td><code>true</code>/<code>false</code></td></tr>
+        <tr><td><code>uscs</code></td><td>Lab USCS: the symbol from the specimen's laboratory classification</td><td>USCS symbol</td></tr>
         <tr><td><code>remarks</code></td><td>Remarks, level with the specimen</td><td>text</td></tr>
         <tr><td><code>custom</code></td><td>Your own columns, e.g. <code>{ "cu": 45 }</code>; see <a href="layout.html#custom">custom columns</a></td><td>as you choose</td></tr>
     </tbody>
@@ -77,6 +79,11 @@
     <li>Dry density isn't a field: convert it to unit weight first (multiply Mg/m³ by 9.81 to get kN/m³). The AGS4 and DIGGS imports do this for you.</li>
 </ul>
 
+<h3 id="sample-unit-weight">Unit weight of a whole sample</h3>
+<p>A sample's unit weight is sometimes measured on the whole sample, for example by weighing a Shelby tube before it is extruded. Give it on the sample itself, with no warning. It's shown in the Total unit wt. and Dry unit wt. columns, level with the sample, without a specimen box; results on specimens cut from the same sample keep their own rows.</p>
+<pre><code>{ "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby", "total_unit_weight": 116.2,
+  "specimens": [ { "name": "T-3a", "top": 12.6, "bottom": 13.1, "water_content": 36.5 } ] }</code></pre>
+
 <h3 id="old-format">Results on the sample (older data)</h3>
 <p>Earlier versions put laboratory results directly on the sample (<code>"water_content": 22.8</code> next to <code>"blow_count"</code>). That's still accepted, with a warning, and the values are shown level with the sample, without a specimen box. To update such data, move the values into a specimen with the sample's depths:</p>
 <pre><code>{ "top": 7.5, "bottom": 9, "name": "S-2", "type": "SPT", "blow_count": 20,
@@ -85,3 +92,5 @@
 <h2 id="remarks">Remarks</h2>
 <p>A sample's text goes in <code>remarks</code>: "Refusal on cobble", "RQD 45%", "Poor recovery". They're shown in the <b>Remarks</b> column, level with the sample, after the recovery note. Each specimen's <code>remarks</code> are in the same column, level with the specimen.</p>
 <p>Samples used to have a <code>description</code> as well. It's still accepted, with a warning, and shown at the start of the remarks.</p>
+
+        

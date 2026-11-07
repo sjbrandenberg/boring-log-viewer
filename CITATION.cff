@@ -1,32 +1,44 @@
 # Citation metadata for this repository (https://citation-file-format.github.io).
 # GitHub reads it from the default branch for the "Cite this repository" button.
-# Before publishing: fill in the authors, set the version and date to the
-# release's, and change the license to BSD-3-Clause once the repository is
-# relicensed. After DesignSafe publishes it, add the DOI (see the end).
+# After DesignSafe publishes the release, add the DOI (see the end).
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "Boring Log Viewer"
 abstract: >-
-  Renders geotechnical boring logs from JSON, AGS4 or DIGGS data as standalone
-  SVG drawings: graphic log with USCS and material symbols, material
-  descriptions, samples, blow counts, laboratory specimens and groundwater.
-  It also draws automatic cross-sections and a 3D layer model from several
-  borings at a site. It runs as a web page in the browser, as a render API
-  for scripts, and as a JavaScript module.
+  The Boring Log Viewer is open-source software that draws geotechnical boring
+  logs from structured data. It reads a boring described in a JSON format,
+  defined by a published JSON Schema, and produces a consistent boring log
+  drawing: a header, depth and elevation scales, a graphic log with Unified Soil
+  Classification System (USCS) symbols and symbols for fill, pavement, organic
+  materials and rock, material descriptions, samples and sampler types, blow
+  counts, laboratory specimens with their test results, groundwater levels, and
+  a legend. A USCS symbol that is not given is inferred from the material
+  description only when the description determines it, and recorded symbols are
+  checked against their descriptions. Logs can be drawn in three ways: on a web
+  page in the browser, with no installation and no data leaving the user's
+  computer; through a web service (API) that returns SVG, PNG or HTML for use by
+  databases and scripts; and as a JavaScript module in other web pages or
+  Node.js programs. Translators convert Excel workbooks laid out like the
+  provided template, and AGS4 and DIGGS data-transfer files, into the same JSON
+  format. Users can define their own columns, layouts, hatch patterns and
+  sampler symbols. The software is used to display boring logs in geotechnical
+  case-history databases such as the Next Generation Liquefaction (NGL) database
+  and VSPDB.
 authors:
-  - given-names: "FIRSTNAME"
-    family-names: "LASTNAME"
-    email: "EMAIL@EXAMPLE.EDU"
-    affiliation: "AFFILIATION"
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-  - given-names: "FIRSTNAME"
-    family-names: "LASTNAME"
-    affiliation: "AFFILIATION"
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-version: "0.1.0"
-date-released: "2026-10-09"
-license: MIT
+  - given-names: "Arda"
+    family-names: "Sahin"
+    email: "arda120222@g.ucla.edu"
+    affiliation: "Department of Civil and Environmental Engineering, University of California, Los Angeles"
+    orcid: "https://orcid.org/0009-0009-7676-6567"
+  - given-names: "Scott J."
+    family-names: "Brandenberg"
+    email: "sjbrandenberg@g.ucla.edu"
+    affiliation: "Department of Civil and Environmental Engineering, University of California, Los Angeles"
+    orcid: "https://orcid.org/0000-0003-2493-592X"
+version: "1.0.0"
+date-released: "2026-11-06"
+license: BSD-3-Clause
 repository-code: "https://github.com/sjbrandenberg/boring-log-viewer"
 url: "https://sjbrandenberg.github.io/boring-log-viewer/"
 keywords:
@@ -34,14 +46,16 @@ keywords:
   - boring log
   - borehole log
   - subsurface investigation
+  - site characterization
   - USCS
   - standard penetration test
+  - laboratory testing
   - AGS4
   - DIGGS
-  - cross-section
-  - natural hazards
+  - JSON Schema
+  - data visualization
   - liquefaction
-  - SVG
+  - natural hazards
 # After DesignSafe assigns the DOI, uncomment and fill in:
 # identifiers:
 #   - type: doi

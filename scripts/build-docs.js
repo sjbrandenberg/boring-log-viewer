@@ -14,7 +14,6 @@
 //   <!-- gallery: uscs | duals | materials | samplers --> swatches with codes and names
 //   <!-- inference: description | description | ... -->  what the renderer infers from each
 //   <!-- uscscheck: SP-SM = well graded SAND ; ... -->    how a recorded symbol is checked against its description
-//   <!-- section: NAS-1.json NAS-2.json ... -> nas-a.svg {"id":"A"} -->  a suggested cross-section of those borings
 // Examples are read from docs/examples/, else from the repository's examples/.
 // The docs' own examples must validate without warnings.
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, watch, writeFileSync } from 'node:fs';
@@ -24,11 +23,8 @@ import { fileURLToPath } from 'node:url';
 import {
     renderBoringLog, validateBoringLog, hatchSwatch, hatchName, samplerSwatch, SAMPLER_NAMES,
     USCS_SYMBOLS, USCS_NAMES, DUAL_NAMES, LITHOLOGY, LITHOLOGY_GROUPS, inferMaterial, layerHatch,
-    renderSection, placeAlongLine,
 } from '../src/index.js';
 import { describedUscs, checkUscs } from '../src/classify.js';
-import { siteBorings, siteSummary } from '../src/site.js';
-import { lineBearing } from '../src/section.js';
 
 const root = new URL('../', import.meta.url);
 const src = new URL('docs/', root);
@@ -48,12 +44,11 @@ const NAV = [
     ['layout.html', 'Columns and layout', null],
     ['custom-hatches.html', 'Your own hatches', null],
     ['several-logs.html', 'Several logs and the map', 'Sites with many borings'],
-    ['site-view.html', 'Site view: sections and 3D', null],
-    ['cross-sections.html', 'How cross-sections are drawn', null],
-    ['model-3d.html', 'The 3D model', null],
-    ['importing.html', 'Importing AGS4 and DIGGS', 'Other ways in and out'],
+    ['excel.html', 'Excel workbooks', 'Other ways in and out'],
+    ['importing.html', 'Importing AGS4 and DIGGS', null],
     ['options.html', 'Display options', null],
     ['api.html', 'Render API (scripts)', null],
+    ['javascript.html', 'JavaScript in your own page', null],
     ['troubleshooting.html', 'Troubleshooting and FAQ', 'Help'],
 ];
 
@@ -169,26 +164,7 @@ function uscsCheck(arg) {
         + `<tbody>${rows.join('')}</tbody></table></div>`;
 }
 
-// A suggested cross-section of a site, as the site API draws it (server/app.js).
-function sectionFigure(arg) {
-    const m = /^(.+?)\s*->\s*(\S+)\s*(\{.*\})?$/.exec(arg.trim());
-    if (!m) throw new Error(`bad section directive: ${arg}`);
-    const [, list, outName, opts] = m;
-    const names = list.split(/\s+/);
-    const docs = names.map(n => JSON.parse(example(n)));
-    const { id = 'A', ...options } = opts ? JSON.parse(opts) : {};
-    const s = siteSummary(docs).sections.find(x => x.id === id);
-    if (!s) throw new Error(`section ${id} not suggested for ${list}`);
-    const located = siteBorings(docs).filter(b => b.lat !== null);
-    const { svg } = renderSection(placeAlongLine(located, s.line, s.corridor), {
-        length: s.length, id: s.id, bearing: lineBearing(s.line) ?? undefined, title: `Cross-section ${s.id}–${s.id}′`, id_prefix: `s${s.id}`, ...options,
-    });
-    writeFileSync(new URL(`examples/${outName}`, out), svg);
-    return `<figure class="log"><a href="examples/${outName}" title="Open full size"><img src="examples/${outName}" alt="Cross-section ${s.id} through ${names.length} borings" loading="lazy"></a>`
-        + `<figcaption>${escapeHtml(s.name)}, drawn from ${names.map(n => `<a href="examples/${n}" download><code>${n}</code></a>`).join(', ')}. ${escapeHtml(s.description)} Click to open full size.</figcaption></figure>`;
-}
-
-const DIRECTIVES = { log: logFigure, json: jsonBlock, gallery, inference, uscscheck: uscsCheck, section: sectionFigure };
+const DIRECTIVES = { log: logFigure, json: jsonBlock, gallery, inference, uscscheck: uscsCheck };
 
 // ------------------------------------------------------------------ build
 
@@ -200,6 +176,8 @@ function build() {
     cpSync(new URL('site/favicon.svg', root), new URL('favicon.svg', out));
     cpSync(new URL('schema/boring-log.schema.json', root), new URL('boring-log.schema.json', out));
     for (const f of readdirSync(new URL('examples/', src)).filter(f => f.endsWith('.json'))) example(f);
+    // Other example files (Excel workbooks, the example JavaScript page) are copied as they are.
+    for (const f of readdirSync(new URL('examples/', src)).filter(f => !f.endsWith('.json'))) cpSync(new URL(`examples/${f}`, src), new URL(`examples/${f}`, out));
     writeFileSync(new URL('.nojekyll', out), '');
 
     const layout = readFileSync(new URL('_layout.html', src), 'utf8');
@@ -209,7 +187,7 @@ function build() {
         const description = /<!--\s*description:\s*(.*?)\s*-->/.exec(page)?.[1] ?? '';
         const body = page
             .replace(/<!--\s*(title|description):.*?-->\s*/g, '')
-            .replace(/<!--\s*(log|json|gallery|inference|uscscheck|section):([\s\S]*?)-->/g, (_, name, arg) => DIRECTIVES[name](arg.trim()));
+            .replace(/<!--\s*(log|json|gallery|inference|uscscheck):([\s\S]*?)-->/g, (_, name, arg) => DIRECTIVES[name](arg.trim()));
         const html = layout
             .replaceAll('{{title}}', escapeHtml(file === 'index.html' ? 'Boring Log Viewer documentation' : `${title} · Boring Log Viewer`))
             .replaceAll('{{description}}', escapeHtml(description))

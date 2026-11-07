@@ -58,7 +58,7 @@ a { color: var(--accent); }
 }
 .site-header h1 { margin: 0; font-size: 24px; }
 .site-header p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
-.site-header nav { display: flex; gap: 16px; }
+.site-header nav { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 
 .layout {
     display: grid;
@@ -115,12 +115,7 @@ a { color: var(--accent); }
 .map-panel summary .muted { font-weight: normal; margin-left: 6px; }
 .map { height: 280px; margin-top: 6px; border: 1px solid var(--border); border-radius: var(--radius); }
 .map-label { font-size: 12px; padding: 1px 5px; }
-.map.drawing, .map.drawing .leaflet-interactive { cursor: crosshair; }
-.map-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; font-size: 13px; }
-.map-tools input { width: 5.5em; font-size: 13px; min-height: 28px; padding: 2px 6px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); }
-.map-tools button { font-size: 13px; min-height: 28px; }
 .small-note { font-size: 12.5px; margin: 4px 0 0; }
-.section-end { display: flex; align-items: center; justify-content: center; background: #d9480f; color: #fff; font-weight: 700; font-size: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 .view-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 10px; }
 .view-switch button { font-size: 15px; padding: 6px 16px; min-height: 36px; font-weight: 600; }
 .options { padding: 8px 10px; margin-bottom: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
@@ -129,27 +124,7 @@ a { color: var(--accent); }
 .view-switch { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .view-switch button { border: 0; border-radius: 0; }
 .view-switch button[aria-selected="true"] { background: var(--accent); color: var(--accent-text); }
-.block3d { height: min(70vh, 640px); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: #f4f6f8; touch-action: none; }
-.block3d canvas { display: block; }
-.block3d.picking canvas { cursor: crosshair; }
 .error-note { color: var(--error) !important; background: var(--error-bg) !important; padding: 6px 10px; border-radius: var(--radius); font-weight: 600; }
-.slice-note { margin: 8px 0 0; padding: 6px 10px; border-radius: var(--radius); background: var(--warning-bg); color: var(--text); font-size: 0.9em; }
-.slice-panel { margin-top: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 8px 10px; }
-.slice-head { display: flex; align-items: center; gap: 8px; }
-.slice-head h3 { margin: 0; font-size: 1rem; }
-.slice-head .spacer { flex: 1; }
-.slice-figure { overflow-x: auto; background: #fff; margin-top: 8px; }
-.slice-figure svg { display: block; max-width: 100%; height: auto; }
-.view3d { position: relative; }
-.block-legend { margin-top: 8px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; font-size: 12.5px; }
-.block-legend[hidden] { display: none; }
-.block-legend h4 { margin: 0 0 4px; font-size: 13px; }
-.block-legend ol { list-style: none; margin: 0; padding: 0; columns: 2 260px; column-gap: 20px; }
-.block-legend li { break-inside: avoid; margin-bottom: 3px; }
-.block-legend li { display: flex; align-items: flex-start; gap: 6px; }
-.block-legend i { flex: none; width: 22px; height: 13px; border: 1px solid #333; margin-top: 2px; }
-.block-legend i.water { border: 0; border-top: 2px dashed #1f5fa8; height: 0; margin-top: 8px; }
-.block-legend .small-note { color: var(--muted); }
 #ve { width: 120px; }
 .map-label.active { font-weight: 700; }
 .leaflet-container { font: inherit; }
@@ -167,6 +142,7 @@ button, .button, select, input[type="number"] {
     min-height: 32px;
 }
 button, .button { cursor: pointer; display: inline-flex; align-items: center; }
+a.button { text-decoration: none; box-sizing: border-box; }
 button:hover:not(:disabled), .button:hover { border-color: var(--accent); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }

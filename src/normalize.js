@@ -31,8 +31,10 @@ export function stripNulls(value) {
 
 // "No recovery" is the outcome of a sample, not a sampler type or a sample
 // number, but it is often entered as one ("type": "NoRecovery", "name": "NR").
-// Such samples are read as recovery 0 (shown as "No recovery" in the remarks)
-// with a warning. A custom sampler pattern with that code is left alone.
+// Such samples are read as recovery_percent 0 (shown as "No recovery" in the
+// remarks) with a warning. A custom sampler pattern with that code is left alone.
+// Recovery is a percent of the sample interval; an older "recovery" (a length,
+// in units.length) is converted to recovery_percent, with a warning.
 const NO_RECOVERY_TEXT = /^\s*(no[\s_.-]*(sample[\s_.-]*)?rec(overy|\.)?|n\.?\s?r\.?|not[\s_-]*recovered)\s*$/i;
 
 export function fixNoRecoverySamples(doc) {
@@ -45,18 +47,32 @@ export function fixNoRecoverySamples(doc) {
         const out = { ...sample };
         let fixed = false;
         if (typeof out.type === 'string' && NO_RECOVERY_TEXT.test(out.type) && !Object.prototype.hasOwnProperty.call(patterns, out.type)) {
-            warnings.push({ path: `/samples/${i}/type`, message: `"${out.type}" is not a sampler type; read as no recovery (use the sampler that was tried as "type" and "recovery": 0)` });
+            warnings.push({ path: `/samples/${i}/type`, message: `"${out.type}" is not a sampler type; read as no recovery (use the sampler that was tried as "type" and "recovery_percent": 0)` });
             delete out.type;
             fixed = true;
         }
         if (typeof out.name === 'string' && NO_RECOVERY_TEXT.test(out.name)) {
-            warnings.push({ path: `/samples/${i}/name`, message: `"${out.name}" is not a sample number; read as no recovery (use "recovery": 0)` });
+            warnings.push({ path: `/samples/${i}/name`, message: `"${out.name}" is not a sample number; read as no recovery (use "recovery_percent": 0)` });
             delete out.name;
             fixed = true;
         }
+        if (out.recovery !== undefined) {
+            const len = out.bottom - out.top;
+            if (out.recovery_percent !== undefined) {
+                warnings.push({ path: `/samples/${i}/recovery`, message: '"recovery" (a length) is no longer used and was ignored, since "recovery_percent" is given' });
+                delete out.recovery;
+                fixed = true;
+            } else if (typeof out.recovery === 'number' && out.recovery >= 0 && typeof out.top === 'number' && typeof out.bottom === 'number' && len > 0) {
+                const pct = Math.round((out.recovery / len) * 1000) / 10;
+                warnings.push({ path: `/samples/${i}/recovery`, message: `"recovery" is now a percent: give "recovery_percent"; the length ${out.recovery} was read as ${pct}% of the sample interval` });
+                out.recovery_percent = pct;
+                delete out.recovery;
+                fixed = true;
+            }
+        }
         if (!fixed) return sample;
         changed = true;
-        out.recovery = 0;
+        if (out.recovery_percent === undefined) out.recovery_percent = 0;
         return out;
     });
     return { doc: changed ? { ...doc, samples } : doc, warnings };
@@ -66,14 +82,17 @@ export function fixNoRecoverySamples(doc) {
 // given on a sample itself, as in older documents, are kept as a specimen with
 // no depths of its own: its results are shown level with the sample, but no
 // specimen box is made up for it.
+// Unit weights may also be given for a whole sample (e.g. a tube weighed before
+// extrusion); they are drawn the same way, without a warning.
 export const LAB_FIELDS = ['water_content', 'total_unit_weight', 'dry_unit_weight', 'specific_gravity', 'fines_content', 'liquid_limit', 'plastic_limit', 'nonplastic'];
-const SAMPLE_LAB_FIELDS = LAB_FIELDS.filter(f => f !== 'total_unit_weight');
+const SAMPLE_LAB_FIELDS = LAB_FIELDS;
+const SAMPLE_UNIT_WEIGHTS = ['total_unit_weight', 'dry_unit_weight'];
 
 export function sampleLabWarnings(doc) {
     const warnings = [];
     (Array.isArray(doc?.samples) ? doc.samples : []).forEach((s, i) => {
         if (typeof s?.description === 'string' && s.description) warnings.push({ path: `/samples/${i}/description`, message: 'samples have remarks, not a description: it is shown at the start of the sample remarks; put it in "remarks"' });
-        const fields = SAMPLE_LAB_FIELDS.filter(f => s?.[f] !== undefined);
+        const fields = SAMPLE_LAB_FIELDS.filter(f => !SAMPLE_UNIT_WEIGHTS.includes(f) && s?.[f] !== undefined);
         if (fields.length) warnings.push({ path: `/samples/${i}`, message: `lab results on the sample (${fields.join(', ')}) are shown level with the sample, without a specimen box; give them in "specimens" with the specimen's top and bottom` });
     });
     return warnings;
@@ -96,17 +115,12 @@ export function specimensOf(sample) {
 }
 
 // The note on a sample's recovery shown in the remarks: "No recovery", or
-// "Recovery 0.36 m (80%)" with the length converted by `toDisplay`. The sample's
-// top and bottom must already be in the display units.
-export function recoveryRemark(sample, toDisplay = v => v, unit = '') {
-    const rec = sample?.recovery;
+// "Recovery 80%".
+export function recoveryRemark(sample) {
+    const rec = sample?.recovery_percent;
     if (typeof rec !== 'number' || !Number.isFinite(rec)) return undefined;
     if (rec <= 0) return 'No recovery';
-    const len = sample.bottom - sample.top;
-    const display = toDisplay(rec);
-    const shown = Number(display.toFixed(2));
-    const pct = len > 0 ? ` (${Math.round((display / len) * 100)}%)` : '';
-    return `Recovery ${shown}${unit ? ` ${unit}` : ''}${pct}`;
+    return `Recovery ${Number(rec.toFixed(1))}%`;
 }
 
 const USCS_CODES = new Set(['GW', 'GP', 'GM', 'GC', 'SW', 'SP', 'SM', 'SC', 'ML', 'CL', 'OL', 'MH', 'CH', 'OH', 'PT']);

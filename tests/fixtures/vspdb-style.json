@@ -3,7 +3,7 @@
   "units": { "length": "ft", "unit_weight": "pcf", "diameter": "in" },
   "metadata": {
     "site_name": "Treasure Island strong-motion station (synthetic example)",
-    "boring_name": "TI-B1",
+    "boring_name": "TI-B1 (synthetic data for demonstration purposes only; not a real boring log)",
     "latitude": 37.8254,
     "longitude": -122.3729,
     "start_date": "2021-03-02",

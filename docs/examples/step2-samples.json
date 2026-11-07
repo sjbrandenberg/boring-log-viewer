@@ -42,7 +42,7 @@
         { "name": "T-3a", "top": 12.6, "bottom": 13.1, "water_content": 36.5, "liquid_limit": 44, "plastic_limit": 21 },
         { "name": "T-3b", "top": 13.6, "bottom": 14.1, "water_content": 35.2, "dry_unit_weight": 84.2, "total_unit_weight": 114.9 }
       ],
-      "recovery": 1.8
+      "recovery_percent": 90
     },
     {
       "top": 17.5,

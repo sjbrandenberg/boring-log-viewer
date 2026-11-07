@@ -1,11 +1,11 @@
 <!-- title: Data format reference -->
 <!-- description: Every field of the boring log JSON format: units, metadata, layers, samples, groundwater, depth notes, references and custom patterns. -->
 <h1>Data format reference</h1>
-<p class="lead">Every field the viewer reads, what it means, and what units it's in.</p>
+<p class="lead">How the data is formatted, which fields are required, which are optional, and what fields are allowed.</p>
 
-<p>A boring log is one JSON object. Only <code>schema_version</code> and <code>layers</code> are required. The outline:</p>
+<p>A boring log's data is stored as one JSON object. Only <code>layers</code> is required; all other fields are optional. The fields are defined below (the notes on the right aren't part of the JSON):</p>
 <pre><code>{
-  "schema_version": "1.0",
+  "schema_version": "1.0",    version of the format (optional; the latest, 1.0, if left out)
   "units":       { ... },     how the numbers are measured
   "metadata":    { ... },     the header: project, boring name, location, drilling...
   "layers":      [ ... ],     strata, top to bottom (required)
@@ -16,24 +16,24 @@
   "patterns":    { ... },     your own hatches and sampler symbols
   "layout":      { ... }      the log's columns, widths and headings
 }</code></pre>
-<p>(The notes on the right aren't part of the JSON.) A complete example: <a href="examples/full-example.json" download><code>full-example.json</code></a>. The formal definition is the <a href="boring-log.schema.json">JSON Schema</a>, which many editors can use to check your file as you type.</p>
+<p>A complete example: <a href="examples/full-example.json" download><code>full-example.json</code></a>. A more complete definition is the <a href="boring-log.schema.json">JSON Schema</a>, which many editors can use to check your file as you type.</p>
 
 <h2 id="general">General rules</h2>
 <ul>
     <li><b>Depths</b> are measured down from the ground surface, in the length unit from <code>units</code>. They can't be negative. For each layer and sample, <code>bottom</code> must be greater than <code>top</code>.</li>
     <li><b>Order doesn't matter.</b> Layers and samples are sorted by depth before drawing.</li>
-    <li><b><code>null</code> means "not given".</b> <code>"water_content": null</code> is the same as leaving the field out, so database exports with empty cells work as they are.</li>
+    <li><b><code>null</code> means "not given".</b> <code>"water_content": null</code> is the same as leaving the field out. Some databases export empty fields as "null", so either is accepted.</li>
     <li><b>Field names are checked.</b> A misspelled name such as <code>"descripton"</code> is an error ("unknown property"), so typos don't silently lose data. Names are lower case, with underscores.</li>
     <li><b>Gaps and overlaps</b> between layers are allowed but reported as warnings, in case they're mistakes. A gap is left blank in the graphic log.</li>
 </ul>
 
 <h2 id="units">units</h2>
-<p>The units the numbers in your data are in. Each is optional; metric is the default. To <em>display</em> the log in other units, use the Units option rather than changing these (see <a href="options.html#units">Display options</a>).</p>
+<p><code>units</code> gives the units the numbers in your data are in. Each is optional; metric is the default. You can <em>display</em> the log in other units using the <a href="options.html#units">Display options</a> functionality rather than changing the data and the units the data are in.</p>
 <div class="table-wrap"><table>
     <thead><tr><th>Field</th><th>Values</th><th>Default</th><th>Applies to</th></tr></thead>
     <tbody>
-        <tr><td><code>length</code></td><td><code>"m"</code>, <code>"ft"</code></td><td><code>"m"</code></td><td>All depths, elevation, recovery</td></tr>
-        <tr><td><code>unit_weight</code></td><td><code>"kN/m3"</code>, <code>"pcf"</code></td><td><code>"kN/m3"</code></td><td>Dry unit weight</td></tr>
+        <tr><td><code>length</code></td><td><code>"m"</code>, <code>"ft"</code></td><td><code>"m"</code></td><td>All depths, elevation</td></tr>
+        <tr><td><code>unit_weight</code></td><td><code>"kN/m3"</code>, <code>"pcf"</code></td><td><code>"kN/m3"</code></td><td>Total and dry unit weight</td></tr>
         <tr><td><code>diameter</code></td><td><code>"mm"</code>, <code>"cm"</code>, <code>"m"</code>, <code>"in"</code>, <code>"ft"</code></td><td><code>"mm"</code></td><td>Borehole and sampler diameters</td></tr>
     </tbody>
 </table></div>
@@ -86,13 +86,14 @@
     <thead><tr><th>Field</th><th>Meaning</th><th>Units</th></tr></thead>
     <tbody>
         <tr><td><code>top</code>, <code>bottom</code></td><td><b>Required.</b> Depth interval sampled (for an SPT, the 18 in / 0.45 m drive)</td><td>length</td></tr>
-        <tr><td><code>name</code></td><td>Sample number</td><td>text, e.g. <code>"S-1"</code></td></tr>
-        <tr><td><code>type</code></td><td>Sampler type; picks the symbol. See <a href="samples.html#types">sampler types</a>. Default <code>"Other"</code></td><td><code>"SPT"</code>, <code>"Shelby"</code>, ...</td></tr>
+        <tr><td><code>name</code></td><td>Sample name</td><td>text, e.g. <code>"S-1"</code></td></tr>
+        <tr><td><code>type</code></td><td>Sampler type. Used to pick sampler symbol. See <a href="samples.html#types">sampler types</a>. Default <code>"Other"</code></td><td><code>"SPT"</code>, <code>"Shelby"</code>, ...</td></tr>
         <tr><td><code>blow_count</code></td><td>Blow count as reported: a number, or text for refusal</td><td><code>14</code>, <code>"50/5in"</code></td></tr>
         <tr><td><code>blows</code></td><td>Blows for each increment</td><td><code>[6, 8, 10]</code></td></tr>
         <tr><td><code>energy_ratio</code></td><td>Hammer energy ratio for this sample, if different from the header</td><td>%</td></tr>
         <tr><td><code>sampler_diameter</code></td><td>Sampler outside diameter</td><td>diameter</td></tr>
-        <tr><td><code>recovery</code></td><td>Recovered length; <code>0</code> means no recovery. Shown as a note in the remarks</td><td>length</td></tr>
+        <tr><td><code>recovery_percent</code></td><td>Recovery: the recovered length as a percent of the sample interval; <code>0</code> means no recovery. Shown as a note in the remarks</td><td>%</td></tr>
+        <tr><td><code>total_unit_weight</code>, <code>dry_unit_weight</code></td><td>Unit weights of the whole sample, for example a tube weighed before it is extruded. Shown level with the sample. Results on specimens go in <code>specimens</code></td><td>unit_weight</td></tr>
         <tr><td><code>remarks</code></td><td>Notes about the sample</td><td>text</td></tr>
         <tr><td><code>specimens</code></td><td>The specimens cut from the sample for laboratory tests, with their results (below)</td><td>list</td></tr>
         <tr><td><code>uscs</code></td><td>USCS symbol of the sample (kept with the data; not drawn)</td><td><code>"SM"</code></td></tr>
@@ -114,6 +115,7 @@
         <tr><td><code>fines_content</code></td><td>Percent passing the No. 200 (75 µm) sieve</td><td>%</td></tr>
         <tr><td><code>liquid_limit</code>, <code>plastic_limit</code></td><td>Atterberg limits</td><td>%</td></tr>
         <tr><td><code>nonplastic</code></td><td><code>true</code> for a non-plastic specimen: "NP" in both limit columns</td><td><code>true</code>/<code>false</code></td></tr>
+        <tr><td><code>uscs</code></td><td>USCS symbol from the laboratory classification of the specimen (its limits and sieve analysis). Shown in the <b>Lab USCS</b> column</td><td><code>"CL"</code></td></tr>
         <tr><td><code>remarks</code></td><td>Notes about the specimen</td><td>text</td></tr>
         <tr><td><code>custom</code></td><td>Values for your own specimen columns, e.g. <code>{ "cu": 45 }</code></td><td>as you choose</td></tr>
     </tbody>
@@ -121,7 +123,7 @@
 <pre><code>"samples": [
   { "top": 2.5, "bottom": 4, "name": "S-1", "type": "SPT", "blows": [3, 4, 4], "blow_count": 8,
     "specimens": [ { "name": "S-1a", "top": 2.5, "bottom": 4, "water_content": 14.2, "fines_content": 31 } ] },
-  { "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby", "recovery": 1.8,
+  { "top": 12.5, "bottom": 14.5, "name": "T-3", "type": "Shelby", "recovery_percent": 90,
     "specimens": [
       { "name": "T-3a", "top": 12.6, "bottom": 13.1, "water_content": 36.5, "liquid_limit": 44, "plastic_limit": 21 },
       { "name": "T-3b", "top": 13.6, "bottom": 14.1, "water_content": 35.2, "dry_unit_weight": 84.2 }
@@ -129,11 +131,11 @@
 ]</code></pre>
 <div class="callout">
     <strong>Older data</strong>
-    <p>Laboratory results written on the sample itself (<code>water_content</code>, <code>liquid_limit</code> and so on), and a sample <code>description</code>, are still accepted with a warning. See <a href="samples.html#old-format">results on the sample</a>.</p>
+    <p>Laboratory results written on the sample itself (<code>water_content</code>, <code>liquid_limit</code> and so on), and a sample <code>description</code>, are still accepted with a warning (unit weights are fine on a sample, without a warning). A <code>recovery</code> given as a length, as in earlier versions, is converted to <code>recovery_percent</code>, with a warning. See <a href="samples.html#old-format">results on the sample</a>.</p>
 </div>
 
 <h2 id="groundwater">groundwater</h2>
-<p>Water level readings. Only <code>depth</code> is required.</p>
+<p>Water level readings. Only <code>depth</code> is required. Each reading is drawn as ▽ in the water level column; its date and note are listed in the legend, not beside the symbol.</p>
 <div class="table-wrap"><table>
     <thead><tr><th>Field</th><th>Meaning</th><th>Example</th></tr></thead>
     <tbody>
@@ -154,7 +156,7 @@
 ]</code></pre>
 
 <h2 id="references">references</h2>
-<p>Where the data came from: the report, paper or database. Listed in the header. <code>text</code> is required; a web address in <code>url</code> is shown after the text and is a clickable link in an SVG.</p>
+<p>Where the data came from: the report, paper or database. Listed in the header. <code>text</code> is required. Only an address in <code>url</code> becomes a link (clickable in an SVG; <code>http</code> and <code>https</code> addresses only). It's printed after the text unless the text already contains it. An address typed in <code>text</code> alone is shown as plain text, not linked.</p>
 <pre><code>"references": [
   { "text": "Example Geotechnical Consultants (2019). Geotechnical investigation report.",
     "url": "https://example.com/report.pdf" },
@@ -181,3 +183,5 @@
     "remarks"
   ]
 }</code></pre>
+
+        
