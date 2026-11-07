@@ -1,6 +1,5 @@
 # Citation metadata for this repository (https://citation-file-format.github.io).
 # GitHub reads it from the default branch for the "Cite this repository" button.
-# After DesignSafe publishes the release, add the DOI (see the end).
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
@@ -56,8 +55,8 @@ keywords:
   - data visualization
   - liquefaction
   - natural hazards
-# After DesignSafe assigns the DOI, uncomment and fill in:
-# identifiers:
-#   - type: doi
-#     value: "10.17603/ds2-XXXX-XXXX"
-#     description: "DesignSafe Data Depot publication"
+doi: "10.17603/ds2-rnc6-7323"
+identifiers:
+  - type: doi
+    value: "10.17603/ds2-rnc6-7323"
+    description: "DesignSafe Data Depot publication of version 1.0.0"
