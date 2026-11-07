@@ -9,6 +9,8 @@ the API version to draw their boring logs.
 User documentation, written for engineers rather than developers, is at
 **https://sjbrandenberg.github.io/boring-log-viewer/** (source in [`docs/`](docs/)).
 
+Cite version 1.0.0 as: Sahin, A., and S. J. Brandenberg (2026). *Boring Log Viewer* (version 1.0.0). DesignSafe-CI. https://doi.org/10.17603/ds2-rnc6-7323
+
 ```js
 import { renderBoringLog, validateBoringLog } from 'boring-log-viewer';
 
